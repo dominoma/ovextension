@@ -1,0 +1,856 @@
+type StringMap = {[key:string]: string};
+namespace OV {
+    export namespace array {
+        export function last<T>(arr: Array<T>, value: T) : Array<T>;
+        export function last<T>(arr: Array<T>) : T;
+        export function last(arr : Array<any>, value?: any) {
+            if(arguments.length > 1) {
+                return fromEnd(arr, 0, value);
+            }
+            else {
+                return fromEnd(arr, 0);
+            }
+        }
+        export function fromEnd<T>(arr: Array<T>, index: number, value: T) : Array<T>;
+        export function fromEnd<T>(arr: Array<T>, index: number) : T;
+        export function fromEnd(arr : Array<any>, index : number, value?: any) {
+            if(arguments.length > 2) {
+                arr[arr.length-1-index] = value;
+                return arr;
+            }
+            else {
+                return arr[arr.length-1-index];
+            }
+        }
+        export function search<T>(elem: T, arr: Array<T>, cmpre?: (elem: T, arrItem: T) => boolean ) : T {
+            if(cmpre) {
+                cmpre = function(elem, arrItem){ 
+                    return arrItem === elem; 
+                };
+            }
+            for(let item of arr) {
+                if(cmpre(elem, item)) {
+                    return item;
+                }
+            }
+        }
+    }
+    export namespace object {
+        export function merge<T1, T2>(obj1: T1, obj2: T2) : T1&T2 {
+            return (<any>Object).assign({}, obj1, obj2);
+        }
+    }
+    export function toJSONString(obj: any) : string {
+        if(Array.isArray(obj)) {
+            var str = "";
+            for(var elem of obj) {
+                str += ","+OV.toJSONString(elem);
+            }
+            return "["+str.substr(1)+"]";
+        }
+        else if(typeof obj == "object") {
+            var str = "";
+            for(var key in obj) {
+                if(obj.hasOwnProperty(key)) {
+                    str += '"'+key+'": '+OV.toJSONString(obj[key])+"\n";
+                }
+            }
+            return "{\n"+str+"}";
+        }
+        else if(typeof obj == "function"){
+            return obj.toString();
+        }
+        else {
+            return JSON.stringify(obj);
+        }
+    }
+    export namespace tools {
+        export function objToHash(obj: Object) : string {
+            if(obj) {
+                return "?hash="+encodeURIComponent(JSON.stringify(obj));
+            }
+            else {
+                return "";
+            }
+        }
+        export function hashToObj(hashStr : string) : Object|null {
+            var hash = parseUrlQuery(hashStr).hash;
+            if(hash == "" || hash == undefined) {
+                return null;
+            }
+            else {
+                return JSON.parse(hash);
+            }
+        }
+        export function getAbsoluteUrl(url : string) : string {
+            let a = document.createElement('a');
+            a.href = url;
+            url = a.href;
+            return url;
+        }
+        function unpackJS(source: string) : string
+        {
+            function getUnbase(base : number) {
+                var ALPHABET = "";
+                if     (base > 62) ALPHABET = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+                else if(base > 54) ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                else if(base > 52) ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR';
+                else               ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
+                return function(val : string) {
+                    if( 2 <= base && base <= 36)
+                    {
+                        return parseInt(val,base);
+                    }
+                    else{
+                        var valArray = val.split('').reverse();
+                        var ret = 0;
+                        for(var i = 0; i < valArray.length ; i++)
+                        {
+                            var cipher = valArray[i];
+                            ret += Math.pow(base, i) * ALPHABET.indexOf(cipher);
+                        }
+                        return ret;
+                    }
+                };
+            }
+            var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/);
+            
+            // Payload
+            var payload = out[1];
+            // Words
+            var symtab = out[4].split(/\|/); 
+            // Radix
+            var radix = parseInt(out[2]);
+            // Words Count
+            var count = parseInt(out[3]);
+            
+            if( count != symtab.length ) return; // Malformed p.a.c.k.e.r symtab !
+            
+            var unbase = getUnbase(radix);
+            
+            function lookup(matches : any)
+            {
+                var word = matches;
+                var ub = symtab[unbase(word)];
+                var ret = ub ? ub : word;
+                return ret;
+            }
+            
+            var result = payload.replace(/\b\w+\b/g, lookup);
+            result = result.replace(/\\/g, '');
+            return result;
+        }
+        let parseUrlOptions = {
+            strictMode: false,
+            key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+            q:   {
+                name:   "queryKey",
+                parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+            },
+            parser: {
+                strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+                loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+            }
+        };
+        export interface URL {
+             source?: string; 
+             protocol?: string;
+             host?: string;
+             port?: string;
+             path?: string;
+             query?: StringMap;
+             queryStr?: string;
+        }
+        export function parseUrl(str: string) : URL {
+            var o : any  = parseUrlOptions,
+                m : any  = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+                uri : any = {},
+                i   = 14;
+
+            while (i--) uri[o.key[i]] = m[i] || "";
+
+            uri[o.q.name] = {};
+            uri[o.key[12]].replace(o.q.parser, function ($0 : any, $1 : any, $2 : any) {
+                if ($1) uri[o.q.name][$1] = $2;
+            });
+            (<any>uri).queryString = (<any>uri).query;
+            (<any>uri).query = parseUrlQuery(str);
+            return uri;
+        }
+        export function parseUrlQuery(url : string) : StringMap {
+            if(url.indexOf("?") == -1) {
+                return {};
+            }
+          var query_string : any = {};
+          var query = url.substr(url.indexOf("?")+1);
+          var vars = query.split("&");
+          for (var i=0;i<vars.length;i++) {
+            var pair = vars[i].split("=");
+                // If first entry with this name
+            if (typeof query_string[pair[0]] === "undefined") {
+              query_string[pair[0]] = decodeURIComponent(pair[1]);
+                // If second entry with this name
+            } else if (typeof query_string[pair[0]] === "string") {
+              var arr = [ query_string[pair[0]],decodeURIComponent(pair[1]) ];
+              query_string[pair[0]] = arr;
+                // If third or later entry with this name
+            } else {
+              query_string[pair[0]].push(decodeURIComponent(pair[1]));
+            }
+          } 
+          return query_string;
+        }
+        export function getUrlFileName(url: string) : Promise<string> {
+            return createRequest({url: url, type: HTTPMethods.HEAD }).then(function(xhr){
+                var  filename  = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [] )[1];
+                if(filename && filename != "") {
+                    return filename;
+                }
+                else {
+                    return decodeURIComponent(url.substring(url.lastIndexOf('/')+1).replace(/[&\?].*/, ""));
+                }
+            });
+        }
+        export function getRedirectedUrl(url: string) : Promise<String> {
+            return createRequest({url: url, type: HTTPMethods.HEAD }).then(function(xhr){
+                return xhr.responseURL;
+            });
+            
+        }
+        export function objToURLParams(obj: StringMap) : string {
+            var str = "";
+            for (var key in obj) {
+                str += "&" + key + "=" + encodeURIComponent(obj[key]);
+            }
+            return str.substr(1);
+        }
+        export function addParamsToURL(url: string, obj: StringMap) : string {
+            return (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+        }
+        export const enum HTTPMethods {
+            GET = "GET",
+            POST = "POST",
+            HEAD = "HEAD"
+        }
+        export function createRequest(args: { url: string; type?: HTTPMethods; protocol?: string; cache?: boolean; headers?: StringMap; xmlHttpObj?: XMLHttpRequest; formData?: StringMap; data?: StringMap }) : Promise<XMLHttpRequest> {
+            return new Promise<XMLHttpRequest>((resolve, reject) => {
+                var xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+                var type = args.type || HTTPMethods.GET;
+                var protocol = args.protocol || "https://";
+                var url  = OV.tools.addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
+                
+                xmlHttpObj.open(type, url, true); 
+                xmlHttpObj.onload = function() {
+                    if(xmlHttpObj.status == 200) {
+                        resolve(xmlHttpObj);
+                    }
+                    else {
+                        reject(Error(xmlHttpObj.statusText));
+                    }
+                };
+                xmlHttpObj.onerror = function() {
+                    reject(Error("Network Error"));
+                };
+                if(args.cache == false || OV.proxy.isEnabled()) {
+                    xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                    xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                    xmlHttpObj.setRequestHeader('expires', '0');
+                    xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                    xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+                }
+                if(args.headers) {
+                    for(var key in args.headers) {
+                        xmlHttpObj.setRequestHeader(key, args.headers[key]);
+                    }
+                }
+                var formData = null;
+                if(args.formData) {
+                    formData = new FormData();
+                    for(var key in args.formData) {
+                        formData.append(key, args.formData[key]);
+                    }
+                }
+                xmlHttpObj.send(formData);
+            });
+        }
+    }
+    
+    export namespace html {
+        export function getAttributes(elem: HTMLElement) : StringMap {
+            let hash : StringMap = {};
+            for(let i=0;i<elem.attributes.length;i++){
+                hash[elem.attributes[i].name] = elem.attributes[i].value;
+            }
+            return hash;
+        }
+        export function addAttributeListener(elem: HTMLElement, attribute: string, callback: (attribute: string, value: string, lastValue: string, elem: HTMLElement) => void ) {
+            var lastValue : string = (<any>elem.attributes)[attribute].value;
+            setInterval( function() {   
+               var value = (<any>elem.attributes)[attribute].value;
+               
+                if (value != lastValue) {
+                    callback.call(elem, attribute, value, lastValue, elem);   
+                    lastValue = value;
+                }
+            },10);
+        }
+    }
+    export namespace page {
+        export function injectOV() : void {
+            var script = document.createElement('script');
+            script.appendChild(document.createTextNode("window['OV'] = "+OV.toJSONString(OV)));
+            (document.head || document.body || document.documentElement).appendChild(script);
+        }
+        export function injectJS(source : Function, data: Array<string>) : void {
+            var injectStr = source.toString();
+            //if(typeof source === "function") {
+                var args = JSON.stringify(data).slice(1, -1);
+                injectStr = "("+source+")("+args+");";
+            //}
+            var script = document.createElement('script');
+            script.appendChild(document.createTextNode(injectStr));
+            (document.body || document.head || document.documentElement).appendChild(script);
+        }
+        export function execute(valueFunc: Function, valueFuncData: Object) : Promise<Object> {
+            return new Promise<Object>(function(resolve, reject){
+                OV.page.injectOV();
+                OV.messages.addListener({
+                    ovInjectResponse: function(data: any, sender, sendResponse) {
+                        if(data.response) {
+                            resolve(data.response);
+                        }
+                        return { blocked: true };
+                    }
+                });
+                var sendResponse = function (resData : any) : void {
+                    OV.messages.send({ func: "ovInjectResponse", data: { response: resData } });
+                }
+                OV.page.injectJS(valueFunc,[JSON.stringify(valueFuncData),sendResponse.toString()]);
+            });
+        }
+        export function getUrlObj() : Object {
+            return OV.tools.hashToObj(document.location.href);
+        }
+        export function getObjUrl(obj : Object) : string {
+            return location.href.substr(location.href.indexOf("?hash="))+OV.tools.objToHash(obj);
+        }
+        export function isFrame() : boolean {
+            try {
+                return self !== top;
+            } catch (e) {
+                return true;
+            }
+        }
+        export interface Wrapper<T> {
+            [key:string]: WrapperEntry<T>;
+        }
+        export interface WrapperEntry<T> {
+            get: (target: T) => any;
+            set: (target: T, value: any) => void;
+        }
+        export function wrapType<T extends Object>(origConstr: new (...args: any[]) => T, wrapper: Wrapper<T>) : void{
+            (<any>window)[origConstr.name] = function (a : any,b : any,c : any,d : any,e : any,f : any) {
+                var obj = new origConstr(a,b,c,d,e,f);
+                var proxyWrapper = new Proxy(obj, { 
+                    get: function(target, name) {
+                        if(wrapper[name]) {
+                            return wrapper[name].get(target);
+                        }
+                        else if(typeof (<any>target)[name] === "function") {
+                            return (<any>target)[name].bind(target);
+                        }
+                        else {
+                            return (<any>target)[name];
+                        }
+                    }, set: function(target, name, value){
+                        if(wrapper[name]) {
+                            if(wrapper[name].set) {
+                                wrapper[name].set(target, value);
+                            }
+                        }
+                        else {
+                            (<any>target)[name] = value;
+                        }
+                        return true;
+                    }
+                });
+                return proxyWrapper;
+            };
+        }
+    }
+    
+    export namespace tab {
+        export function create(url: string) : void {
+            OV.messages.send({ bgdata: { func: "openTab", data: { url: url } } });
+        } 
+    }
+    /*OV.tab.setIconPopup = function(url) {
+        OV.background.execute("setIconPopup", null, {url: url});
+    }
+    OV.tab.setIconText = function(text) {
+        OV.background.execute("setIconText",null, {text: text});
+    }*/
+    export namespace storage {
+        export const enum StorageScopes {
+            Local = "local",
+            Sync = "sync"
+        }
+        export function get(scope: StorageScopes, name: string) : Promise<any> {
+            return new Promise(function(resolve, reject){
+                if(scope == StorageScopes.Local) {
+                    chrome.storage.local.get(name, function(item){
+                        resolve({value: item[name]});
+                    });
+                }
+                else if(scope == StorageScopes.Sync) {
+                    chrome.storage.sync.get(name, function(item){
+                        resolve({value: item[name]});
+                    });
+                }
+            });
+        }
+        export function set(scope: StorageScopes, name: string, value: any) : Promise<{success: boolean}> {
+            return new Promise(function(resolve, reject){
+                if(scope == StorageScopes.Local) {
+                    chrome.storage.local.set({[name]: value}, function(){
+                        resolve({ success: true });
+                    });
+                }
+                else if(scope == StorageScopes.Sync) {
+                    chrome.storage.sync.set({[name]: value}, function(){
+                        resolve({ success: true });
+                    });
+                }
+            })
+        }
+        export function setup() {
+            OV.messages.setupBackground({
+                getStorageData: function(msg, bgdata: any, sender, sendResponse) {
+                    get(bgdata.scope, bgdata.name).then(sendResponse, sendResponse);
+                },
+                setStorageData: function(msg, bgdata: any, sender, sendResponse) {
+                    set(bgdata.scope, bgdata.name, bgdata.value).then(sendResponse, sendResponse);
+                }
+            });
+        }
+        export namespace local {
+            export function get(name: string) : Promise<any>{
+                if(OV.environment.isBackgroundPage()) {
+                    return OV.storage.get(StorageScopes.Local, name);
+                }
+                else {
+                    return OV.messages.send({bgdata: { func: "getStorageData", data: { scope: "local", name: name } } });
+                }
+            }
+            export function set(name: string, value: any) : Promise<{success: boolean}>{
+                if(OV.environment.isBackgroundPage()) {
+                    return OV.storage.set(StorageScopes.Local, name, value);
+                }
+                else {
+                    return OV.messages.send({bgdata: { func: "setStorageData", data: { scope: "local", name: name, value: value } } }).then(function(){
+                        return { success: true};
+                    });
+                }
+            }
+        }
+        export namespace sync {
+            export function get(name: string) : Promise<any> {
+                if(OV.environment.isBackgroundPage()) {
+                    return OV.storage.get(StorageScopes.Sync, name);
+                }
+                else {
+                    return OV.messages.send({bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } });
+                }
+            }
+            export function set(name: string, value: any) : Promise<{success: boolean}> {
+                if(OV.environment.isBackgroundPage()) {
+                    return OV.storage.set(StorageScopes.Sync, name, value);
+                }
+                else {
+                    return OV.messages.send({bgdata: { func: "setStorageData", data: { scope: "sync", name: name, value: value } } }).then(function(){
+                        return { success: true};
+                    });
+                }
+            }
+        }
+    }
+    export namespace environment {
+        let _isBGPage = false;
+        export function declareBGPage() : void {
+            _isBGPage = true;
+        }
+        export function getVidPlaySiteUrl(vidHash: VideoTypes.VideoData) : string {
+            return chrome.extension.getURL("/html/VidPlaySite/VidPlaySite.html")+OV.tools.objToHash(vidHash);
+        }
+        export function getVidPopupSiteUrl(vidHash: Object) : string {
+            return chrome.extension.getURL("/html/VideoPopup/VideoPopup.html")+OV.tools.objToHash(vidHash);
+        }
+        export function getOptionsSiteUrl() : string {
+            return chrome.extension.getURL("/html/OptionsSite/OptionsSite.html");
+        }
+        export function getLibrarySiteUrl() : string {
+            return chrome.extension.getURL("/html/LibrarySite/librarySite.html");
+        }
+        export function isExtensionPage(url: string) : boolean {
+            if(OV.environment.browser() == OV.environment.Browsers.Chrome) {
+                return url.indexOf("chrome-extension://") != -1;
+            }
+            else {
+                return url.indexOf("moz-extension://") != -1;
+            }
+        }
+        export function getRoot() : string {
+            return chrome.extension.getURL("");
+        }
+        export function isBackgroundPage() : boolean {
+            return _isBGPage;
+        }
+        export function getManifest() : Object {
+            return chrome.runtime.getManifest();
+        }
+        export const enum Browsers {
+            Chrome = "chrome",
+            Firefox = "firefox"
+        }
+        export function browser() : Browsers {
+            if(navigator.userAgent.search("Firefox") != -1) {
+                return Browsers.Firefox;
+            }
+            else if(navigator.userAgent.search("Chrome") != -1) {
+                return Browsers.Chrome;
+            }
+        }
+    }
+    
+    namespace analytics {
+        function generateCID() : string {
+
+            var ts = Math.round(+new Date() / 1000.0);
+            var rand  = Math.round(Math.random() * 2147483647);
+            return [rand, ts].join('.');
+
+        }
+        export function getCID() : Promise<string> {
+            return OV.storage.sync.get("AnalyticsCID").then(function(cid){
+                if(!cid) {
+                    cid = generateCID();
+                    OV.storage.sync.set("AnalyticsCID", cid);
+                }
+                return cid;
+            });
+        }
+        function postData(data: StringMap) : Promise<XMLHttpRequest> {
+            return OV.storage.sync.get("AnalyticsEnabled").then(function(value){
+                if(value || value == undefined) {
+                    return getCID().then(function(cid){
+                        data = Object.assign({v: 1, tid: "UA-118573631-1", cid: cid}, data);
+                        return OV.tools.createRequest({
+                            url: "https://www.google-analytics.com/collect",
+                            type: OV.tools.HTTPMethods.POST,
+                            data: data
+                        });
+                    });
+                }
+            });
+        }
+        export function send(data: StringMap) : Promise<{success: boolean}> {
+            if(OV.environment.isBackgroundPage()) {
+                return postData(data).then(function(){ return {success: true } });
+            }
+            else {
+                return OV.messages.send({ bgdata: { func: "analytics", data: data } }).then(function(){ return {success: true } });
+            }
+        }
+        export function fireEvent(category: string, action: string, label: string) {
+            send({t: "event", ec: category, ea: action, el: label});
+        }
+    }
+    export namespace proxy {
+        export function setupBG() : void {
+            OV.messages.setupBackground({
+                proxySetup: function(data, bgdata : any, sender, sendResponse) { 
+                    _setup({ip: bgdata.ip, port: bgdata.port, country: bgdata.country}).then(sendResponse); 
+                },
+                proxyUpdate: function(data, bgdata, sender, sendResponse) { 
+                    _update().then(sendResponse); 
+                },
+                proxyRemove: function(data, bgdata, sender, sendResponse) { 
+                    _remove(); 
+                },
+                proxyAddHostToList: function(data, bgdata: any, sender, sendResponse) { 
+                    _addHostToList(bgdata.host); 
+                },
+                proxyNewProxy: function(data, bgdata, sender, sendResponse) { 
+                    _newProxy().then(sendResponse);
+                },
+                proxyGetCurrent: function(data, bgdata, sender, sendResponse) {
+                    sendResponse(currentProxy);
+                }
+            });
+        }
+        export interface Proxy {
+            ip: string;
+            port: number;
+            country?: string;
+            anonymity?: string;
+        }
+        let currentProxy : Proxy|null = null;
+        export function setup(proxy: Proxy) : Promise<Proxy> {
+            console.log(proxy);
+            if(OV.environment.isBackgroundPage()) {
+                return _setup(proxy);
+            }
+            else {
+                return <any>OV.messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } });
+            }
+        }
+        function _setup(proxy: Proxy) : Promise<Proxy> {
+            return new Promise(function(resolve, reject){
+                
+                remove();
+                currentProxy = proxy;
+                OV.storage.sync.set("ProxyEnabled", currentProxy);
+                if(OV.environment.browser() == OV.environment.Browsers.Chrome) {
+                    var config = {
+                        mode: "pac_script",
+                        pacScript: {
+                            data:   "function FindProxyForURL(url, host) {"+
+                                        "var hosts = "+JSON.stringify(hosts)+";"+
+                                        "for(var host of hosts) {"+
+                                            "if(url.indexOf(host) != -1) {"+
+                                                "return 'PROXY "+proxy.ip+":"+proxy.port+"';"+
+                                            "}"+
+                                        "}"+
+                                        "return 'DIRECT';"+
+                                    "}"
+                        }
+                    };
+                    chrome.proxy.settings.set({value: config, scope: 'regular'});
+                }
+                else {
+                    browser.proxy.register("/assets/js/pacFF.js");
+                    browser.runtime.sendMessage({ proxy: currentProxy, hosts: hosts}, {toProxyScript: true});
+                }
+                resolve(currentProxy);
+            });
+        }
+        export function update() : Promise<Proxy> {
+            if(OV.environment.isBackgroundPage()) {
+                return _update();
+            }
+            else {
+                return <any>OV.messages.send({ bgdata: { func: "proxyUpdate" } });
+            }
+        }
+        function _update() : Promise<Proxy> {
+            if(isEnabled()) {
+                return setup(currentProxy);
+            }
+        }
+        export function newProxy() : Promise<Proxy> {
+            if(OV.environment.isBackgroundPage()) {
+                return _newProxy();
+            }
+            else {
+                return <any>OV.messages.send({ bgdata: { func: "proxyNewProxy" } });
+            }
+        }
+        let triedProxies : Array<string> = [];
+        let proxies : Array<Proxy> = [];
+        function _newProxy() : Promise<Proxy> {
+            if(isEnabled()) {
+                triedProxies.push(currentProxy.ip);
+            }
+            if(proxies.length == 0 || triedProxies.length > 20 || triedProxies.length == proxies.length) {
+                return searchProxies().then(function(newproxies){
+                    proxies = newproxies;
+                    triedProxies = [];
+                    
+                    for(var proxy of proxies) {
+                        if(triedProxies.indexOf(proxy.ip) == -1) {
+                            return _setup(proxy);
+                        }
+                    }
+                });
+            }
+            else {
+                for(var proxy of proxies) {
+                    if(triedProxies.indexOf(proxy.ip) == -1) {
+                        return _setup(proxy);
+                    }
+                }
+            }
+            
+        }
+        export function isEnabled() : boolean {
+            return OV.environment.isBackgroundPage() && currentProxy != null;
+        }
+        export function getCurrentProxy() : Promise<Proxy> {
+            if(OV.environment.isBackgroundPage()) {
+                return Promise.resolve(currentProxy);
+            }
+            else {
+                return <any>OV.messages.send({ bgdata: { func: "proxyGetCurrent" } });
+            }
+        }
+        export function remove() {
+            if(OV.environment.isBackgroundPage()) {
+                _remove();
+            }
+            else {
+                OV.messages.send({ bgdata: { func: "proxyRemove" } });
+            }
+        }
+        function _remove() {
+            if(OV.environment.browser() == OV.environment.Browsers.Chrome) {
+                chrome.proxy.settings.clear({});
+            }
+            else {
+                browser.proxy.unregister();
+            }
+            currentProxy = null;
+            OV.storage.sync.set("ProxyEnabled", false);
+        }
+        function searchProxies() : Promise<Array<Proxy>> {
+            var url = "https://free-proxy-list.net/anonymous-proxy.html";
+            return OV.tools.createRequest({ url: url }).then(function(xhr){
+                var HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
+                var table = HTML.getElementsByTagName("table")[0];
+                var tableRows = table.getElementsByTagName("tr");
+                var proxies : Array<Proxy> = [];
+                for(let row of tableRows) {
+                    if(row.cells[4].innerText == "elite proxy") {
+                        proxies.push({ 
+                            ip: row.cells[0].innerText,
+                            port: parseInt(row.cells[1].innerText),
+                            country: row.cells[3].innerText,
+                            anonymity: row.cells[4].innerText
+                        });
+                    }
+                }
+                return proxies;
+            });
+            
+        }
+        let hosts : Array<string> = [];
+        export function addHostToList(host : string) : void {
+            if(OV.environment.isBackgroundPage()) {
+                _addHostToList(host);
+            }
+            else {
+                OV.messages.send({ bgdata: { func: "proxyAddHostToList", data: { host: host } } });
+            }
+        }
+        function _addHostToList(host : string) {
+            if(hosts.indexOf(host) == -1) {
+                hosts.push(host);
+            }
+        }
+        export function addHostsToList(hosts : Array<string>) {
+            for(var host of hosts) {
+                _addHostToList(host);
+            }
+        }
+    }
+    export namespace languages {
+        export function getMsg(msgName: string, args: StringMap) {
+            var msg = chrome.i18n.getMessage(msgName);
+            if(args) {
+                for(var key in args) {
+                    msg = msg.replace("{"+key+"}",args[key]);
+                }
+            }
+            return msg;
+        }
+    }
+    export namespace messages {
+        export interface BackgroundData {
+            data?: Object;
+            func?: string;
+        }
+        export interface MessageData {
+            data?: Object;
+            func?: string;
+            hash?: string;
+            sender?: Object;
+            bgdata?: BackgroundData;
+        }
+        export function generateHash() : string {
+            var ts = Math.round(+new Date() / 1000.0);
+            var rand = Math.round(Math.random() * 2147483647);
+            return [rand, ts].join('.');
+        }
+        export function addListener(functions: { [key:string]: (data: Object, sender: Object, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
+            var blockedFuncs : Array<string> = [];
+            document.addEventListener('ovmessage', function(event){
+                var details = (<any>event).detail;
+                //alert(JSON.stringify(details))
+                if(functions[details.func] && !details.bgdata && blockedFuncs.indexOf(details.func) == -1) {
+                    
+                    var result = functions[details.func](details.data, details.sender, function(data){
+                        
+                        var event = new CustomEvent('ovmessage', { detail: {data: data, hash: details.hash } });
+                        document.dispatchEvent(event);
+                    });
+                    if(result && result.blocked) {
+                        blockedFuncs.push(details.func);
+                    }
+                }
+            });
+        }
+        export function send(obj : MessageData) : Promise<{ data: Object; sender: Object; }> {
+            return new Promise(function(resolve, reject){
+                try {
+                    var hash = OV.messages.generateHash();
+                    
+                    let one = function(event : CustomEvent) : void{
+                        var details = event.detail;
+                        if(details.hash === hash && !details.func) {
+                            document.removeEventListener('ovmessage', one);
+                            resolve({ data: details.data, sender: details.sender });
+                        }
+                    };
+                    document.addEventListener('ovmessage', one);
+                    
+                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
+                    document.dispatchEvent(event);
+                }
+                catch(e) {
+                    reject(e);
+                }
+            });
+        }
+        export function setupMiddleware() {
+            document.addEventListener('ovmessage', function(event){
+                var details = (<any>event).detail;
+                if(details.bgdata) {
+                    
+                    chrome.runtime.sendMessage({func: details.func, data: details.data, hash: details.hash, bgdata: details.bgdata}, function(resData){
+                        
+                        var event = new CustomEvent('ovmessage', { detail: {data: resData, hash: details.hash} });
+                        document.dispatchEvent(event);
+                    })
+                }
+            });
+            chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse){
+                if(!msg.bgdata) {
+                    
+                    OV.messages.send({func: msg.func, data: msg.data, sender: sender}).then(function(details){
+                        sendResponse(details.data);
+                    });
+                }
+            })
+        }
+        export function setupBackground(functions: {[key:string]: (msg: MessageData, bgData: BackgroundData, sender: Object, sendResponse: (obj: Object) => void) => void }) {
+            chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse){
+                if(msg.bgdata) {
+                    
+                    if(functions[msg.bgdata.func]) {
+                        functions[msg.bgdata.func]({ func: msg.func, data: msg.data, hash: msg.hash }, msg.bgdata.data, sender, sendResponse);
+                    }
+                    return true;
+                }
+            });
+        }
+    } 
+}

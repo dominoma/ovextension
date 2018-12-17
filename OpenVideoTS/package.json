@@ -1,0 +1,13 @@
+{
+  "author": "Dominik",
+  "name": "OpenVideoTS",
+  "version": "0.0.0",
+  "description": "Generated with typescript.java",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chrome": "0.0.75",
+    "@types/firefox-webext-browser": "64.0.0",
+    "@types/video.js": "7.2.5"
+  }
+}
