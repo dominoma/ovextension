@@ -32,6 +32,7 @@ var OV;
                     return item;
                 }
             }
+            return null;
         }
         array.search = search;
     })(array = OV.array || (OV.array = {}));
@@ -130,8 +131,9 @@ var OV;
             var radix = parseInt(out[2]);
             // Words Count
             var count = parseInt(out[3]);
-            if (count != symtab.length)
-                return; // Malformed p.a.c.k.e.r symtab !
+            if (count != symtab.length) {
+                throw Error("Malformed p.a.c.k.e.r symtab !");
+            }
             var unbase = getUnbase(radix);
             function lookup(matches) {
                 var word = matches;
@@ -143,6 +145,7 @@ var OV;
             result = result.replace(/\\/g, '');
             return result;
         }
+        tools.unpackJS = unpackJS;
         let parseUrlOptions = {
             strictMode: false,
             key: ["source", "protocol", "authority", "userInfo", "user", "password", "host", "port", "relative", "path", "directory", "file", "query", "anchor"],
@@ -262,6 +265,9 @@ var OV;
                         formData.append(key, args.formData[key]);
                     }
                 }
+                if (args.beforeSend) {
+                    args.beforeSend(xmlHttpObj);
+                }
                 xmlHttpObj.send(formData);
             });
         }
@@ -300,15 +306,14 @@ var OV;
         function injectJS(source, data) {
             var injectStr = source.toString();
             //if(typeof source === "function") {
-            var args = JSON.stringify(data).slice(1, -1);
-            injectStr = "(" + source + ")(" + args + ");";
+            injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
             //}
             var script = document.createElement('script');
             script.appendChild(document.createTextNode(injectStr));
             (document.body || document.head || document.documentElement).appendChild(script);
         }
         page.injectJS = injectJS;
-        function execute(valueFunc, valueFuncData) {
+        function execute(source, data) {
             return new Promise(function (resolve, reject) {
                 OV.page.injectOV();
                 OV.messages.addListener({
@@ -322,10 +327,33 @@ var OV;
                 var sendResponse = function (resData) {
                     OV.messages.send({ func: "ovInjectResponse", data: { response: resData } });
                 };
-                OV.page.injectJS(valueFunc, [JSON.stringify(valueFuncData), sendResponse.toString()]);
+                OV.page.injectJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
             });
         }
         page.execute = execute;
+        function lookupCSS(args, callback) {
+            for (let i = 0; i < document.styleSheets.length; i++) {
+                let styleSheet = document.styleSheets.item(i);
+                for (let j = 0; j < styleSheet.cssRules.length; j++) {
+                    let cssRule = styleSheet.cssRules[i];
+                    if (cssRule.style) {
+                        if (args.key) {
+                            if (cssRule.style[args.key].match(args.value)) {
+                                callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                            }
+                        }
+                        else {
+                            for (var style of cssRule.style) {
+                                if (cssRule.style[style] && cssRule.style[style].match(args.value)) {
+                                    callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        page.lookupCSS = lookupCSS;
         function getUrlObj() {
             return OV.tools.hashToObj(document.location.href);
         }
@@ -528,6 +556,9 @@ var OV;
             else if (navigator.userAgent.search("Chrome") != -1) {
                 return "chrome" /* Chrome */;
             }
+            else {
+                throw Error("User agentis neither chrome nor Firefox");
+            }
         }
         environment.browser = browser;
     })(environment = OV.environment || (OV.environment = {}));
@@ -560,8 +591,10 @@ var OV;
                         });
                     });
                 }
+                return Promise.reject(Error("Analytics is disabled!"));
             });
         }
+        analytics.postData = postData;
         function send(data) {
             if (OV.environment.isBackgroundPage()) {
                 return postData(data).then(function () { return { success: true }; });
@@ -575,7 +608,7 @@ var OV;
             send({ t: "event", ec: category, ea: action, el: label });
         }
         analytics.fireEvent = fireEvent;
-    })(analytics || (analytics = {}));
+    })(analytics = OV.analytics || (OV.analytics = {}));
     let proxy;
     (function (proxy_1) {
         function setupBG() {
@@ -654,6 +687,9 @@ var OV;
             if (isEnabled()) {
                 return setup(currentProxy);
             }
+            else {
+                return Promise.reject(Error("Proxy can't be updated not enabled!"));
+            }
         }
         function newProxy() {
             if (OV.environment.isBackgroundPage()) {
@@ -679,6 +715,7 @@ var OV;
                             return _setup(proxy);
                         }
                     }
+                    throw Error("Something went wrong!");
                 });
             }
             else {
@@ -687,6 +724,7 @@ var OV;
                         return _setup(proxy);
                     }
                 }
+                throw Error("Something went wrong!");
             }
         }
         function isEnabled() {
@@ -849,6 +887,7 @@ var OV;
                     }
                     return true;
                 }
+                return false;
             });
         }
         messages.setupBackground = setupBackground;
