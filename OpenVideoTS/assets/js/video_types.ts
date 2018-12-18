@@ -5,7 +5,12 @@ namespace VideoTypes {
         label: string;
         res?: number;
         default?: boolean;
-        dlsrc?: { src: string; type: string; filename: string; }
+        dlsrc?: DownloadSource
+    }
+    export interface DownloadSource {
+        src: string; 
+        type: string; 
+        filename?: string;
     }
     export interface SubtitleSource {
         src: string;
