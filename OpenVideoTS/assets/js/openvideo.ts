@@ -22,7 +22,7 @@ namespace OV {
                 return arr[arr.length-1-index];
             }
         }
-        export function search<T>(elem: T, arr: Array<T>, cmpre?: (elem: T, arrItem: T) => boolean ) : T {
+        export function search<T>(elem: any, arr: Array<T>, cmpre?: (elem: any, arrItem: T) => boolean ) : T {
             if(cmpre) {
                 cmpre = function(elem, arrItem){ 
                     return arrItem === elem; 
@@ -33,6 +33,7 @@ namespace OV {
                     return item;
                 }
             }
+            return null;
         }
     }
     export namespace object {
@@ -88,7 +89,7 @@ namespace OV {
             url = a.href;
             return url;
         }
-        function unpackJS(source: string) : string
+        export function unpackJS(source: string) : string
         {
             function getUnbase(base : number) {
                 var ALPHABET = "";
@@ -124,7 +125,9 @@ namespace OV {
             // Words Count
             var count = parseInt(out[3]);
             
-            if( count != symtab.length ) return; // Malformed p.a.c.k.e.r symtab !
+            if( count != symtab.length ) {
+                throw Error("Malformed p.a.c.k.e.r symtab !");
+            }
             
             var unbase = getUnbase(radix);
             
@@ -295,94 +298,98 @@ namespace OV {
             },10);
         }
     }
-    export namespace page {
-        export function injectOV() : void {
-            var script = document.createElement('script');
-            script.appendChild(document.createTextNode("window['OV'] = "+OV.toJSONString(OV)));
-            (document.head || document.body || document.documentElement).appendChild(script);
-        }
-        export function injectJS(source : Function, data: Array<string>) : void {
-            var injectStr = source.toString();
-            //if(typeof source === "function") {
-                var args = JSON.stringify(data).slice(1, -1);
-                injectStr = "("+source+")("+args+");";
-            //}
-            var script = document.createElement('script');
-            script.appendChild(document.createTextNode(injectStr));
-            (document.body || document.head || document.documentElement).appendChild(script);
-        }
-        export function execute(valueFunc: Function, valueFuncData: Object) : Promise<Object> {
-            return new Promise<Object>(function(resolve, reject){
-                OV.page.injectOV();
-                OV.messages.addListener({
-                    ovInjectResponse: function(data: any, sender, sendResponse) {
-                        if(data.response) {
-                            resolve(data.response);
+    
+        export namespace page {
+            export function injectOV() : void {
+                var script = document.createElement('script');
+                script.appendChild(document.createTextNode("window['OV'] = "+OV.toJSONString(OV)));
+                (document.head || document.body || document.documentElement).appendChild(script);
+            }
+            export function injectJS(source : ((data: StringMap) => void) | string, data?: StringMap) : void {
+                var injectStr = source.toString();
+                //if(typeof source === "function") {
+                
+                    injectStr = "("+source+")("+JSON.stringify(data||{})+");";
+                //}
+                var script = document.createElement('script');
+                script.appendChild(document.createTextNode(injectStr));
+                (document.body || document.head || document.documentElement).appendChild(script);
+            }
+            export function execute(source: (data: StringMap, sendResponse: (data: StringMap) => void) => void, data?: StringMap) : Promise<StringMap> {
+                return new Promise<StringMap>(function(resolve, reject){
+                    OV.page.injectOV();
+                    OV.messages.addListener({
+                        ovInjectResponse: function(data: any, sender, sendResponse) {
+                            if(data.response) {
+                                resolve(data.response);
+                            }
+                            return { blocked: true };
                         }
-                        return { blocked: true };
+                    });
+                    var sendResponse = function (resData : any) : void {
+                        OV.messages.send({ func: "ovInjectResponse", data: { response: resData } });
                     }
+                    OV.page.injectJS(
+                        "function(data){ ("+source+")(data, ("+sendResponse+")); }"
+                    , data);
                 });
-                var sendResponse = function (resData : any) : void {
-                    OV.messages.send({ func: "ovInjectResponse", data: { response: resData } });
+            }
+            export function getUrlObj() : Object {
+                return OV.tools.hashToObj(document.location.href);
+            }
+            export function getObjUrl(obj : Object) : string {
+                return location.href.substr(location.href.indexOf("?hash="))+OV.tools.objToHash(obj);
+            }
+            export function isFrame() : boolean {
+                try {
+                    return self !== top;
+                } catch (e) {
+                    return true;
                 }
-                OV.page.injectJS(valueFunc,[JSON.stringify(valueFuncData),sendResponse.toString()]);
-            });
-        }
-        export function getUrlObj() : Object {
-            return OV.tools.hashToObj(document.location.href);
-        }
-        export function getObjUrl(obj : Object) : string {
-            return location.href.substr(location.href.indexOf("?hash="))+OV.tools.objToHash(obj);
-        }
-        export function isFrame() : boolean {
-            try {
-                return self !== top;
-            } catch (e) {
-                return true;
+            }
+            export interface Wrapper<T> {
+                [key:string]: WrapperEntry<T>;
+            }
+            export interface WrapperEntry<T> {
+                get: (target: T) => any;
+                set: (target: T, value: any) => void;
+            }
+            export function wrapType<T extends Object>(origConstr: new (...args: any[]) => T, wrapper: Wrapper<T>) : void{
+                (<any>window)[origConstr.name] = function (a : any,b : any,c : any,d : any,e : any,f : any) {
+                    var obj = new origConstr(a,b,c,d,e,f);
+                    var proxyWrapper = new Proxy(obj, { 
+                        get: function(target, name) {
+                            if(wrapper[name]) {
+                                return wrapper[name].get(target);
+                            }
+                            else if(typeof (<any>target)[name] === "function") {
+                                return (<any>target)[name].bind(target);
+                            }
+                            else {
+                                return (<any>target)[name];
+                            }
+                        }, set: function(target, name, value){
+                            if(wrapper[name]) {
+                                if(wrapper[name].set) {
+                                    wrapper[name].set(target, value);
+                                }
+                            }
+                            else {
+                                (<any>target)[name] = value;
+                            }
+                            return true;
+                        }
+                    });
+                    return proxyWrapper;
+                };
             }
         }
-        export interface Wrapper<T> {
-            [key:string]: WrapperEntry<T>;
-        }
-        export interface WrapperEntry<T> {
-            get: (target: T) => any;
-            set: (target: T, value: any) => void;
-        }
-        export function wrapType<T extends Object>(origConstr: new (...args: any[]) => T, wrapper: Wrapper<T>) : void{
-            (<any>window)[origConstr.name] = function (a : any,b : any,c : any,d : any,e : any,f : any) {
-                var obj = new origConstr(a,b,c,d,e,f);
-                var proxyWrapper = new Proxy(obj, { 
-                    get: function(target, name) {
-                        if(wrapper[name]) {
-                            return wrapper[name].get(target);
-                        }
-                        else if(typeof (<any>target)[name] === "function") {
-                            return (<any>target)[name].bind(target);
-                        }
-                        else {
-                            return (<any>target)[name];
-                        }
-                    }, set: function(target, name, value){
-                        if(wrapper[name]) {
-                            if(wrapper[name].set) {
-                                wrapper[name].set(target, value);
-                            }
-                        }
-                        else {
-                            (<any>target)[name] = value;
-                        }
-                        return true;
-                    }
-                });
-                return proxyWrapper;
-            };
-        }
-    }
     
     export namespace tab {
         export function create(url: string) : void {
-            OV.messages.send({ bgdata: { func: "openTab", data: { url: url } } });
-        } 
+            OV.messages.send({ bgdata: { func: "openTab", data: { url: url } as Background.OpenTab } });
+        }
+     
     }
     /*OV.tab.setIconPopup = function(url) {
         OV.background.execute("setIconPopup", null, {url: url});
@@ -519,10 +526,13 @@ namespace OV {
             else if(navigator.userAgent.search("Chrome") != -1) {
                 return Browsers.Chrome;
             }
+            else {
+                throw Error("User agentis neither chrome nor Firefox");
+            }
         }
     }
     
-    namespace analytics {
+    export namespace analytics {
         function generateCID() : string {
 
             var ts = Math.round(+new Date() / 1000.0);
@@ -539,7 +549,7 @@ namespace OV {
                 return cid;
             });
         }
-        function postData(data: StringMap) : Promise<XMLHttpRequest> {
+        export function postData(data: StringMap) : Promise<XMLHttpRequest> {
             return OV.storage.sync.get("AnalyticsEnabled").then(function(value){
                 if(value || value == undefined) {
                     return getCID().then(function(cid){
@@ -551,6 +561,7 @@ namespace OV {
                         });
                     });
                 }
+                return Promise.reject(Error("Analytics is disabled!"));
             });
         }
         export function send(data: StringMap) : Promise<{success: boolean}> {
@@ -558,7 +569,7 @@ namespace OV {
                 return postData(data).then(function(){ return {success: true } });
             }
             else {
-                return OV.messages.send({ bgdata: { func: "analytics", data: data } }).then(function(){ return {success: true } });
+                return OV.messages.send({ bgdata: { func: "analytics", data: data as StringMap} }).then(function(){ return {success: true } });
             }
         }
         export function fireEvent(category: string, action: string, label: string) {
@@ -646,6 +657,9 @@ namespace OV {
             if(isEnabled()) {
                 return setup(currentProxy);
             }
+            else {
+                return Promise.reject(Error("Proxy can't be updated not enabled!"));
+            }
         }
         export function newProxy() : Promise<Proxy> {
             if(OV.environment.isBackgroundPage()) {
@@ -671,6 +685,7 @@ namespace OV {
                             return _setup(proxy);
                         }
                     }
+                    throw Error("Something went wrong!");
                 });
             }
             else {
@@ -679,6 +694,7 @@ namespace OV {
                         return _setup(proxy);
                     }
                 }
+                throw Error("Something went wrong!");
             }
             
         }
@@ -753,7 +769,7 @@ namespace OV {
         }
     }
     export namespace languages {
-        export function getMsg(msgName: string, args: StringMap) {
+        export function getMsg(msgName: string, args?: StringMap) {
             var msg = chrome.i18n.getMessage(msgName);
             if(args) {
                 for(var key in args) {
@@ -772,7 +788,7 @@ namespace OV {
             data?: Object;
             func?: string;
             hash?: string;
-            sender?: Object;
+            sender?: chrome.runtime.MessageSender;
             bgdata?: BackgroundData;
         }
         export function generateHash() : string {
@@ -780,10 +796,10 @@ namespace OV {
             var rand = Math.round(Math.random() * 2147483647);
             return [rand, ts].join('.');
         }
-        export function addListener(functions: { [key:string]: (data: Object, sender: Object, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
+        export function addListener(functions: { [key:string]: (data: Object, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
             var blockedFuncs : Array<string> = [];
             document.addEventListener('ovmessage', function(event){
-                var details = (<any>event).detail;
+                var details = (<any>event).detail as MessageData;
                 //alert(JSON.stringify(details))
                 if(functions[details.func] && !details.bgdata && blockedFuncs.indexOf(details.func) == -1) {
                     
@@ -841,7 +857,7 @@ namespace OV {
                 }
             })
         }
-        export function setupBackground(functions: {[key:string]: (msg: MessageData, bgData: BackgroundData, sender: Object, sendResponse: (obj: Object) => void) => void }) {
+        export function setupBackground(functions: {[key:string]: (msg: MessageData, bgData: Object, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void }) {
             chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse){
                 if(msg.bgdata) {
                     
@@ -850,6 +866,7 @@ namespace OV {
                     }
                     return true;
                 }
+                return false;
             });
         }
     } 

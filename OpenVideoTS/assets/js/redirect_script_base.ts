@@ -1,3 +1,5 @@
+
+
 namespace ScriptBase {
     
     export interface ScriptDetails {
@@ -16,7 +18,7 @@ namespace ScriptBase {
     };
     export interface RedirectHost {
         name: string;
-        script: RedirectScriptEntry;
+        scripts: Array<RedirectScriptEntry>;
     };
     
     
@@ -26,19 +28,32 @@ namespace ScriptBase {
     }
     export function startScripts(scope: RunScopes) : void {
         for(let host of redirectHosts) {
-            let match = location.href.match(host.script.urlPattern);
-            if(match) {
-                for(let runScope of host.script.runScopes) {
-                    if(runScope.run_at == scope) {
-                        runScope.script({ url: location.href, match: match }).then(function(videoData){
-                            videoData.origin = location.href;
-                            videoData.host = host.name;
-                            location.href = OV.environment.getVidPlaySiteUrl(videoData);
-                        });
+            for(let script of host.scripts) {
+                let match = location.href.match(script.urlPattern);
+                if(match) {
+                    for(let runScope of script.runScopes) {
+                        if(runScope.run_at == scope) {
+                            runScope.script({ url: location.href, match: match }).then(function(videoData){
+                                videoData.origin = location.href;
+                                videoData.host = host.name;
+                                location.href = OV.environment.getVidPlaySiteUrl(videoData);
+                            });
+                        }
                     }
                 }
             }
         }
+    }
+    export function getRedirectHosts() : Array<RedirectHost> {
+        return redirectHosts;
+    }
+    export function isScriptEnabled(name : string) : Promise<boolean> {
+        return OV.storage.sync.get(name).then(function(value) {
+            return value === true || value === undefined || value === null;
+        });
+    }
+    export function setScriptEnabled(name: string, enabled: boolean) : Promise<{success: boolean}> {
+        return OV.storage.sync.set(name, enabled);
     }
 
 }
