@@ -235,7 +235,7 @@ namespace OV {
             POST = "POST",
             HEAD = "HEAD"
         }
-        export function createRequest(args: { url: string; type?: HTTPMethods; protocol?: string; cache?: boolean; headers?: StringMap; xmlHttpObj?: XMLHttpRequest; formData?: StringMap; data?: StringMap }) : Promise<XMLHttpRequest> {
+        export function createRequest(args: { url: string; type?: HTTPMethods; protocol?: string; cache?: boolean; headers?: StringMap; xmlHttpObj?: XMLHttpRequest; formData?: StringMap; data?: StringMap; beforeSend?: (xhr: XMLHttpRequest) => void; }) : Promise<XMLHttpRequest> {
             return new Promise<XMLHttpRequest>((resolve, reject) => {
                 var xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
                 var type = args.type || HTTPMethods.GET;
@@ -272,6 +272,9 @@ namespace OV {
                     for(var key in args.formData) {
                         formData.append(key, args.formData[key]);
                     }
+                }
+                if(args.beforeSend) {
+                    args.beforeSend(xmlHttpObj);
                 }
                 xmlHttpObj.send(formData);
             });
@@ -512,7 +515,7 @@ namespace OV {
         export function isBackgroundPage() : boolean {
             return _isBGPage;
         }
-        export function getManifest() : Object {
+        export function getManifest() : any {
             return chrome.runtime.getManifest();
         }
         export const enum Browsers {
