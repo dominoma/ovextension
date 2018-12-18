@@ -337,7 +337,31 @@ namespace OV {
                     , data);
                 });
             }
-            export function getUrlObj() : Object {
+            
+            export function lookupCSS(args : { key?: string; value: RegExp|string; }, callback : (obj : { cssRule: any, key: string, value: RegExp|string, match: any }) => void) : void {
+                for (let i=0;i<document.styleSheets.length;i++){
+                    let styleSheet = document.styleSheets.item(i)
+                    for(let j=0;j<(styleSheet as any).cssRules.length;j++) {
+                        let cssRule = (styleSheet as any).cssRules[i];
+                        if(cssRule.style) {
+                            if(args.key) {
+                                if(cssRule.style[args.key].match(args.value)) {
+                                    callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                                }
+                            }
+                            else {
+                                for(var style of cssRule.style) {
+                                    if(cssRule.style[style] && cssRule.style[style].match(args.value)) {
+                                        callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            export function getUrlObj() : any {
                 return OV.tools.hashToObj(document.location.href);
             }
             export function getObjUrl(obj : Object) : string {
@@ -355,7 +379,7 @@ namespace OV {
             }
             export interface WrapperEntry<T> {
                 get: (target: T) => any;
-                set: (target: T, value: any) => void;
+                set?: (target: T, value: any) => void;
             }
             export function wrapType<T extends Object>(origConstr: new (...args: any[]) => T, wrapper: Wrapper<T>) : void{
                 (<any>window)[origConstr.name] = function (a : any,b : any,c : any,d : any,e : any,f : any) {
@@ -799,7 +823,7 @@ namespace OV {
             var rand = Math.round(Math.random() * 2147483647);
             return [rand, ts].join('.');
         }
-        export function addListener(functions: { [key:string]: (data: Object, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
+        export function addListener(functions: { [key:string]: (data: any, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
             var blockedFuncs : Array<string> = [];
             document.addEventListener('ovmessage', function(event){
                 var details = (<any>event).detail as MessageData;
@@ -817,7 +841,7 @@ namespace OV {
                 }
             });
         }
-        export function send(obj : MessageData) : Promise<{ data: Object; sender: Object; }> {
+        export function send(obj : MessageData) : Promise<{ data: any; sender: chrome.runtime.MessageSender; }> {
             return new Promise(function(resolve, reject){
                 try {
                     var hash = OV.messages.generateHash();

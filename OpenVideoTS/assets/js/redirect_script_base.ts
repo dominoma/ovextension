@@ -44,8 +44,17 @@ namespace ScriptBase {
             }
         }
     }
-    export function getRedirectHosts() : Array<RedirectHost> {
-        return redirectHosts;
+    export function getRedirectHosts() : Promise<Array<RedirectHost>> {
+        return Promise.resolve().then(function(){
+            if(OV.environment.isBackgroundPage()) {
+                return redirectHosts;
+            }
+            else {
+                return OV.messages.send({ bgdata: { func: "redirectHosts" } }).then(function(response){
+                    return response.data.redirectHosts;
+                });
+            }
+        });
     }
     export function isScriptEnabled(name : string) : Promise<boolean> {
         return OV.storage.sync.get(name).then(function(value) {

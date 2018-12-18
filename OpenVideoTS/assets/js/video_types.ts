@@ -18,12 +18,14 @@ namespace VideoTypes {
         kind: string;
         language?: string;
         default?: boolean;
-        cues?: Cue[]
+        cues?: VTTCue[]
     }
-    export interface Cue {
+    export interface VTTCue {
         startTime: number;
         endTime: number;
         text: string;
+        id: string;
+        pauseOnExit: boolean;
     }
     export interface VideoData {
         poster: string;

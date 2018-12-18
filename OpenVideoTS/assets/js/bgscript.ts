@@ -79,8 +79,10 @@ namespace Background {
         analytics: function(msg, bgdata : StringMap, sender, sendResponse) {
             OV.analytics.postData(bgdata);
         },
-        getRedirectScripts: function(msg, bgdata, sender, sendResponse) {
-            sendResponse({redirectScripts: ScriptBase.getRedirectHosts()});
+        redirectHosts: function(msg, bgdata, sender, sendResponse) {
+            ScriptBase.getRedirectHosts().then(function(redirectHosts){
+                sendResponse({redirectHosts: redirectHosts });
+            });
         },
         alert: function(msg, bgdata : Alert, sender, sendResponse) {
             alert(bgdata.msg);
@@ -104,8 +106,10 @@ namespace Background {
     });
     chrome.runtime.onInstalled.addListener(function(details){
         if(details.reason == "install" || details.reason == "update"){
-            ScriptBase.getRedirectHosts().forEach(function(script){
-                ScriptBase.setScriptEnabled(script.name,true);
+            ScriptBase.getRedirectHosts().then(function(redirectHosts){
+                redirectHosts.forEach(function(script){
+                    ScriptBase.setScriptEnabled(script.name,true);
+                });
             });
         }
         OV.storage.sync.set("InstallDetails", details);

@@ -8,14 +8,14 @@ namespace OVPlayer {
         saveToHistory?: () => void;
         loadFromHistory?: () => void;
     }
-    interface VTTCue {
-        id: string;
-        startTime: number;
-        endTime: number;
-        text: string;
-        pauseOnExit: boolean;
+    
+    export interface HistoryEntry { 
+        poster: string;
+        title: string;
+        origin: string;
+        stoppedTime: number;
     }
-    function parseSrt(dataAndEvents : string, oncue : (cue: VTTCue) => void) {
+    function parseSrt(dataAndEvents : string, oncue : (cue: VideoTypes.VTTCue) => void) {
         
         function trim(dataAndEvents : string) {
             return (dataAndEvents + "").replace(/^\s+|\s+$/g, "");
@@ -93,7 +93,7 @@ namespace OVPlayer {
             }
         }
     }
-    function initPlayer(playerId : string, options: Object, videoData: VideoTypes.VideoData) : Player {
+    export function initPlayer(playerId : string, options: Object, videoData: VideoTypes.VideoData) : Player {
         
         options = OV.object.merge(options, {
             plugins: {
@@ -202,7 +202,7 @@ namespace OVPlayer {
             Player.aspectRatio(Parent.clientWidth+":"+Parent.clientHeight);
         });*/
         Player.aspectRatio((<any>Parent).clientWidth+":"+(<any>Parent).clientHeight);
-        interface HistoryEntry { poster: string, title: string, origin: string, stoppedTime: number };
+        
         Player.saveToHistory = function(){
             OV.storage.sync.get("disableHistory").then(function(disabled){
                 if(!disabled) {
