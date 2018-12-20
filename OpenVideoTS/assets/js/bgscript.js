@@ -9,7 +9,6 @@ var Background;
     OV.storage.setup();
     OV.messages.setupBackground({
         toTopWindow: function (msg, bgdata, sender, sendResponse) {
-            console.log(msg, bgdata);
             var tabid = sender.tab.id;
             chrome.tabs.sendMessage(tabid, msg, function (resData) {
                 sendResponse(resData);
@@ -113,11 +112,7 @@ var Background;
                 headers.push({ name: name, value: value });
             }
         }
-        /*var contentType = getHeader(responseHeaders, "Content-type");
-        if(contentType && (contentType.value.toLowerCase() == "application/x-mpegurl" || contentType.value.toLowerCase() == "application/vnd.apple.mpegurl")) {
-            console.log(details.url);
-        }*/
-        if (OV.environment.isExtensionPage(details.initiator)) {
+        if (OV.environment.isExtensionPage(details.initiator || "")) {
             setHeader(details.responseHeaders, "Access-Control-Allow-Origin", details.url);
             setHeader(details.responseHeaders, "Access-Control-Allow-Credentials", "true");
             return { responseHeaders: details.responseHeaders };

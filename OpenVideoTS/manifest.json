@@ -4,7 +4,7 @@
   "name": "OpenVideo FastStream",
   "short_name": "OpenVideo",
   "description": "__MSG_extDescr__",
-  "version": "1.9.12",
+  "version": "1.10",
   "content_security_policy": "script-src 'self'; object-src 'self'",
   "browser_action": {
     "default_icon": "assets/icons/logo256.png",
@@ -29,9 +29,9 @@
   "background": {
     "scripts": [
     	"assets/js/openvideo.js",
-    	"assets/js/redirectScriptBase.js",
+    	"assets/js/redirect_script_base.js",
     	"RedirectScripts.js",
-    	"assets/js/background.js"
+    	"assets/js/bgscript.js"
     ]
   },
   "permissions": [
@@ -50,16 +50,16 @@
   	"html/VidPlaySite/VidPlaySite.html",
   	"html/VideoPopup/VideoPopup.html",
   	"html/VideoPopup/VideoPopup.css",
-  	"html/LibrarySite/librarySite.html"
+  	"html/LibrarySite/LibrarySite.html"
   ],
    "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": [
     	"assets/js/openvideo.js",
-    	"assets/js/redirectScriptBase.js",
+    	"assets/js/redirect_script_base.js",
     	"RedirectScripts.js",
-      	"assets/js/csDocStart.js"
+      	"assets/js/document_start.js"
       ],
       "run_at": "document_start",
       "all_frames": true
@@ -68,9 +68,9 @@
       "matches": ["<all_urls>"],
       "js": [
       
-      	"assets/js/csVideoPopup.js",
-      	"assets/js/csTheaterMode.js",
-      	"assets/js/csOVMetadata.js"
+      	"assets/js/video_popup.js",
+      	"assets/js/theatre_mode.js",
+      	"assets/js/ov_metadata.js"
       ],
       "css": [
       	"/assets/css/csVideoPopup.css"
@@ -81,9 +81,9 @@
       "matches": ["<all_urls>"],
       "js": [
     	"assets/js/openvideo.js",
-    	"assets/js/redirectScriptBase.js",
+    	"assets/js/redirect_script_base.js",
     	"RedirectScripts.js",
-      	"assets/js/csDocIdle.js"
+      	"assets/js/document_idle.js"
       ],
       "run_at": "document_idle",
       "all_frames": true
@@ -92,10 +92,10 @@
       "matches": ["<all_urls>"],
       "js": [
     	"assets/js/openvideo.js",
-    	"assets/js/redirectScriptBase.js",
+    	"assets/js/redirect_script_base.js",
     	"RedirectScripts.js",
-      	"assets/js/csDocEnd.js",
-      	"assets/js/csVideoSearch.js"
+      	"assets/js/document_end2.js",
+      	"assets/js/video_search.js"
       ],
       "run_at": "document_end",
       "all_frames": true

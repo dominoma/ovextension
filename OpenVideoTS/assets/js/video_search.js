@@ -61,7 +61,7 @@ var VideoSearch;
                         }
                         else if (textTrack.cues_.length != 0) {
                             for (let cue of textTrack.cues_) {
-                                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text });
+                                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
                             }
                             ;
                         }

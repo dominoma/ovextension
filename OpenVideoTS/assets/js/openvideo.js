@@ -225,7 +225,12 @@ var OV;
         }
         tools.objToURLParams = objToURLParams;
         function addParamsToURL(url, obj) {
-            return (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+            if (obj) {
+                return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+            }
+            else {
+                return url;
+            }
         }
         tools.addParamsToURL = addParamsToURL;
         function createRequest(args) {
@@ -240,30 +245,30 @@ var OV;
                         resolve(xmlHttpObj);
                     }
                     else {
-                        reject(Error(xmlHttpObj.statusText));
+                        reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
                     }
                 };
                 xmlHttpObj.onerror = function () {
-                    reject(Error("Network Error"));
+                    reject(Error("Network Error (url: '" + url + "')"));
                 };
-                if (args.cache == false || OV.proxy.isEnabled()) {
-                    xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-                    xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-                    xmlHttpObj.setRequestHeader('expires', '0');
-                    xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-                    xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-                }
                 if (args.headers) {
                     for (var key in args.headers) {
                         xmlHttpObj.setRequestHeader(key, args.headers[key]);
                     }
                 }
-                var formData = null;
+                let formData = null;
                 if (args.formData) {
                     formData = new FormData();
                     for (var key in args.formData) {
                         formData.append(key, args.formData[key]);
                     }
+                }
+                if (args.cache == false) {
+                    xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                    xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                    xmlHttpObj.setRequestHeader('expires', '0');
+                    xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                    xmlHttpObj.setRequestHeader('pragma', 'no-cache');
                 }
                 if (args.beforeSend) {
                     args.beforeSend(xmlHttpObj);
@@ -284,9 +289,9 @@ var OV;
         }
         html.getAttributes = getAttributes;
         function addAttributeListener(elem, attribute, callback) {
-            var lastValue = elem.attributes[attribute].value;
+            var lastValue = elem.getAttribute(attribute);
             setInterval(function () {
-                var value = elem.attributes[attribute].value;
+                var value = elem.getAttribute(attribute);
                 if (value != lastValue) {
                     callback.call(elem, attribute, value, lastValue, elem);
                     lastValue = value;
@@ -421,12 +426,12 @@ var OV;
             return new Promise(function (resolve, reject) {
                 if (scope == "local" /* Local */) {
                     chrome.storage.local.get(name, function (item) {
-                        resolve({ value: item[name] });
+                        resolve(item[name]);
                     });
                 }
                 else if (scope == "sync" /* Sync */) {
                     chrome.storage.sync.get(name, function (item) {
-                        resolve({ value: item[name] });
+                        resolve(item[name]);
                     });
                 }
             });
@@ -465,7 +470,9 @@ var OV;
                     return OV.storage.get("local" /* Local */, name);
                 }
                 else {
-                    return OV.messages.send({ bgdata: { func: "getStorageData", data: { scope: "local", name: name } } });
+                    return OV.messages.send({ bgdata: { func: "getStorageData", data: { scope: "local", name: name } } }).then(function (response) {
+                        return response.data;
+                    });
                 }
             }
             local.get = get;
@@ -488,7 +495,9 @@ var OV;
                     return OV.storage.get("sync" /* Sync */, name);
                 }
                 else {
-                    return OV.messages.send({ bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } });
+                    return OV.messages.send({ bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } }).then(function (response) {
+                        return response.data;
+                    });
                 }
             }
             sync.get = get;
@@ -636,12 +645,13 @@ var OV;
         proxy_1.setupBG = setupBG;
         let currentProxy = null;
         function setup(proxy) {
-            console.log(proxy);
             if (OV.environment.isBackgroundPage()) {
                 return _setup(proxy);
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } });
+                return OV.messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } }).then(function (response) {
+                    return response.data;
+                });
             }
         }
         proxy_1.setup = setup;
@@ -679,12 +689,14 @@ var OV;
                 return _update();
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyUpdate" } });
+                return OV.messages.send({ bgdata: { func: "proxyUpdate" } }).then(function (response) {
+                    return response.data;
+                });
             }
         }
         proxy_1.update = update;
         function _update() {
-            if (isEnabled()) {
+            if (_isEnabled()) {
                 return setup(currentProxy);
             }
             else {
@@ -696,14 +708,16 @@ var OV;
                 return _newProxy();
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyNewProxy" } });
+                return OV.messages.send({ bgdata: { func: "proxyNewProxy" } }).then(function (response) {
+                    return response.data;
+                });
             }
         }
         proxy_1.newProxy = newProxy;
         let triedProxies = [];
         let proxies = [];
         function _newProxy() {
-            if (isEnabled()) {
+            if (_isEnabled()) {
                 triedProxies.push(currentProxy.ip);
             }
             if (proxies.length == 0 || triedProxies.length > 20 || triedProxies.length == proxies.length) {
@@ -728,15 +742,22 @@ var OV;
             }
         }
         function isEnabled() {
-            return OV.environment.isBackgroundPage() && currentProxy != null;
+            return getCurrentProxy().then(function (proxy) {
+                return proxy != null;
+            });
         }
         proxy_1.isEnabled = isEnabled;
+        function _isEnabled() {
+            return currentProxy != null;
+        }
         function getCurrentProxy() {
             if (OV.environment.isBackgroundPage()) {
                 return Promise.resolve(currentProxy);
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyGetCurrent" } });
+                return OV.messages.send({ bgdata: { func: "proxyGetCurrent" } }).then(function (response) {
+                    return response.data;
+                });
             }
         }
         proxy_1.getCurrentProxy = getCurrentProxy;
@@ -762,7 +783,7 @@ var OV;
         function searchProxies() {
             var url = "https://free-proxy-list.net/anonymous-proxy.html";
             return OV.tools.createRequest({ url: url }).then(function (xhr) {
-                var HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
+                let HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
                 var table = HTML.getElementsByTagName("table")[0];
                 var tableRows = table.getElementsByTagName("tr");
                 var proxies = [];
@@ -851,7 +872,7 @@ var OV;
                         }
                     };
                     document.addEventListener('ovmessage', one);
-                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
+                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data || {}, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
                     document.dispatchEvent(event);
                 }
                 catch (e) {
@@ -884,8 +905,8 @@ var OV;
                 if (msg.bgdata) {
                     if (functions[msg.bgdata.func]) {
                         functions[msg.bgdata.func]({ func: msg.func, data: msg.data, hash: msg.hash }, msg.bgdata.data, sender, sendResponse);
+                        return true;
                     }
-                    return true;
                 }
                 return false;
             });

@@ -11,6 +11,7 @@ namespace OVPlayer {
     let Button = videojs.getComponent("button");
     let favButton = (videojs as any).extend(Button, {
         constructor: function() {
+            Button.apply(this, arguments);
             this.addClass( 'vjs-favbutton-disabled' );
         },
         handleClick: function() {
@@ -64,27 +65,28 @@ namespace OVPlayer {
     
     let theaterButton = (videojs as any).extend(Button, {
         constructor: function() {
-          this.addClass( 'vjs-theaterbutton-disabled' );
-          this.theaterMode = false;
-         
-          let oldX : number|null = null;
-          this.on('dragstart', function(event : Event){
-              oldX = null;
-          });
-          this.on('drag', function(event : DragEvent){
-              if(oldX != null && event.screenX > 0) {
-                  OV.messages.send({ 
-                      func: "theatreModeDragChanged", 
-                      data: { dragChange: event.screenX - oldX, frameWidth: window.innerWidth } as TheatreMode.DragTheatreMode, 
-                      bgdata: { func: "toTopWindow" } 
-                  });
-              }
-              oldX = event.screenX;
-          });
-          this.on('dragend', function(event : Event){
-              OV.messages.send({func: "theatreModeDragStopped", bgdata: { func: "toTopWindow" } });
-          });
-        
+            Button.apply(this, arguments);
+              this.addClass( 'vjs-theaterbutton-disabled' );
+              this.theaterMode = false;
+             
+              let oldX : number|null = null;
+              this.on('dragstart', function(event : Event){
+                  oldX = null;
+              });
+              this.on('drag', function(event : DragEvent){
+                  if(oldX != null && event.screenX > 0) {
+                      OV.messages.send({ 
+                          func: "theatreModeDragChanged", 
+                          data: { dragChange: event.screenX - oldX, frameWidth: window.innerWidth } as TheatreMode.DragTheatreMode, 
+                          bgdata: { func: "toTopWindow" } 
+                      });
+                  }
+                  oldX = event.screenX;
+              });
+              this.on('dragend', function(event : Event){
+                  OV.messages.send({func: "theatreModeDragStopped", bgdata: { func: "toTopWindow" } });
+              });
+            
         },
         handleClick: function() {
             OV.analytics.fireEvent("TheaterMode", "PlayerEvent", "");
@@ -121,6 +123,7 @@ namespace OVPlayer {
 
       let patreonButton = (videojs as any).extend(Button, {
             constructor: function() {
+                Button.apply(this, arguments);
               this.addClass( 'vjs-patreonbutton' );
               this.controlText('Become a Patron');
             },
@@ -142,7 +145,7 @@ namespace OVPlayer {
             if(file.type.indexOf("application/") == -1) {
                 var dlData = {url: file.src, fileName: "" };
                 var label = file.label;
-                dlData.fileName = file.filename || (this.player_.getVideoHash().title + "."+file.type.substr(file.type.indexOf("/")+1)).replace(/[/\\?%*:|"<>]/g, ' ').trim();
+                dlData.fileName = file.filename || (this.player_.getVideoData().title + "."+file.type.substr(file.type.indexOf("/")+1)).replace(/[/\\?%*:|"<>]/g, ' ').trim();
                 if(label) {
                     dlData.fileName = "["+label+"]"+dlData.fileName;
                 }

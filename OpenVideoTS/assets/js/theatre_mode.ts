@@ -49,7 +49,7 @@ namespace TheatreMode {
         }, 150);
     }
     function getFrameByDims(width : number, height : number) : HTMLIFrameElement {
-        console.log(width,height);
+       
         for(var iframe of document.getElementsByTagName("iframe")) {
             if(Math.abs(iframe.clientWidth - width) <= 1 && Math.abs(iframe.clientHeight - height) <= 1) {
                 return iframe;
@@ -71,7 +71,7 @@ namespace TheatreMode {
     OV.messages.addListener({
         setTheatreMode: function(data : SetTheatreMode, sender, sendResponse) {
             var theatreFrame = getFrameByDims(data.frameWidth, data.frameHeight);
-            console.log(theatreFrame);
+           
             if(data.enabled) {
                 enableTheaterMode(theatreFrame);
             }

@@ -3,6 +3,7 @@ var OVPlayer;
     let Button = videojs.getComponent("button");
     let favButton = videojs.extend(Button, {
         constructor: function () {
+            Button.apply(this, arguments);
             this.addClass('vjs-favbutton-disabled');
         },
         handleClick: function () {
@@ -55,6 +56,7 @@ var OVPlayer;
     videojs.registerComponent('FavButton', favButton);
     let theaterButton = videojs.extend(Button, {
         constructor: function () {
+            Button.apply(this, arguments);
             this.addClass('vjs-theaterbutton-disabled');
             this.theaterMode = false;
             let oldX = null;
@@ -107,6 +109,7 @@ var OVPlayer;
     videojs.registerComponent('TheaterButton', theaterButton);
     let patreonButton = videojs.extend(Button, {
         constructor: function () {
+            Button.apply(this, arguments);
             this.addClass('vjs-patreonbutton');
             this.controlText('Become a Patron');
         },
@@ -127,7 +130,7 @@ var OVPlayer;
             if (file.type.indexOf("application/") == -1) {
                 var dlData = { url: file.src, fileName: "" };
                 var label = file.label;
-                dlData.fileName = file.filename || (this.player_.getVideoHash().title + "." + file.type.substr(file.type.indexOf("/") + 1)).replace(/[/\\?%*:|"<>]/g, ' ').trim();
+                dlData.fileName = file.filename || (this.player_.getVideoData().title + "." + file.type.substr(file.type.indexOf("/") + 1)).replace(/[/\\?%*:|"<>]/g, ' ').trim();
                 if (label) {
                     dlData.fileName = "[" + label + "]" + dlData.fileName;
                 }

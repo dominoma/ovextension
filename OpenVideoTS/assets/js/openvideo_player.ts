@@ -143,8 +143,8 @@ namespace OVPlayer {
             });
         });
         (<any>Player.controlBar).subsCapsButton.eventBusEl_.addEventListener('DOMNodeInserted', function(event : MutationEvent){
-            if((<any>event.target).className == "vjs-menu") {
-                var subsArr = (<any>event.target).getElementsByTagName("li");
+            if((event.target as HTMLElement).className == "vjs-menu") {
+                var subsArr = (event.target as HTMLElement).getElementsByTagName("li");
                 for(var i=4;i<subsArr.length;i++) {
                     if(Player.textTracks()[i-2] && (Player.textTracks()[i-2] as any).src) {
                         subsArr[i].appendChild(OVPlayer.createDownloadButton((Player.textTracks()[i-2] as any).src));
@@ -188,7 +188,7 @@ namespace OVPlayer {
             for(let track of videoData.tracks) {
                 
                 Player.addRemoteTextTrack(<any>track, true);
-                console.log(track);
+                
             }
             
         }
@@ -319,7 +319,6 @@ namespace OVPlayer {
             }
         });
         var Menu = (player.controlBar as any).subsCapsButton.menu.el_;
-        console.log(Menu);
         Menu.style = "width:200px; left:-80px;";
         Menu.childNodes[0].style = "overflow: hidden;";
     }

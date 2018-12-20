@@ -14,7 +14,7 @@ namespace ScriptBase {
     }
     export interface RedirectScriptEntry {
         urlPattern: RegExp;
-        runScopes: Array<{ run_at: RunScopes; script: RedirectScript; }>;
+        runScopes: Array<{ run_at: RunScopes; script: RedirectScript; hide_page?: boolean; }>;
     };
     export interface RedirectHost {
         name: string;
@@ -33,10 +33,14 @@ namespace ScriptBase {
                 if(match) {
                     for(let runScope of script.runScopes) {
                         if(runScope.run_at == scope) {
+                            document.documentElement.hidden = runScope.hide_page !== false;
                             runScope.script({ url: location.href, match: match }).then(function(videoData){
                                 videoData.origin = location.href;
                                 videoData.host = host.name;
                                 location.href = OV.environment.getVidPlaySiteUrl(videoData);
+                            }).catch(function(error){
+                                document.documentElement.hidden = false;
+                                console.error(error);
                             });
                         }
                     }
@@ -58,7 +62,8 @@ namespace ScriptBase {
     }
     export function isScriptEnabled(name : string) : Promise<boolean> {
         return OV.storage.sync.get(name).then(function(value) {
-            return value === true || value === undefined || value === null;
+            
+            return value == true || value == undefined || value == null;
         });
     }
     export function setScriptEnabled(name: string, enabled: boolean) : Promise<{success: boolean}> {

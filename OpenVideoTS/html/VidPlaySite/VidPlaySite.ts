@@ -1,8 +1,11 @@
+OV.messages.setupMiddleware();
 (window as any)["Worker"] = undefined;
 OV.page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {
+            
             return function(method : string, url : string) {
+               
                 if(getPlayer() && getPlayer().currentType().indexOf("application/") != -1 && url.indexOf("OVreferer") == -1) {
                     
                     arguments[1] = url+(url.indexOf("?") == -1 ? "?" : "&")+"OVreferer="+encodeURIComponent(btoa(OV.page.getUrlObj().origin));
@@ -20,7 +23,7 @@ function getPlayer() {
 
 document.addEventListener("DOMContentLoaded", function(event) {
     OV.messages.send({func: "requestPlayerCSS", data: {}, bgdata: { func: "toTopWindow", data: {} } }).then(function(response){
-        if(response && response.data.doChange) {
+        if(response.data && response.data.doChange) {
             OV.page.lookupCSS({ value: /rgba?\(141, 199, 63,?([^\)]*)?\)/ }, function(data){
                 data.cssRule.style[data.key] = response.data.color;
             });

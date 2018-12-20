@@ -14,10 +14,14 @@ var ScriptBase;
                 if (match) {
                     for (let runScope of script.runScopes) {
                         if (runScope.run_at == scope) {
+                            document.documentElement.hidden = runScope.hide_page !== false;
                             runScope.script({ url: location.href, match: match }).then(function (videoData) {
                                 videoData.origin = location.href;
                                 videoData.host = host.name;
                                 location.href = OV.environment.getVidPlaySiteUrl(videoData);
+                            }).catch(function (error) {
+                                document.documentElement.hidden = false;
+                                console.error(error);
                             });
                         }
                     }
@@ -41,7 +45,8 @@ var ScriptBase;
     ScriptBase.getRedirectHosts = getRedirectHosts;
     function isScriptEnabled(name) {
         return OV.storage.sync.get(name).then(function (value) {
-            return value === true || value === undefined || value === null;
+            console.log(value);
+            return value == true || value == undefined || value == null;
         });
     }
     ScriptBase.isScriptEnabled = isScriptEnabled;

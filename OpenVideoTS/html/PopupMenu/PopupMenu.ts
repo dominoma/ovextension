@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('enableProxy').hidden = false;
     });
     OV.proxy.getCurrentProxy().then(function(proxy){
+        console.log(proxy);
         if(proxy) {
             document.getElementById('proxySettings').style.display = "flex";
             document.getElementById('enableProxy').hidden = true;

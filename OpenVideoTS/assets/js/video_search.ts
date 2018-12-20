@@ -57,13 +57,13 @@ namespace VideoSearch {
                     var tracks : VideoTypes.SubtitleSource[] = [];
                     for(let i = 0;i<player.textTracks().length;i++) {
                         let textTrack = player.textTracks()[i] as any;
-                        var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] as Array<VideoTypes.Cue>};
+                        var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] as VideoTypes.VTTCue[] };
                         if(textTrack.options_ &&  textTrack.options_.src) {
                             track.src = OV.tools.getAbsoluteUrl(textTrack.options_.src);
                         }
                         else if(textTrack.cues_.length != 0) {
                             for(let cue of textTrack.cues_) {
-                                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text });
+                                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
                             };
                         }
                         else {

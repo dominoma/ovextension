@@ -1,4 +1,7 @@
 type StringMap = {[key:string]: string};
+interface Window {
+    videojs: typeof videojs;
+}
 namespace OV {
     export namespace array {
         export function last<T>(arr: Array<T>, value: T) : Array<T>;
@@ -228,7 +231,12 @@ namespace OV {
             return str.substr(1);
         }
         export function addParamsToURL(url: string, obj: StringMap) : string {
-            return (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+            if(obj) {
+                return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+            }
+            else {
+                return url;
+            }
         }
         export const enum HTTPMethods {
             GET = "GET",
@@ -241,42 +249,51 @@ namespace OV {
                 var type = args.type || HTTPMethods.GET;
                 var protocol = args.protocol || "https://";
                 var url  = OV.tools.addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
-                
+               
                 xmlHttpObj.open(type, url, true); 
                 xmlHttpObj.onload = function() {
                     if(xmlHttpObj.status == 200) {
                         resolve(xmlHttpObj);
                     }
                     else {
-                        reject(Error(xmlHttpObj.statusText));
+                       
+                        reject(Error(xmlHttpObj.statusText + " (url: '"+url+"')"));
                     }
                 };
                 xmlHttpObj.onerror = function() {
-                    reject(Error("Network Error"));
+                   
+                    reject(Error("Network Error (url: '"+url+"')"));
                 };
-                if(args.cache == false || OV.proxy.isEnabled()) {
-                    xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-                    xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-                    xmlHttpObj.setRequestHeader('expires', '0');
-                    xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-                    xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-                }
+                
                 if(args.headers) {
                     for(var key in args.headers) {
                         xmlHttpObj.setRequestHeader(key, args.headers[key]);
                     }
                 }
-                var formData = null;
+                let formData : FormData = null;
                 if(args.formData) {
                     formData = new FormData();
                     for(var key in args.formData) {
                         formData.append(key, args.formData[key]);
                     }
                 }
+                
+                
+                if(args.cache == false) {
+                    xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                    xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                    xmlHttpObj.setRequestHeader('expires', '0');
+                    xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                    xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+                }
                 if(args.beforeSend) {
                     args.beforeSend(xmlHttpObj);
                 }
                 xmlHttpObj.send(formData);
+                
+                
+                
+                
             });
         }
     }
@@ -290,9 +307,9 @@ namespace OV {
             return hash;
         }
         export function addAttributeListener(elem: HTMLElement, attribute: string, callback: (attribute: string, value: string, lastValue: string, elem: HTMLElement) => void ) {
-            var lastValue : string = (<any>elem.attributes)[attribute].value;
+            var lastValue : string = elem.getAttribute(attribute);
             setInterval( function() {   
-               var value = (<any>elem.attributes)[attribute].value;
+               var value = elem.getAttribute(attribute);
                
                 if (value != lastValue) {
                     callback.call(elem, attribute, value, lastValue, elem);   
@@ -433,12 +450,12 @@ namespace OV {
             return new Promise(function(resolve, reject){
                 if(scope == StorageScopes.Local) {
                     chrome.storage.local.get(name, function(item){
-                        resolve({value: item[name]});
+                        resolve(item[name]);
                     });
                 }
                 else if(scope == StorageScopes.Sync) {
                     chrome.storage.sync.get(name, function(item){
-                        resolve({value: item[name]});
+                        resolve(item[name]);
                     });
                 }
             });
@@ -473,7 +490,9 @@ namespace OV {
                     return OV.storage.get(StorageScopes.Local, name);
                 }
                 else {
-                    return OV.messages.send({bgdata: { func: "getStorageData", data: { scope: "local", name: name } } });
+                    return OV.messages.send({bgdata: { func: "getStorageData", data: { scope: "local", name: name } } }).then(function(response){
+                        return response.data;
+                    });
                 }
             }
             export function set(name: string, value: any) : Promise<{success: boolean}>{
@@ -493,7 +512,9 @@ namespace OV {
                     return OV.storage.get(StorageScopes.Sync, name);
                 }
                 else {
-                    return OV.messages.send({bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } });
+                    return OV.messages.send({bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } }).then(function(response){
+                        return response.data;
+                    });
                 }
             }
             export function set(name: string, value: any) : Promise<{success: boolean}> {
@@ -634,12 +655,14 @@ namespace OV {
         }
         let currentProxy : Proxy|null = null;
         export function setup(proxy: Proxy) : Promise<Proxy> {
-            console.log(proxy);
+            
             if(OV.environment.isBackgroundPage()) {
                 return _setup(proxy);
             }
             else {
-                return <any>OV.messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } });
+                return OV.messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } }).then(function(response){
+                    return response.data;
+                });
             }
         }
         function _setup(proxy: Proxy) : Promise<Proxy> {
@@ -677,11 +700,13 @@ namespace OV {
                 return _update();
             }
             else {
-                return <any>OV.messages.send({ bgdata: { func: "proxyUpdate" } });
+                return OV.messages.send({ bgdata: { func: "proxyUpdate" } }).then(function(response){
+                    return response.data;
+                });
             }
         }
         function _update() : Promise<Proxy> {
-            if(isEnabled()) {
+            if(_isEnabled()) {
                 return setup(currentProxy);
             }
             else {
@@ -693,13 +718,15 @@ namespace OV {
                 return _newProxy();
             }
             else {
-                return <any>OV.messages.send({ bgdata: { func: "proxyNewProxy" } });
+                return OV.messages.send({ bgdata: { func: "proxyNewProxy" } }).then(function(response){
+                    return response.data;
+                });
             }
         }
         let triedProxies : Array<string> = [];
         let proxies : Array<Proxy> = [];
         function _newProxy() : Promise<Proxy> {
-            if(isEnabled()) {
+            if(_isEnabled()) {
                 triedProxies.push(currentProxy.ip);
             }
             if(proxies.length == 0 || triedProxies.length > 20 || triedProxies.length == proxies.length) {
@@ -725,15 +752,23 @@ namespace OV {
             }
             
         }
-        export function isEnabled() : boolean {
-            return OV.environment.isBackgroundPage() && currentProxy != null;
+        export function isEnabled() : Promise<boolean> {
+            return getCurrentProxy().then(function(proxy){
+                
+                return proxy != null;
+            });
+        }
+        function _isEnabled() : boolean {
+            return currentProxy != null;
         }
         export function getCurrentProxy() : Promise<Proxy> {
             if(OV.environment.isBackgroundPage()) {
                 return Promise.resolve(currentProxy);
             }
             else {
-                return <any>OV.messages.send({ bgdata: { func: "proxyGetCurrent" } });
+                return OV.messages.send({ bgdata: { func: "proxyGetCurrent" } }).then(function(response){
+                    return response.data;
+                });
             }
         }
         export function remove() {
@@ -757,7 +792,8 @@ namespace OV {
         function searchProxies() : Promise<Array<Proxy>> {
             var url = "https://free-proxy-list.net/anonymous-proxy.html";
             return OV.tools.createRequest({ url: url }).then(function(xhr){
-                var HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
+                let HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
+                
                 var table = HTML.getElementsByTagName("table")[0];
                 var tableRows = table.getElementsByTagName("tr");
                 var proxies : Array<Proxy> = [];
@@ -825,8 +861,8 @@ namespace OV {
         }
         export function addListener(functions: { [key:string]: (data: any, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
             var blockedFuncs : Array<string> = [];
-            document.addEventListener('ovmessage', function(event){
-                var details = (<any>event).detail as MessageData;
+            document.addEventListener('ovmessage', function(event : CustomEvent){
+                var details = event.detail as MessageData;
                 //alert(JSON.stringify(details))
                 if(functions[details.func] && !details.bgdata && blockedFuncs.indexOf(details.func) == -1) {
                     
@@ -855,7 +891,7 @@ namespace OV {
                     };
                     document.addEventListener('ovmessage', one);
                     
-                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
+                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data || {}, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
                     document.dispatchEvent(event);
                 }
                 catch(e) {
@@ -864,10 +900,9 @@ namespace OV {
             });
         }
         export function setupMiddleware() {
-            document.addEventListener('ovmessage', function(event){
-                var details = (<any>event).detail;
+            document.addEventListener('ovmessage', function(event : CustomEvent){
+                var details = event.detail;
                 if(details.bgdata) {
-                    
                     chrome.runtime.sendMessage({func: details.func, data: details.data, hash: details.hash, bgdata: details.bgdata}, function(resData){
                         
                         var event = new CustomEvent('ovmessage', { detail: {data: resData, hash: details.hash} });
@@ -890,8 +925,9 @@ namespace OV {
                     
                     if(functions[msg.bgdata.func]) {
                         functions[msg.bgdata.func]({ func: msg.func, data: msg.data, hash: msg.hash }, msg.bgdata.data, sender, sendResponse);
+                        return true;
                     }
-                    return true;
+                    
                 }
                 return false;
             });

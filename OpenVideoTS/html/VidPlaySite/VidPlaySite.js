@@ -1,3 +1,4 @@
+OV.messages.setupMiddleware();
 window["Worker"] = undefined;
 OV.page.wrapType(XMLHttpRequest, {
     open: {
@@ -17,7 +18,7 @@ function getPlayer() {
 }
 document.addEventListener("DOMContentLoaded", function (event) {
     OV.messages.send({ func: "requestPlayerCSS", data: {}, bgdata: { func: "toTopWindow", data: {} } }).then(function (response) {
-        if (response && response.data.doChange) {
+        if (response.data && response.data.doChange) {
             OV.page.lookupCSS({ value: /rgba?\(141, 199, 63,?([^\)]*)?\)/ }, function (data) {
                 data.cssRule.style[data.key] = response.data.color;
             });
