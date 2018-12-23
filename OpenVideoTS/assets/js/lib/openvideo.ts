@@ -56,10 +56,10 @@ namespace OV {
             var str = "";
             for(var key in obj) {
                 if(obj.hasOwnProperty(key)) {
-                    str += '"'+key+'": '+OV.toJSONString(obj[key])+"\n";
+                    str += '"'+key+'": '+OV.toJSONString(obj[key])+",\n";
                 }
             }
-            return "{\n"+str+"}";
+            return "{\n"+str.substr(0, str.length-2)+"\n}";
         }
         else if(typeof obj == "function"){
             return obj.toString();
@@ -429,12 +429,7 @@ namespace OV {
             }
         }
     
-    export namespace tab {
-        export function create(url: string) : void {
-            OV.messages.send({ bgdata: { func: "openTab", data: { url: url } as Background.OpenTab } });
-        }
-     
-    }
+   
     /*OV.tab.setIconPopup = function(url) {
         OV.background.execute("setIconPopup", null, {url: url});
     }
@@ -844,11 +839,11 @@ namespace OV {
     }
     export namespace messages {
         export interface BackgroundData {
-            data?: Object;
+            data?: any;
             func?: string;
         }
         export interface MessageData {
-            data?: Object;
+            data?: any;
             func?: string;
             hash?: string;
             sender?: chrome.runtime.MessageSender;
@@ -933,4 +928,5 @@ namespace OV {
             });
         }
     } 
+    
 }

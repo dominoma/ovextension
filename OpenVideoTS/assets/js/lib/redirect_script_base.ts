@@ -5,6 +5,8 @@ namespace ScriptBase {
     export interface ScriptDetails {
         url: string;
         match: RegExpMatchArray;
+        hostname: string;
+        run_scope: RunScopes;
     }
     export type RedirectScript = (details: ScriptDetails) => Promise<VideoTypes.VideoData>;
     export const enum RunScopes {
@@ -34,7 +36,7 @@ namespace ScriptBase {
                     for(let runScope of script.runScopes) {
                         if(runScope.run_at == scope) {
                             document.documentElement.hidden = runScope.hide_page !== false;
-                            runScope.script({ url: location.href, match: match }).then(function(videoData){
+                            runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function(videoData){
                                 videoData.origin = location.href;
                                 videoData.host = host.name;
                                 location.href = OV.environment.getVidPlaySiteUrl(videoData);

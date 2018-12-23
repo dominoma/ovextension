@@ -28,8 +28,9 @@
   "default_locale": "en",
   "background": {
     "scripts": [
-    	"assets/js/openvideo.js",
-    	"assets/js/redirect_script_base.js",
+    	"assets/js/lib/openvideo.js",
+    	"assets/js/lib/messages.js",
+    	"assets/js/lib/redirect_script_base.js",
     	"RedirectScripts.js",
     	"assets/js/bgscript.js"
     ]
@@ -56,8 +57,9 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-    	"assets/js/openvideo.js",
-    	"assets/js/redirect_script_base.js",
+    	"assets/js/lib/openvideo.js",
+    	"assets/js/lib/redirect_script_base.js",
+    	"assets/js/lib/messages.js",
     	"RedirectScripts.js",
       	"assets/js/document_start.js"
       ],
@@ -80,8 +82,9 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-    	"assets/js/openvideo.js",
-    	"assets/js/redirect_script_base.js",
+    	"assets/js/lib/openvideo.js",
+    	"assets/js/lib/messages.js",
+    	"assets/js/lib/redirect_script_base.js",
     	"RedirectScripts.js",
       	"assets/js/document_idle.js"
       ],
@@ -91,8 +94,9 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-    	"assets/js/openvideo.js",
-    	"assets/js/redirect_script_base.js",
+    	"assets/js/lib/openvideo.js",
+    	"assets/js/lib/messages.js",
+    	"assets/js/lib/redirect_script_base.js",
     	"RedirectScripts.js",
       	"assets/js/document_end2.js",
       	"assets/js/video_search.js"

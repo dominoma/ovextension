@@ -1,7 +1,9 @@
+OV.messages.setupMiddleware();
 var VideoSearch;
 (function (VideoSearch) {
     ScriptBase.isScriptEnabled("All videos").then(function (value) {
         if (value) {
+            console.log("WWWWW");
             OV.messages.addListener({
                 pauseVideos: function () {
                     for (let video of document.getElementsByTagName("video")) {
@@ -11,13 +13,7 @@ var VideoSearch;
                 }
             });
             OV.page.execute(function (data, sendResponse) {
-                function addVideoToPopup(videoData) {
-                    OV.messages.send({
-                        func: "addVideoToPopup",
-                        data: { videoData: videoData },
-                        bgdata: { func: "toTopWindow" }
-                    });
-                }
+                console.log("HIIII");
                 function toSaveUrl(url) {
                     return OV.tools.getAbsoluteUrl(url);
                     //return x + (x.indexOf("?") == -1 ? "?" : "&") + "OVreferer="+encodeURIComponent(location.href)
@@ -152,75 +148,73 @@ var VideoSearch;
                     }
                     ;
                     if (srces.length == 0) {
-                        addVideoToPopup({ src: [{ src: toSaveUrl(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
+                        VideoPopup.addVideoToPopup({ src: [{ src: toSaveUrl(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
                     }
                     else {
-                        addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
+                        VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
                     }
                 }
-                document.addEventListener("DOMContentLoaded", function () {
-                    console.log("OpenVideo Search is here!", location.href);
-                    /*var videoArr = document.getElementsByTagName("video");
-                    OV.tools.forEach(videoArr, function(videoNode){
-                        SetupVideo(videoNode);
-                    });*/
-                    var videoJSPlayers = getVideoJSPlayers();
-                    if (videoJSPlayers) {
-                        for (var player of videoJSPlayers) {
-                            addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
+                console.log("OpenVideo Search is here!", location.href);
+                /*var videoArr = document.getElementsByTagName("video");
+                OV.tools.forEach(videoArr, function(videoNode){
+                    SetupVideo(videoNode);
+                });*/
+                var videoJSPlayers = getVideoJSPlayers();
+                if (videoJSPlayers) {
+                    for (var player of videoJSPlayers) {
+                        VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
+                        player.on('loadstart', function () {
+                            console.log("testest");
+                            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
+                        });
+                    }
+                    if (videojs.hook) {
+                        videojs.hook('setup', function (player) {
+                            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
                             player.on('loadstart', function () {
-                                console.log("testest");
-                                addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
+                                VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
                             });
-                        }
-                        if (videojs.hook) {
-                            videojs.hook('setup', function (player) {
-                                addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-                                player.on('loadstart', function () {
-                                    addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-                                });
-                            });
-                        }
+                        });
                     }
-                    var jwPlayers = getJWPlayers();
-                    if (jwPlayers) {
-                        for (let player of jwPlayers) {
-                            addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                            player.on('meta', function () {
-                                addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                            });
-                        }
+                }
+                var jwPlayers = getJWPlayers();
+                if (jwPlayers) {
+                    for (let player of jwPlayers) {
+                        VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+                        player.on('meta', function () {
+                            VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+                        });
                     }
-                    function setupPlainVideoListener(video) {
-                        //video.play();
-                        if (!isPlayerLibrary()) {
+                }
+                function setupPlainVideoListener(video) {
+                    //video.play();
+                    if (!isPlayerLibrary()) {
+                        getSrc(video);
+                        video.addEventListener('loadedmetadata', function () {
                             getSrc(video);
-                            video.addEventListener('loadedmetadata', function () {
-                                getSrc(video);
-                            });
-                        }
-                        else {
-                            var jwPlayers = getJWPlayers();
-                            if (jwPlayers) {
-                                for (let player of jwPlayers) {
-                                    addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                                    player.on('meta', function () {
-                                        addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                                    });
-                                }
+                        });
+                    }
+                    else {
+                        var jwPlayers = getJWPlayers();
+                        if (jwPlayers) {
+                            for (let player of jwPlayers) {
+                                VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+                                player.on('meta', function () {
+                                    VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+                                });
                             }
                         }
                     }
-                    for (let videoNode of document.getElementsByTagName("video")) {
-                        setupPlainVideoListener(videoNode);
+                }
+                for (let videoNode of document.getElementsByTagName("video")) {
+                    setupPlainVideoListener(videoNode);
+                }
+                ;
+                document.addEventListener("DOMNodeInserted", function (e) {
+                    let target = e.target;
+                    if (target.tagName && target.tagName.toLowerCase() == "video") {
+                        setupPlainVideoListener(target);
                     }
-                    ;
-                    document.addEventListener("DOMNodeInserted", function (e) {
-                        let target = e.target;
-                        if (target.tagName && target.tagName.toLowerCase() == "video") {
-                            setupPlainVideoListener(target);
-                        }
-                    });
                 });
             });
         }

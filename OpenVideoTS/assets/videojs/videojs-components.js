@@ -65,16 +65,12 @@ var OVPlayer;
             });
             this.on('drag', function (event) {
                 if (oldX != null && event.screenX > 0) {
-                    OV.messages.send({
-                        func: "theatreModeDragChanged",
-                        data: { dragChange: event.screenX - oldX, frameWidth: window.innerWidth },
-                        bgdata: { func: "toTopWindow" }
-                    });
+                    TheatreMode.dragChanged({ dragChange: event.screenX - oldX, frameWidth: window.innerWidth });
                 }
                 oldX = event.screenX;
             });
             this.on('dragend', function (event) {
-                OV.messages.send({ func: "theatreModeDragStopped", bgdata: { func: "toTopWindow" } });
+                TheatreMode.dragStopped();
             });
         },
         handleClick: function () {
@@ -95,14 +91,10 @@ var OVPlayer;
                 this.removeClass('vjs-theaterbutton-enabled');
                 this.addClass('vjs-theaterbutton-disabled');
             }
-            OV.messages.send({
-                func: "setTheatreMode",
-                data: {
-                    enabled: this.theaterMode,
-                    frameWidth: window.innerWidth,
-                    frameHeight: window.innerHeight
-                },
-                bgdata: { func: "toTopWindow" }
+            TheatreMode.setTheatreMode({
+                enabled: this.theaterMode,
+                frameWidth: window.innerWidth,
+                frameHeight: window.innerHeight
             });
         }
     });
@@ -135,10 +127,10 @@ var OVPlayer;
                     dlData.fileName = "[" + label + "]" + dlData.fileName;
                 }
                 console.log(dlData);
-                OV.messages.send({ bgdata: { func: "downloadFile", data: dlData } });
+                Background.downloadFile(dlData);
             }
             else {
-                OV.messages.send({ bgdata: { func: "alert", data: { msg: "HLS videos can't be downloaded :/\nTry downloading that video from a different hoster." } } });
+                Background.alert("HLS videos can't be downloaded :/\nTry downloading that video from a different hoster.");
             }
         }
     });
@@ -160,10 +152,10 @@ var OVPlayer;
                 if (fileName) {
                     dataHash.fileName = fileName.replace(/[/\\?%*:|"<>]/g, ' ').trim();
                 }
-                OV.messages.send({ bgdata: { func: "downloadFile", data: dataHash } });
+                Background.downloadFile(dataHash);
             }
             else {
-                OV.messages.send({ bgdata: { func: "alert", data: { msg: "HLS videos can't be downloaded :/\nTry downloading that video from a different hoster." } } });
+                Background.alert("HLS videos can't be downloaded :/\nTry downloading that video from a different hoster.");
             }
         });
         return button;

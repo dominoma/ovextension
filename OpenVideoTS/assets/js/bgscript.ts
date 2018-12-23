@@ -3,99 +3,12 @@ namespace Background {
         //OV.proxy.addHostsFromScripts(ScriptBase.getRedirectHosts());
         OV.proxy.addHostsToList(["oloadcdn.", "198.16.68.146", "playercdn.", "fruithosted.", "fx.fastcontentdelivery."]);
     }
+    Background.setup();
     OV.environment.declareBGPage();
     OV.proxy.setupBG();
     OV.storage.setup();
     
-    export type ToTab = chrome.tabs.QueryInfo;
     
-    export interface OpenTab {
-        url: string;
-    }
-    
-    export interface SetIconPopup {
-        url?: string;
-    }
-    
-    export interface SetIconText {
-        text?: string;
-    }
-    
-    export interface DownloadFile {
-        url: string;
-        fileName: string;
-    }
-    
-    export interface Alert {
-        msg: string;
-    }
-    
-    export interface Promt extends Alert {
-        fieldText: string;
-    }
-    
-    OV.messages.setupBackground({
-        toTopWindow: function(msg, bgdata, sender, sendResponse) {
-            var tabid = sender.tab.id;
-            chrome.tabs.sendMessage(tabid, msg, function(resData){
-                sendResponse(resData);
-            });
-        },
-        toActiveTab: function(msg, bgdata, sender, sendResponse) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query({ active: true }, function(tabs){
-                chrome.tabs.sendMessage(tabs[0].id, msg, function(resData){
-                    sendResponse(resData);
-                });
-            });
-        },
-        toTab: function(msg, bgdata : ToTab, sender, sendResponse) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query(bgdata, function(tabs : chrome.tabs.Tab[]){
-                chrome.tabs.sendMessage(tabs[0].id, msg, function(resData){
-                    sendResponse(resData);
-                });
-            });
-        },
-        openTab: function(msg, bgdata : OpenTab, sender, sendResponse) {
-            chrome.tabs.create({ url: bgdata.url });
-        },
-        pauseAllVideos: function(msg, bgdata, sender, sendResponse){
-            chrome.tabs.sendMessage(sender.tab.id, {func: "pauseVideos"});
-        },
-        setIconPopup: function(msg, bgdata : SetIconPopup, sender, sendResponse){
-            chrome.browserAction.setPopup({tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : ""});
-        },
-        setIconText: function(msg, bgdata : SetIconText, sender, sendResponse){
-            chrome.browserAction.setBadgeText({text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id});
-        },
-        downloadFile: function(msg, bgdata : DownloadFile, sender, sendResponse){
-            chrome.downloads.download({url: bgdata.url, saveAs: true, filename: bgdata.fileName });
-        },
-        reloadScripts: function(msg, bgdata, sender, sendResponse) {
-            LoadBGScripts();
-        },
-        analytics: function(msg, bgdata : StringMap, sender, sendResponse) {
-            OV.analytics.postData(bgdata);
-        },
-        redirectHosts: function(msg, bgdata, sender, sendResponse) {
-            ScriptBase.getRedirectHosts().then(function(redirectHosts){
-                sendResponse({redirectHosts: redirectHosts });
-            });
-        },
-        alert: function(msg, bgdata : Alert, sender, sendResponse) {
-            alert(bgdata.msg);
-        },
-        prompt: function(msg, bgdata : Promt, sender, sendResponse) {
-            var value = prompt(bgdata.msg, bgdata.fieldText);
-
-            if (value == null || value == "") {
-                sendResponse({ aborted: true, text: null });
-            } else {
-                sendResponse({ aborted: false, text: value });
-            }
-        }
-    });
     LoadBGScripts();
     chrome.runtime.setUninstallURL("https://goo.gl/forms/conIBydrACtZQR0A2");
     chrome.browserAction.setBadgeBackgroundColor({color: "#8dc73f"});

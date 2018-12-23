@@ -1,3 +1,8 @@
+function suspectSubtitledVideo(details, xhr) {
+    if (xhr.response.indexOf("<track>") != -1 || xhr.response.indexOf(".vtt") != -1) {
+        OV.analytics.fireEvent(details.hostname, "TracksFound", details.url);
+    }
+}
 ScriptBase.addRedirectHost({
     name: "RapidVideo",
     scripts: [{
@@ -10,6 +15,7 @@ ScriptBase.addRedirectHost({
                         let parser = new DOMParser();
                         function getVideoInfo() {
                             return OV.tools.createRequest({ url: details.url, xmlHttpObj: xmlHttpObj }).then(function (xhr) {
+                                suspectSubtitledVideo(details, xhr);
                                 let html = parser.parseFromString(xhr.response, "text/html");
                                 let title = html.title;
                                 let videoTag = html.getElementsByTagName("video")[0];
@@ -98,6 +104,7 @@ ScriptBase.addRedirectHost({
                             return streamUrl;
                         }
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.responseText;
                             if (xhr.status != 200 || HTML.indexOf("We can't find the file you are looking for. It maybe got deleted by the owner or was removed due a copyright violation.") != -1 || HTML.indexOf("The file you are looking for was blocked.") != -1) {
                                 throw Error("No Video");
@@ -181,6 +188,7 @@ ScriptBase.addRedirectHost({
                             return retVal;
                         }
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.responseText;
                             if (xhr.status != 200 || HTML.indexOf("We are unable to find the video you're looking for.") != -1) {
                                 throw Error("No Video!");
@@ -239,6 +247,7 @@ ScriptBase.addRedirectHost({
                             OV.tools.createRequest({ url: "https://vidcloud.co/player", data: { fid: embedID } }),
                             OV.tools.createRequest({ url: "https://vidcloud.co/download", type: "POST" /* POST */, data: { file_id: embedID } })
                         ]).then(function (xhrs) {
+                            suspectSubtitledVideo(details, xhrs[0]);
                             let html = JSON.parse(xhrs[0].response).html;
                             let dlhtml = JSON.parse(xhrs[1].response).html;
                             let rawRes = dlhtml.match(/href="([^"]*)" download="([^"]*)"[^>]*>([^<]*)</g);
@@ -278,6 +287,7 @@ ScriptBase.addRedirectHost({
                     run_at: "document_start" /* document_start */,
                     script: function (details) {
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.response;
                             if (details.url.indexOf("/embed") == -1) {
                                 if (HTML.indexOf("videojs('player')") == -1) {
@@ -317,6 +327,7 @@ ScriptBase.addRedirectHost({
                     script: function (details) {
                         console.log("W");
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.response;
                             let evalStr = HTML.match(/(eval\(function\(p,a,c,k,e,d\).*\.split\('\|'\)\)\))/)[1];
                             let code = OV.tools.unpackJS(evalStr);
@@ -342,6 +353,7 @@ ScriptBase.addRedirectHost({
                     run_at: "document_start" /* document_start */,
                     script: function (details) {
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.response;
                             let videoURL = atob(HTML.match(/data-stream="([^"]*)"/)[1]);
                             let title = HTML.match(/<title>([^<]*)<\/title>/)[1];
@@ -367,6 +379,7 @@ ScriptBase.addRedirectHost({
                             details.url = details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
                         }
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.responseText;
                             if (xhr.status != 200 || HTML.indexOf("File Does not Exist, or Has Been Removed") != -1) {
                                 throw Error("No Video!");
@@ -414,6 +427,7 @@ ScriptBase.addRedirectHost({
                                                 id: details.match[2]
                                             }
                                         }).then(function (xhr) {
+                                            suspectSubtitledVideo(details, xhr);
                                             let HTML = xhr.response;
                                             let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
                                             let src = videoHashStr.match(/file: "([^"]*)"/)[1];
@@ -448,6 +462,7 @@ ScriptBase.addRedirectHost({
                         return Promise.resolve(null).then(function () {
                             if (details.url.indexOf("embed") == -1) {
                                 return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                                    suspectSubtitledVideo(details, xhr);
                                     if (xhr.response.indexOf('class="video-main"') != -1) {
                                         return details.url.substr(details.url.lastIndexOf("/"));
                                     }
@@ -501,6 +516,7 @@ ScriptBase.addRedirectHost({
                             console.log(details.url);
                         }
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.responseText;
                             if (xhr.status != 200 || HTML.indexOf("file was deleted") != -1 || HTML.indexOf("yt-uix-form-textarea share-embed-code") == -1) {
                                 throw Error("No Video!");
@@ -531,6 +547,7 @@ ScriptBase.addRedirectHost({
                             details.url = "https://www.speedvid.net/" + details.url.match(/sn\-([^\-]*)\-/i)[1];
                         }
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.responseText;
                             if (xhr.status != 200 || HTML.indexOf("<Title>Watch </Title>") == -1) {
                                 throw Error("No Video!");
@@ -557,6 +574,7 @@ ScriptBase.addRedirectHost({
                     run_at: "document_start" /* document_start */,
                     script: function (details) {
                         return OV.tools.createRequest({ url: details.url }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.response;
                             let src = JSON.parse(HTML.match(/sources: (\[.*\]),/)[1])[0];
                             //let title = HTML.match(/<title>([<"]*)<\/title>/i)[1];
@@ -594,6 +612,7 @@ ScriptBase.addRedirectHost({
                         }).then(function (videoCode) {
                             return OV.tools.createRequest({ url: "https://flashx.tv/playvideo-" + videoCode + ".html" });
                         }).then(function (xhr) {
+                            suspectSubtitledVideo(details, xhr);
                             let HTML = xhr.responseText;
                             if (xhr.status != 200 || HTML.indexOf("Sorry, file was deleted or the link is expired!") != -1) {
                                 throw Error("No Video!");

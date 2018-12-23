@@ -22,7 +22,7 @@ function getPlayer() {
 }
 
 document.addEventListener("DOMContentLoaded", function(event) {
-    OV.messages.send({func: "requestPlayerCSS", data: {}, bgdata: { func: "toTopWindow", data: {} } }).then(function(response){
+    Background.toTopWindow({ func: "requestPlayerCSS", data: {} }).then(function(response){
         if(response.data && response.data.doChange) {
             OV.page.lookupCSS({ value: /rgba?\(141, 199, 63,?([^\)]*)?\)/ }, function(data){
                 data.cssRule.style[data.key] = response.data.color;
@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     if(OV.page.isFrame()) {
         var TheaterButton = getPlayer().getChild('controlBar').addChild('TheaterButton', {});
         getPlayer().on("ready", function(){
-            OV.messages.send({ func: "setupIframe", bgdata: { func: "toTopWindow" }, data: {frameWidth: window.innerWidth, frameHeight: window.innerHeight} as TheatreMode.SetupIFrame }).then(function(response){
+            TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(response){
                 if(response.data && response.data.reload) {
                     location.reload();
                 }

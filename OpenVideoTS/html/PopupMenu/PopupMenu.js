@@ -43,14 +43,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     document.getElementById('proxyOptions').addEventListener("click", function () {
         OV.proxy.getCurrentProxy().then(function (proxy) {
-            OV.messages.send({
-                bgdata: {
-                    func: "prompt",
-                    data: {
-                        msg: "Please enter the proxy IP and port of  the proxy you want to use.",
-                        fieldText: (proxy.country === "Custom" ? proxy.ip + ":" + proxy.port : "proxy-ip:port")
-                    }
-                }
+            Background.prompt({
+                msg: "Please enter the proxy IP and port of  the proxy you want to use.",
+                fieldText: (proxy.country === "Custom" ? proxy.ip + ":" + proxy.port : "proxy-ip:port")
             }).then(function (response) {
                 console.log(response);
                 if (response.data.text) {

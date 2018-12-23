@@ -59,6 +59,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     document.getElementById("close").onclick = function() {
         Player.pause();
-        OV.messages.send({ func: "closePopup", bgdata: { func: "toTopWindow" } });
+        VideoPopup.closePopup();
     };
 });
