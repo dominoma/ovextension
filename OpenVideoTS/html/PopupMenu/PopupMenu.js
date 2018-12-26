@@ -10,19 +10,19 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('support').innerText = OV.languages.getMsg("popup_menu_support_btn");
     document.getElementById('versionBox').innerText = OV.languages.getMsg("popup_menu_version_lbl");
     document.getElementById('hostSuggest').addEventListener("click", function () {
-        OV.tab.create("https://youtu.be/rbeUGOkKt0o");
+        Background.openTab("https://youtu.be/rbeUGOkKt0o");
         window.close();
     });
     document.getElementById('patreon').addEventListener("click", function () {
-        OV.tab.create("https://www.patreon.com/bePatron?u=13995915");
+        Background.openTab("https://www.patreon.com/bePatron?u=13995915");
         window.close();
     });
     document.getElementById('movieSearch').addEventListener("click", function () {
-        OV.tab.create("https://avalba.com/movies/");
+        Background.openTab("https://avalba.com/movies/");
         window.close();
     });
     document.getElementById('library').addEventListener("click", function () {
-        OV.tab.create(OV.environment.getLibrarySiteUrl());
+        Background.openTab(OV.environment.getLibrarySiteUrl());
         window.close();
     });
     document.getElementById('options').addEventListener("click", function () {
@@ -71,17 +71,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     for (let elem of document.getElementsByClassName('links')) {
         elem.addEventListener('click', function () {
-            OV.tab.create(elem.dataset.href);
+            Background.openTab(elem.dataset.href);
             window.close();
         });
     }
     ;
     document.getElementById('rate').addEventListener("click", function () {
         if (OV.environment.browser() == "chrome" /* Chrome */) {
-            OV.tab.create("https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews");
+            Background.openTab("https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews");
         }
         else {
-            OV.tab.create("https://addons.mozilla.org/firefox/addon/openvideo/");
+            Background.openTab("https://addons.mozilla.org/firefox/addon/openvideo/");
         }
         window.close();
     });

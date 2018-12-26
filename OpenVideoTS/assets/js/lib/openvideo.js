@@ -22,7 +22,7 @@ var OV;
         }
         array.fromEnd = fromEnd;
         function search(elem, arr, cmpre) {
-            if (cmpre) {
+            if (!cmpre) {
                 cmpre = function (elem, arrItem) {
                     return arrItem === elem;
                 };
@@ -302,12 +302,12 @@ var OV;
     })(html = OV.html || (OV.html = {}));
     let page;
     (function (page) {
-        function injectOV() {
+        function injectNamespace(namespace, name) {
             var script = document.createElement('script');
-            script.appendChild(document.createTextNode("window['OV'] = " + OV.toJSONString(OV)));
+            script.appendChild(document.createTextNode("window['" + name + "'] = " + OV.toJSONString(namespace)));
             (document.head || document.body || document.documentElement).appendChild(script);
         }
-        page.injectOV = injectOV;
+        page.injectNamespace = injectNamespace;
         function injectJS(source, data) {
             var injectStr = source.toString();
             //if(typeof source === "function") {
@@ -318,13 +318,16 @@ var OV;
             (document.body || document.head || document.documentElement).appendChild(script);
         }
         page.injectJS = injectJS;
-        function execute(source, data) {
+        function execute(namespaces, source, data) {
             return new Promise(function (resolve, reject) {
-                OV.page.injectOV();
+                for (let name in namespaces) {
+                    injectNamespace(namespaces[name], name);
+                }
+                injectNamespace(OV, "OV");
                 OV.messages.addListener({
-                    ovInjectResponse: function (data, sender, sendResponse) {
-                        if (data.response) {
-                            resolve(data.response);
+                    ovInjectResponse: function (request, sendResponse) {
+                        if (request.data.response) {
+                            resolve(request.data.response);
                         }
                         return { blocked: true };
                     }
@@ -337,10 +340,8 @@ var OV;
         }
         page.execute = execute;
         function lookupCSS(args, callback) {
-            for (let i = 0; i < document.styleSheets.length; i++) {
-                let styleSheet = document.styleSheets.item(i);
-                for (let j = 0; j < styleSheet.cssRules.length; j++) {
-                    let cssRule = styleSheet.cssRules[i];
+            for (let styleSheet of document.styleSheets) {
+                for (let cssRule of styleSheet.cssRules) {
                     if (cssRule.style) {
                         if (args.key) {
                             if (cssRule.style[args.key].match(args.value)) {
@@ -682,7 +683,7 @@ var OV;
                 return _update();
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyUpdate" } }).then(function (response) {
+                return OV.messages.send({ bgdata: { func: "proxyUpdate", data: {} } }).then(function (response) {
                     return response.data;
                 });
             }
@@ -701,7 +702,7 @@ var OV;
                 return _newProxy();
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyNewProxy" } }).then(function (response) {
+                return OV.messages.send({ bgdata: { func: "proxyNewProxy", data: {} } }).then(function (response) {
                     return response.data;
                 });
             }
@@ -748,7 +749,7 @@ var OV;
                 return Promise.resolve(currentProxy);
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyGetCurrent" } }).then(function (response) {
+                return OV.messages.send({ bgdata: { func: "proxyGetCurrent", data: {} } }).then(function (response) {
                     return response.data;
                 });
             }
@@ -759,7 +760,7 @@ var OV;
                 _remove();
             }
             else {
-                OV.messages.send({ bgdata: { func: "proxyRemove" } });
+                OV.messages.send({ bgdata: { func: "proxyRemove", data: {} } });
             }
         }
         proxy_1.remove = remove;
@@ -830,79 +831,178 @@ var OV;
     })(languages = OV.languages || (OV.languages = {}));
     let messages;
     (function (messages) {
+        let State;
+        (function (State) {
+            State["EvToMdw"] = "EvToMdw";
+            State["MdwToBG"] = "MdwToBG";
+            State["BGToMdw"] = "BGToMdw";
+            State["MdwToEv"] = "MdwToEv";
+            State["EvToMdwRsp"] = "EvToMdwRsp";
+            State["MdwToBGRsp"] = "MdwToBGRsp";
+            State["BGToMdwRsp"] = "BGToMdwRsp";
+            State["MdwToEvRsp"] = "MdwToEvRsp";
+        })(State = messages.State || (messages.State = {}));
         function generateHash() {
             var ts = Math.round(+new Date() / 1000.0);
             var rand = Math.round(Math.random() * 2147483647);
             return [rand, ts].join('.');
         }
         messages.generateHash = generateHash;
+        let lnfunctions = null;
+        let blockedFuncs = [];
         function addListener(functions) {
-            var blockedFuncs = [];
-            document.addEventListener('ovmessage', function (event) {
-                var details = event.detail;
-                //alert(JSON.stringify(details))
-                if (functions[details.func] && !details.bgdata && blockedFuncs.indexOf(details.func) == -1) {
-                    var result = functions[details.func](details.data, details.sender, function (data) {
-                        var event = new CustomEvent('ovmessage', { detail: { data: data, hash: details.hash } });
-                        document.dispatchEvent(event);
-                    });
-                    if (result && result.blocked) {
-                        blockedFuncs.push(details.func);
+            if (lnfunctions) {
+                lnfunctions = OV.object.merge(lnfunctions, functions);
+            }
+            else {
+                lnfunctions = functions;
+                document.addEventListener('ovmessage', function (event) {
+                    var details = event.detail;
+                    if (lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
+                        var result = lnfunctions[details.data.func](details.data, function (data) {
+                            var event = new CustomEvent('ovmessage', {
+                                detail: {
+                                    hash: details.hash,
+                                    data: {
+                                        data: data,
+                                        state: State.EvToMdwRsp,
+                                        call: details.data,
+                                        sender: { url: location.href }
+                                    }
+                                }
+                            });
+                            document.dispatchEvent(event);
+                        });
+                        if (result && result.blocked) {
+                            blockedFuncs.push(details.data.func);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
         messages.addListener = addListener;
         function send(obj) {
-            return new Promise(function (resolve, reject) {
-                try {
-                    var hash = OV.messages.generateHash();
-                    let one = function (event) {
-                        var details = event.detail;
-                        if (details.hash === hash && !details.func) {
-                            document.removeEventListener('ovmessage', one);
-                            resolve({ data: details.data, sender: details.sender });
-                        }
-                    };
-                    document.addEventListener('ovmessage', one);
-                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data || {}, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
-                    document.dispatchEvent(event);
-                }
-                catch (e) {
-                    reject(e);
-                }
-            });
+            return eventPingPong({
+                func: obj.func || "NO_FUNCTION",
+                data: obj.data || {},
+                sender: { url: location.href },
+                bgdata: obj.bgdata,
+                state: State.EvToMdw
+            }, true);
         }
         messages.send = send;
-        function setupMiddleware() {
-            document.addEventListener('ovmessage', function (event) {
-                var details = event.detail;
-                if (details.bgdata) {
-                    chrome.runtime.sendMessage({ func: details.func, data: details.data, hash: details.hash, bgdata: details.bgdata }, function (resData) {
-                        var event = new CustomEvent('ovmessage', { detail: { data: resData, hash: details.hash } });
-                        document.dispatchEvent(event);
-                    });
-                }
-            });
-            chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-                if (!msg.bgdata) {
-                    OV.messages.send({ func: msg.func, data: msg.data, sender: sender }).then(function (details) {
-                        sendResponse(details.data);
-                    });
-                }
+        function eventPingPong(data, beforeBG) {
+            return new Promise(function (resolve, reject) {
+                data.state = beforeBG ? State.EvToMdw : State.MdwToEv;
+                let hash = OV.messages.generateHash();
+                let one = function (event) {
+                    var details = event.detail;
+                    if (details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
+                        document.removeEventListener('ovmessage', one);
+                        resolve(details.data);
+                    }
+                };
+                document.addEventListener('ovmessage', one);
+                let event = new CustomEvent('ovmessage', {
+                    detail: {
+                        hash: hash,
+                        data: data
+                    }
+                });
+                document.dispatchEvent(event);
             });
         }
-        messages.setupMiddleware = setupMiddleware;
-        function setupBackground(functions) {
-            chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-                if (msg.bgdata) {
-                    if (functions[msg.bgdata.func]) {
-                        functions[msg.bgdata.func]({ func: msg.func, data: msg.data, hash: msg.hash }, msg.bgdata.data, sender, sendResponse);
+        let isMiddleware_ = false;
+        function isMiddleware() {
+            return isMiddleware;
+        }
+        messages.isMiddleware = isMiddleware;
+        function setupMiddleware() {
+            if (isMiddleware_) {
+                throw Error("Middleware already set up!");
+            }
+            else {
+                isMiddleware_ = true;
+                document.addEventListener('ovmessage', function (event) {
+                    var details = event.detail;
+                    if (details.data.state === State.EvToMdw) {
+                        details.data.state = State.MdwToBG;
+                        if (details.data.bgdata) {
+                            chrome.runtime.sendMessage(details.data, function (resData) {
+                                if (resData.state === State.BGToMdwRsp) {
+                                    var event = new CustomEvent('ovmessage', {
+                                        detail: {
+                                            hash: details.hash,
+                                            data: {
+                                                data: resData.data,
+                                                state: State.MdwToEvRsp,
+                                                call: resData.call,
+                                                sender: resData.sender
+                                            }
+                                        }
+                                    });
+                                    document.dispatchEvent(event);
+                                }
+                                else {
+                                    throw Error("Wrong Response!");
+                                }
+                            });
+                        }
+                        else {
+                            eventPingPong(details.data, false).then(function (response) {
+                                var event = new CustomEvent('ovmessage', {
+                                    detail: {
+                                        hash: details.hash,
+                                        data: {
+                                            data: response.data,
+                                            state: State.MdwToEvRsp,
+                                            call: response.call,
+                                            sender: response.sender
+                                        }
+                                    }
+                                });
+                                document.dispatchEvent(event);
+                            });
+                        }
+                    }
+                });
+                chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+                    if (msg.state === State.BGToMdw) {
+                        eventPingPong({
+                            func: msg.func,
+                            data: msg.data,
+                            sender: sender,
+                            state: State.MdwToEv,
+                            bgdata: msg.bgdata
+                        }, false).then(function (response) {
+                            sendResponse({ data: response.data, state: State.MdwToBGRsp, call: response.call, sender: response.sender });
+                        });
                         return true;
                     }
-                }
-                return false;
-            });
+                    return false;
+                });
+            }
+        }
+        messages.setupMiddleware = setupMiddleware;
+        let bgfunctions = null;
+        function setupBackground(functions) {
+            if (bgfunctions) {
+                bgfunctions = OV.object.merge(bgfunctions, functions);
+            }
+            else {
+                bgfunctions = functions;
+                chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+                    if (msg.state === State.MdwToBG) {
+                        if (bgfunctions[msg.bgdata.func]) {
+                            bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function (response) {
+                                sendResponse({ data: response, state: State.BGToMdwRsp, call: msg, sender: sender });
+                            });
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+            }
         }
         messages.setupBackground = setupBackground;
     })(messages = OV.messages || (OV.messages = {}));

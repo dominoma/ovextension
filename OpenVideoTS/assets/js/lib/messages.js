@@ -1,11 +1,11 @@
 var Background;
 (function (Background) {
     function toTopWindow(msg) {
-        return OV.messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow" } });
+        return OV.messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow", data: {} } });
     }
     Background.toTopWindow = toTopWindow;
     function toActiveTab(msg) {
-        return OV.messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab" } });
+        return OV.messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab", data: {} } });
     }
     Background.toActiveTab = toActiveTab;
     function toTab(msg) {
@@ -17,7 +17,7 @@ var Background;
     }
     Background.openTab = openTab;
     function pauseAllVideos() {
-        return OV.messages.send({ bgdata: { func: "pauseAllVideos" } });
+        return OV.messages.send({ bgdata: { func: "pauseAllVideos", data: {} } });
     }
     Background.pauseAllVideos = pauseAllVideos;
     function setIconPopup(url) {
@@ -29,7 +29,7 @@ var Background;
     }
     Background.setIconText = setIconText;
     function downloadFile(dl) {
-        return OV.messages.send({ bgdata: { func: "setIconText", data: dl } });
+        return OV.messages.send({ bgdata: { func: "downloadFile", data: dl } });
     }
     Background.downloadFile = downloadFile;
     function analytics(data) {
@@ -37,30 +37,34 @@ var Background;
     }
     Background.analytics = analytics;
     function redirectHosts() {
-        return OV.messages.send({ bgdata: { func: "redirectHosts" } });
+        return OV.messages.send({ bgdata: { func: "redirectHosts", data: {} } });
     }
     Background.redirectHosts = redirectHosts;
     function alert(msg) {
-        return OV.messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+        OV.messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
     }
     Background.alert = alert;
     function prompt(data) {
-        return OV.messages.send({ bgdata: { func: "prompt", data: data } });
+        return OV.messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
+            return { aborted: response.data.aborted, text: response.data.text };
+        });
     }
     Background.prompt = prompt;
     function setup() {
         OV.messages.setupBackground({
             toTopWindow: function (msg, bgdata, sender, sendResponse) {
                 var tabid = sender.tab.id;
-                chrome.tabs.sendMessage(tabid, msg, function (resData) {
-                    sendResponse(resData);
+                chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
+                    sendResponse(resData.data);
                 });
             },
             toActiveTab: function (msg, bgdata, sender, sendResponse) {
                 var tabid = sender.tab.id;
                 chrome.tabs.query({ active: true }, function (tabs) {
-                    chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                        sendResponse(resData);
+                    chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
+                        if (resData) {
+                            sendResponse(resData.data);
+                        }
                     });
                 });
             },
@@ -68,7 +72,9 @@ var Background;
                 var tabid = sender.tab.id;
                 chrome.tabs.query(bgdata, function (tabs) {
                     chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                        sendResponse(resData);
+                        if (resData) {
+                            sendResponse(resData.data);
+                        }
                     });
                 });
             },
@@ -117,6 +123,7 @@ var TheatreMode;
     let iframeStyle = null;
     let currIframe = null;
     function enableTheaterMode(iframe) {
+        document.body.style.overflow = "hidden";
         currIframe = iframe;
         if (iframeStyle == null) {
             iframeStyle = iframe.style.cssText;
@@ -148,6 +155,7 @@ var TheatreMode;
             layerDiv.remove();
             layerDiv = null;
             iframe.style.cssText = iframeStyle;
+            document.body.style.removeProperty("overflow");
         }, 150);
     }
     function getFrameByDims(width, height) {
@@ -178,27 +186,31 @@ var TheatreMode;
     TheatreMode.setupIframe = setupIframe;
     function setup() {
         OV.messages.addListener({
-            setTheatreMode: function (data, sender, sendResponse) {
-                var theatreFrame = getFrameByDims(data.frameWidth, data.frameHeight);
-                if (data.enabled) {
+            setTheatreMode: function (request, sendResponse) {
+                var theatreFrame = getFrameByDims(request.data.frameWidth, request.data.frameHeight);
+                if (request.data.enabled) {
                     enableTheaterMode(theatreFrame);
                 }
                 else {
                     disableTheaterMode(theatreFrame);
                 }
             },
-            theatreModeDragChanged: function (data, sender, sendResponse) {
-                var scaledChange = (data.dragChange / data.frameWidth) * 100;
+            theatreModeDragChanged: function (request, sendResponse) {
+                var scaledChange = (request.data.dragChange / request.data.frameWidth) * 100;
                 setFrameWidth(currentFrameWidth + scaledChange);
             },
-            theatreModeDragStopped: function (data, sender, sendResponse) {
+            theatreModeDragStopped: function (request, sendResponse) {
                 OV.storage.sync.set("TheatreModeFrameWidth", currentFrameWidth);
             },
-            setupIframe: function (data, sender, sendResponse) {
-                var theatreFrame = getFrameByDims(data.frameWidth, data.frameHeight);
+            setupIframe: function (request, sendResponse) {
+                var theatreFrame = getFrameByDims(request.data.frameWidth, request.data.frameHeight);
                 if (theatreFrame && theatreFrame.hasAttribute("allow") && theatreFrame.getAttribute("allow").indexOf("fullscreen") != -1) {
                     theatreFrame.setAttribute("allow", theatreFrame.getAttribute("allow").replace("fullscreen", "").trim());
+                    console.log("TRUE");
                     sendResponse({ reload: true });
+                }
+                else {
+                    sendResponse({ reload: false });
                 }
             }
         });
@@ -227,8 +239,8 @@ var VideoPopup;
         return document.getElementById("videoPopup") != undefined;
     }
     function _addVideoToPopup(videoData) {
-        var src = videoData.src;
-        var videoListEntry = OV.array.search(src[0].src, videoArr, function (src, arrElem) {
+        let src = videoData.src;
+        let videoListEntry = OV.array.search(src[0].src, videoArr, function (src, arrElem) {
             return arrElem.src[0].src == src;
         });
         if (videoListEntry == null) {
@@ -280,10 +292,10 @@ var VideoPopup;
     VideoPopup.addVideoToPopup = addVideoToPopup;
     function setup() {
         OV.messages.addListener({
-            isPopupVisible: function (data, sender, sendResponse) {
+            isPopupVisible: function (request, sendResponse) {
                 sendResponse({ visible: _isPopupVisible() });
             },
-            openPopup: function (data, sender, sendResponse) {
+            openPopup: function (request, sendResponse) {
                 getPopupFrame().hidden = false;
                 if (firstpopup) {
                     getPopupFrame().src = getPopupFrame().src;
@@ -292,16 +304,74 @@ var VideoPopup;
                 pauseAllVideos();
                 setUnviewedVideos(newVideos);
             },
-            closePopup: function (data, sender, sendResponse) {
+            closePopup: function (request, sendResponse) {
                 document.getElementById("videoPopup").hidden = true;
                 Background.setIconPopup();
                 setUnviewedVideos(newVideos);
             },
-            addVideoToPopup: function (data, sender, sendResponse) {
-                _addVideoToPopup(data.videoData);
+            addVideoToPopup: function (request, sendResponse) {
+                _addVideoToPopup(request.data.videoData);
             }
         });
     }
     VideoPopup.setup = setup;
 })(VideoPopup || (VideoPopup = {}));
+var OVMetadata;
+(function (OVMetadata) {
+    function toDataURL(url) {
+        return OV.tools.createRequest({
+            url: url, beforeSend: function (xhr) {
+                xhr.responseType = 'blob';
+            }
+        }).then(function (xhr) {
+            return new Promise(function (resolve, reject) {
+                var reader = new FileReader();
+                reader.onloadend = function () {
+                    resolve("url(" + reader.result + ")");
+                };
+                reader.readAsDataURL(xhr.response);
+            });
+        });
+    }
+    function requestPlayerCSS() {
+        return Background.toTopWindow({ func: "requestPlayerCSS", data: {} }).then(function (response) {
+            return response.data;
+        });
+    }
+    OVMetadata.requestPlayerCSS = requestPlayerCSS;
+    function setup() {
+        document.addEventListener("DOMContentLoaded", function (event) {
+            let ovtags = document.getElementsByTagName("openvideo");
+            if (ovtags.length > 0) {
+                let ovtag = ovtags[0];
+                ovtag.innerText = OV.environment.getManifest().version;
+                /*var reloadimage = null;
+            if(ovtag.attributes.reloadimage) {
+                reloadimage = "url(data:image/png;base64,"+btoa(OV.tools.ajax({url: ovtag.attributes.reloadimage.value, async: false}).response)+")";
+            }
+            var reloadhoverimage = null;
+            if(ovtag.attributes.reloadhoverimage) {
+                reloadhoverimage = "url(data:image/png;base64,"+btoa(OV.tools.ajax({url: ovtag.attributes.reloadhoverimage.value, async: false}).response)+")";
+            }*/
+                let metadata = null;
+                OV.messages.addListener({
+                    requestPlayerCSS: function (request, sendResponse) {
+                        if (metadata) {
+                            sendResponse(metadata);
+                        }
+                        else {
+                            Promise.all([toDataURL(ovtag.getAttribute("playimage")), toDataURL(ovtag.getAttribute("playhoverimage"))]).then(function (dataURLs) {
+                                metadata = { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
+                                sendResponse(metadata);
+                            });
+                        }
+                    }
+                });
+                //alert("W2")
+                ovtag.dispatchEvent(new Event("ov-metadata-received"));
+            }
+        });
+    }
+    OVMetadata.setup = setup;
+})(OVMetadata || (OVMetadata = {}));
 //# sourceMappingURL=messages.js.map

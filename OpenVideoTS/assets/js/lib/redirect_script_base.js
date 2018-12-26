@@ -9,24 +9,29 @@ var ScriptBase;
     ScriptBase.addRedirectHost = addRedirectHost;
     function startScripts(scope) {
         for (let host of redirectHosts) {
-            for (let script of host.scripts) {
-                let match = location.href.match(script.urlPattern);
-                if (match) {
-                    for (let runScope of script.runScopes) {
-                        if (runScope.run_at == scope) {
-                            document.documentElement.hidden = runScope.hide_page !== false;
-                            runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
-                                videoData.origin = location.href;
-                                videoData.host = host.name;
-                                location.href = OV.environment.getVidPlaySiteUrl(videoData);
-                            }).catch(function (error) {
-                                document.documentElement.hidden = false;
-                                console.error(error);
-                            });
+            isScriptEnabled(host.name).then(function (isEnabled) {
+                if (isEnabled) {
+                    for (let script of host.scripts) {
+                        let match = location.href.match(script.urlPattern);
+                        if (match) {
+                            for (let runScope of script.runScopes) {
+                                if (runScope.run_at == scope) {
+                                    document.documentElement.hidden = runScope.hide_page !== false;
+                                    runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
+                                        videoData.origin = location.href;
+                                        videoData.host = host.name;
+                                        location.href = OV.environment.getVidPlaySiteUrl(videoData);
+                                    }).catch(function (error) {
+                                        document.documentElement.hidden = false;
+                                        console.error(error);
+                                        OV.analytics.fireEvent(host.name, "Error", JSON.stringify({ msg: error.message, url: location.href, stack: error.stack }));
+                                    });
+                                }
+                            }
                         }
                     }
                 }
-            }
+            });
         }
     }
     ScriptBase.startScripts = startScripts;
@@ -36,7 +41,7 @@ var ScriptBase;
                 return redirectHosts;
             }
             else {
-                return OV.messages.send({ bgdata: { func: "redirectHosts" } }).then(function (response) {
+                return OV.messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function (response) {
                     return response.data.redirectHosts;
                 });
             }

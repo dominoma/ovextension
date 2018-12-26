@@ -1,6 +1,7 @@
 var Player = null;
 var currentVideoHost = "";
 window["Worker"] = undefined;
+OV.messages.setupMiddleware();
 OV.page.wrapType(XMLHttpRequest, {
     open: {
         get: function (target) {

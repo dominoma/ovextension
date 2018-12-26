@@ -12,8 +12,7 @@ var VideoSearch;
                     ;
                 }
             });
-            OV.page.execute(function (data, sendResponse) {
-                console.log("HIIII");
+            OV.page.execute({ VideoPopup: VideoPopup, Background: Background }, function (data, sendResponse) {
                 function toSaveUrl(url) {
                     return OV.tools.getAbsoluteUrl(url);
                     //return x + (x.indexOf("?") == -1 ? "?" : "&") + "OVreferer="+encodeURIComponent(location.href)
@@ -160,20 +159,20 @@ var VideoSearch;
                     SetupVideo(videoNode);
                 });*/
                 var videoJSPlayers = getVideoJSPlayers();
+                console.log(videoJSPlayers);
                 if (videoJSPlayers) {
-                    for (var player of videoJSPlayers) {
+                    function extractVJSVideoData(player) {
                         VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
                         player.on('loadstart', function () {
-                            console.log("testest");
                             VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
                         });
                     }
+                    for (var player of videoJSPlayers) {
+                        extractVJSVideoData(player);
+                    }
                     if (videojs.hook) {
                         videojs.hook('setup', function (player) {
-                            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-                            player.on('loadstart', function () {
-                                VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-                            });
+                            extractVJSVideoData(player);
                         });
                     }
                 }

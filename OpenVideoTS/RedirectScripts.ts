@@ -1,5 +1,5 @@
 function suspectSubtitledVideo(details: ScriptBase.ScriptDetails, xhr : XMLHttpRequest) {
-    if(xhr.response.indexOf("<track>") != -1 || xhr.response.indexOf(".vtt") != -1) {
+    if(xhr.response.indexOf(/(<track>|\.vtt|"?tracks"?: \[\{|)/) != -1) {
         OV.analytics.fireEvent(details.hostname, "TracksFound", details.url)
     }
 }
@@ -74,7 +74,7 @@ ScriptBase.addRedirectHost({
             script: function(details): Promise<VideoTypes.VideoData> {
                 details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
                 if (details.url.indexOf("/f/") != -1) {
-                    OV.analytics.fireEvent("Utils", "OpenLoad over File", details.url)
+                    OV.analytics.fireEvent("OpenLoad over File", "Utils", details.url)
                     details.url = details.url.replace("/f/", "/embed/");
                 }
 

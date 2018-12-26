@@ -46,7 +46,8 @@
       // Sets this.player_, this.options_ and initializes the component
       MenuItem.call(this, player, options);
       this.src = options.src;
-
+      
+    
       this.on('click', this.onClick);
       this.on('touchstart', this.onClick);
 
@@ -107,7 +108,7 @@
         });
       }
     });
-
+  	videojs.registerComponent("ResolutionMenuItem", ResolutionMenuItem);
 
     /*
      * Resolution menu button

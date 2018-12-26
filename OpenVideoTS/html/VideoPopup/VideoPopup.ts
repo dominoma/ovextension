@@ -1,6 +1,7 @@
 var Player : OVPlayer.Player = null;
 var currentVideoHost = "";
 (window as any)["Worker"] = undefined;
+OV.messages.setupMiddleware();
 OV.page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {

@@ -1,4 +1,5 @@
 namespace OVPlayer {
+    OV.messages.setupMiddleware();
     export interface Player extends videojs.Player {
         hotkeys?: (obj : Object) => void;
         getActiveVideoSource?: () => VideoTypes.VideoSource;
@@ -15,84 +16,7 @@ namespace OVPlayer {
         origin: string;
         stoppedTime: number;
     }
-    function parseSrt(dataAndEvents : string, oncue : (cue: VideoTypes.VTTCue) => void) {
-        
-        function trim(dataAndEvents : string) {
-            return (dataAndEvents + "").replace(/^\s+|\s+$/g, "");
-        }
-        function parseCueTime(dataAndEvents : string) : number {
-            var parts = dataAndEvents.split(":");
-            /** @type {number} */
-            var sum = 0;
-            var minutes;
-            var part;
-            var url;
-            var x;
-            var i;
-            if (parts.length == 3) {
-                minutes = parts[0];
-                part = parts[1];
-                url = parts[2];
-            } else {
-                minutes = "0";
-                part = parts[0];
-                url = parts[1];
-            }
-            url = url.split(/\s+/);
-            x = url.splice(0, 1)[0];
-            x = x.split(/\.|,/);
-            i = parseFloat(x[1]);
-            x = x[0];
-            sum += parseFloat(minutes) * 3600;
-            sum += parseFloat(part) * 60;
-            sum += parseFloat(x);
-            if (i) {
-                sum += i / 1E3;
-            }
-            return sum;
-        }
-        
-        if (dataAndEvents == "") {
-            alert("Invalid srt file!");
-        }
-        var tempData;
-        var splitted;
-        var collection;
-        var nodes = dataAndEvents.split("\n");
-        var resp = "";
-        var user_id;
-        var cuelength = 0;
-        var n = nodes.length;
-        for (var i=1; i < n; ++i) {
-            resp = trim(nodes[i]);
-            if (resp) {
-                if (resp.indexOf("-->") == -1) {
-                    user_id = resp;
-                    resp = trim(nodes[++i]);
-                } else {
-                    user_id = cuelength;
-                }
-                tempData = {
-                    id: user_id,
-                    index: cuelength,
-                    startTime: undefined,
-                    endTime: undefined,
-                    text: ""
-                };
-                splitted = resp.split(/[\t ]+/);
-                tempData.startTime = parseCueTime(splitted[0]);
-                tempData.endTime = parseCueTime(splitted[2]);
-                /** @type {Array} */
-                collection = [];
-                for (; nodes[++i] && (resp = trim(nodes[i]));) {
-                    collection.push(resp);
-                }
-                tempData.text = collection.join("\n");
-                oncue({ id: "", startTime: tempData.startTime, endTime: tempData.endTime, text: tempData.text, pauseOnExit: false });
-                cuelength += 1;
-            }
-        }
-    }
+    
     export function initPlayer(playerId : string, options: Object, videoData: VideoTypes.VideoData) : Player {
         
         options = OV.object.merge(options, {
@@ -123,16 +47,21 @@ namespace OVPlayer {
             return null;
         }
         
-        var FavButton = Player.getChild('controlBar').addChild('FavButton', {}) as FavButton;
-        var DownloadButton = Player.getChild('controlBar').addChild('DownloadButton', {});
-        var PatreonButton = Player.getChild('controlBar').addChild('PatreonButton', {});
+        
         Player.on("ready", function(){
+            let ControlBar = Player.getChild('controlBar');
+            var FavButton = ControlBar.addChild('FavButton', {}) as FavButton;
+            var DownloadButton = ControlBar.addChild('DownloadButton', {});
+            var PatreonButton = ControlBar.addChild('PatreonButton', {});
+            var FullscreenToggle = ControlBar.getChild('fullscreenToggle') as videojs.FullscreenToggle;
+            var CaptionsButton = ControlBar.getChild('SubsCapsButton') as videojs.CaptionsButton;
+            CaptionsButton.show();
             Player.on("ratechange", function(){
                 OV.analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
             });
-            Player.controlBar.el().insertBefore(FavButton.el(), (<any>Player.controlBar).subsCapsButton.el());
-            Player.controlBar.el().insertBefore(DownloadButton.el(), (<any>Player.controlBar).fullscreenToggle.el());
-            Player.controlBar.el().insertBefore(PatreonButton.el(), (<any>Player.controlBar).fullscreenToggle.el());
+            Player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
+            Player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
+            Player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
             OV.storage.sync.get("PlayerVolume").then(function(volume){
                 if(volume) {
                     Player.volume(volume);
@@ -141,17 +70,17 @@ namespace OVPlayer {
             Player.on('volumechange', function(){
                 OV.storage.sync.set("PlayerVolume",Player.volume());
             });
-        });
-        (<any>Player.controlBar).subsCapsButton.eventBusEl_.addEventListener('DOMNodeInserted', function(event : MutationEvent){
-            if((event.target as HTMLElement).className == "vjs-menu") {
-                var subsArr = (event.target as HTMLElement).getElementsByTagName("li");
-                for(var i=4;i<subsArr.length;i++) {
-                    if(Player.textTracks()[i-2] && (Player.textTracks()[i-2] as any).src) {
-                        subsArr[i].appendChild(OVPlayer.createDownloadButton((Player.textTracks()[i-2] as any).src));
-                    }
+            Player.on('loadedmetadata',function() {
+                Player.loadFromHistory();
+                FavButton.updateDesign();
+            });
+            document.body.onmouseleave  = function() {
+                if(Player.currentTime() != 0) {
+                    Player.saveToHistory();
                 }
-            }
+            };
         });
+        
         Player.setVideoData = function(videoData : VideoTypes.VideoData) {
            
             
@@ -172,23 +101,11 @@ namespace OVPlayer {
             else {
                 Player.updateSrc(srces);
             
-                var srcArray = (<any>Player.controlBar).resolutionSwitcher.getElementsByTagName("li");
-                for(var i=0;i<srcArray.length;i++) {
-                    if(srces[i].dlsrc) {
-                        srces[i] = { label: srces[i].label, src: srces[i].dlsrc.src, type: srces[i].dlsrc.type };
-                    }
-                    srcArray[i].appendChild(createDownloadButton(srces[i].src, "["+srces[i].label+"]"+videoData.title+"."+srces[i].type.substr(srces[i].type.indexOf("/")+1), srces[i].type));
-                };
+                
             }
-                
-            
-     
-            clearAllTextTracks(Player);
-            
             for(let track of videoData.tracks) {
-                
-                Player.addRemoteTextTrack(<any>track, true);
-                
+                OVPlayer.addTextTrack(Player, track);
+                //Player.addRemoteTextTrack(<any>track, true);
             }
             
         }
@@ -247,62 +164,15 @@ namespace OVPlayer {
                 }
             });
         };
-        Player.on('loadedmetadata',function() {
-            Player.loadFromHistory();
-            FavButton.updateDesign();
-        });
-        document.body.onmouseleave  = function() {
-            if(Player.currentTime() != 0) {
-                Player.saveToHistory();
-            }
-        };
+        
         
         return Player;
     }
-    function clearAllTextTracks(player : Player) : void {
-        function loadSrtFromUrl() : void {
-            var url = prompt("Please enter the url of the subtitle file you want to use");
-            if (url != null && url != "") {
-                OV.tools.createRequest({ url: url }).then(function(xhr){
-                    var srcContent = xhr.responseText;
-                    //function (srcContent) {
-                    if (srcContent.indexOf("-->") !== -1) {
-                        OV.tools.getUrlFileName(url).then(function(fn){
-                            player.addTextTrack("captions", fn , "su");
-                            var track = player.textTracks()[player.textTracks().length-1];
-                            parseSrt(srcContent, function (cue) {
-                                track.addCue(cue);
-                            });
-                        });
-                    } else {
-                        alert("Invaid subtitle file");
-                    }
-                });
-               
-                //});
-            }
-        };
+    /*function clearAllTextTracks(player : Player) : void {
+        
 
         
-        function loadSrtFromFile() {
-            var srtSelector = document.getElementById("srtSelector") as HTMLInputElement;
-            srtSelector.addEventListener("change", function () {
-                var collection = new FileReader;
-                collection.onload = function (dataAndEvents) {
-                    if (collection.result.indexOf("-->") !== -1) {
-                        player.addTextTrack("captions", srtSelector.files[0].name, "su");
-                        var track = player.textTracks()[player.textTracks().length-1];
-                        parseSrt(collection.result, function (cue) {
-                            track.addCue(cue);
-                        });
-                    } else {
-                        alert("Invaid subtitle file");
-                    }
-                };
-                collection.readAsText(srtSelector.files[0], "ISO-8859-1");
-            });
-            document.getElementById("srtSelector").click();
-        }
+        
         
         player.addRemoteTextTrack({kind: "caption", label: "load VTT/SRT from URL", language: "FromURL", src: ""} as any, false);
         player.textTracks().on('change', function(){ 
@@ -321,5 +191,5 @@ namespace OVPlayer {
         var Menu = (player.controlBar as any).subsCapsButton.menu.el_;
         Menu.style = "width:200px; left:-80px;";
         Menu.childNodes[0].style = "overflow: hidden;";
-    }
+    }*/
 }

@@ -26,7 +26,7 @@ namespace OV {
             }
         }
         export function search<T>(elem: any, arr: Array<T>, cmpre?: (elem: any, arrItem: T) => boolean ) : T {
-            if(cmpre) {
+            if(!cmpre) {
                 cmpre = function(elem, arrItem){ 
                     return arrItem === elem; 
                 };
@@ -320,9 +320,9 @@ namespace OV {
     }
     
         export namespace page {
-            export function injectOV() : void {
+            export function injectNamespace(namespace : any, name: string) : void {
                 var script = document.createElement('script');
-                script.appendChild(document.createTextNode("window['OV'] = "+OV.toJSONString(OV)));
+                script.appendChild(document.createTextNode("window['"+name+"'] = "+OV.toJSONString(namespace)));
                 (document.head || document.body || document.documentElement).appendChild(script);
             }
             export function injectJS(source : ((data: StringMap) => void) | string, data?: StringMap) : void {
@@ -335,13 +335,18 @@ namespace OV {
                 script.appendChild(document.createTextNode(injectStr));
                 (document.body || document.head || document.documentElement).appendChild(script);
             }
-            export function execute(source: (data: StringMap, sendResponse: (data: StringMap) => void) => void, data?: StringMap) : Promise<StringMap> {
+            export function execute(namespaces: { [key:string]: any }, source: (data: StringMap, sendResponse: (data: StringMap) => void) => void, data?: StringMap) : Promise<StringMap> {
                 return new Promise<StringMap>(function(resolve, reject){
-                    OV.page.injectOV();
+                    
+                    for(let name in namespaces) {
+                        injectNamespace(namespaces[name], name);
+                    }
+                    
+                    injectNamespace(OV, "OV");
                     OV.messages.addListener({
-                        ovInjectResponse: function(data: any, sender, sendResponse) {
-                            if(data.response) {
-                                resolve(data.response);
+                        ovInjectResponse: function(request, sendResponse) {
+                            if(request.data.response) {
+                                resolve(request.data.response);
                             }
                             return { blocked: true };
                         }
@@ -356,10 +361,8 @@ namespace OV {
             }
             
             export function lookupCSS(args : { key?: string; value: RegExp|string; }, callback : (obj : { cssRule: any, key: string, value: RegExp|string, match: any }) => void) : void {
-                for (let i=0;i<document.styleSheets.length;i++){
-                    let styleSheet = document.styleSheets.item(i)
-                    for(let j=0;j<(styleSheet as any).cssRules.length;j++) {
-                        let cssRule = (styleSheet as any).cssRules[i];
+                for (let styleSheet of document.styleSheets as any){
+                    for(let cssRule of styleSheet.cssRules) {
                         if(cssRule.style) {
                             if(args.key) {
                                 if(cssRule.style[args.key].match(args.value)) {
@@ -622,7 +625,7 @@ namespace OV {
     export namespace proxy {
         export function setupBG() : void {
             OV.messages.setupBackground({
-                proxySetup: function(data, bgdata : any, sender, sendResponse) { 
+                proxySetup: function(data, bgdata : Proxy, sender, sendResponse) { 
                     _setup({ip: bgdata.ip, port: bgdata.port, country: bgdata.country}).then(sendResponse); 
                 },
                 proxyUpdate: function(data, bgdata, sender, sendResponse) { 
@@ -631,7 +634,7 @@ namespace OV {
                 proxyRemove: function(data, bgdata, sender, sendResponse) { 
                     _remove(); 
                 },
-                proxyAddHostToList: function(data, bgdata: any, sender, sendResponse) { 
+                proxyAddHostToList: function(data, bgdata, sender, sendResponse) { 
                     _addHostToList(bgdata.host); 
                 },
                 proxyNewProxy: function(data, bgdata, sender, sendResponse) { 
@@ -695,7 +698,7 @@ namespace OV {
                 return _update();
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyUpdate" } }).then(function(response){
+                return OV.messages.send({ bgdata: { func: "proxyUpdate", data: {} } }).then(function(response){
                     return response.data;
                 });
             }
@@ -713,7 +716,7 @@ namespace OV {
                 return _newProxy();
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyNewProxy" } }).then(function(response){
+                return OV.messages.send({ bgdata: { func: "proxyNewProxy", data: {} } }).then(function(response){
                     return response.data;
                 });
             }
@@ -761,7 +764,7 @@ namespace OV {
                 return Promise.resolve(currentProxy);
             }
             else {
-                return OV.messages.send({ bgdata: { func: "proxyGetCurrent" } }).then(function(response){
+                return OV.messages.send({ bgdata: { func: "proxyGetCurrent", data: {} } }).then(function(response){
                     return response.data;
                 });
             }
@@ -771,7 +774,7 @@ namespace OV {
                 _remove();
             }
             else {
-                OV.messages.send({ bgdata: { func: "proxyRemove" } });
+                OV.messages.send({ bgdata: { func: "proxyRemove", data: {} } });
             }
         }
         function _remove() {
@@ -838,94 +841,222 @@ namespace OV {
         }
     }
     export namespace messages {
-        export interface BackgroundData {
-            data?: any;
-            func?: string;
+        
+        
+        
+        export enum State {
+            EvToMdw = "EvToMdw",
+            MdwToBG = "MdwToBG",
+            BGToMdw = "BGToMdw",
+            MdwToEv = "MdwToEv",
+            EvToMdwRsp = "EvToMdwRsp",
+            MdwToBGRsp = "MdwToBGRsp",
+            BGToMdwRsp = "BGToMdwRsp",
+            MdwToEvRsp = "MdwToEvRsp"
         }
-        export interface MessageData {
-            data?: any;
-            func?: string;
-            hash?: string;
-            sender?: chrome.runtime.MessageSender;
-            bgdata?: BackgroundData;
+        export interface BackgroundData {
+            data: any;
+            func: string;
+        }
+        export interface Message {
+            data: any;
+            state: State;
+            sender: chrome.runtime.MessageSender;
+        }
+        export interface Request extends Message {
+            func: string;
+            bgdata: BackgroundData|null;
+        }
+        export interface Response extends Message {
+            call: Request;
+        }
+        interface EventMessage<T extends Message> {
+            hash: string;
+            data: T;
         }
         export function generateHash() : string {
             var ts = Math.round(+new Date() / 1000.0);
             var rand = Math.round(Math.random() * 2147483647);
             return [rand, ts].join('.');
         }
-        export function addListener(functions: { [key:string]: (data: any, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void|{blocked: boolean } }) : void {
-            var blockedFuncs : Array<string> = [];
-            document.addEventListener('ovmessage', function(event : CustomEvent){
-                var details = event.detail as MessageData;
-                //alert(JSON.stringify(details))
-                if(functions[details.func] && !details.bgdata && blockedFuncs.indexOf(details.func) == -1) {
-                    
-                    var result = functions[details.func](details.data, details.sender, function(data){
-                        
-                        var event = new CustomEvent('ovmessage', { detail: {data: data, hash: details.hash } });
-                        document.dispatchEvent(event);
-                    });
-                    if(result && result.blocked) {
-                        blockedFuncs.push(details.func);
-                    }
-                }
-            });
+        export interface ListenerSetup
+        {
+            [key:string]: (request: Request, sendResponse: (obj: any) => void) => void|{blocked: boolean } 
         }
-        export function send(obj : MessageData) : Promise<{ data: any; sender: chrome.runtime.MessageSender; }> {
-            return new Promise(function(resolve, reject){
-                try {
-                    var hash = OV.messages.generateHash();
+        let lnfunctions : ListenerSetup = null;
+        let blockedFuncs : Array<string> = [];
+        export function addListener(functions:  ListenerSetup) : void {
+            if(lnfunctions) {
+                lnfunctions = OV.object.merge(lnfunctions, functions);
+            }
+            else {
+                lnfunctions = functions;
+                document.addEventListener('ovmessage', function(event : CustomEvent){
+                    var details = event.detail as EventMessage<Request>;
                     
-                    let one = function(event : CustomEvent) : void{
-                        var details = event.detail;
-                        if(details.hash === hash && !details.func) {
-                            document.removeEventListener('ovmessage', one);
-                            resolve({ data: details.data, sender: details.sender });
+                    if(lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
+                       
+                        var result = lnfunctions[details.data.func](details.data, function(data){
+                            
+                            var event = new CustomEvent('ovmessage', { 
+                                detail: {
+                                    hash: details.hash, 
+                                    data: {
+                                        data: data, 
+                                        state: State.EvToMdwRsp, 
+                                        call: details.data, 
+                                        sender: { url: location.href } 
+                                    } 
+                                } as EventMessage<Response> 
+                            });
+                            document.dispatchEvent(event);
+                        });
+                        if(result && result.blocked) {
+                            blockedFuncs.push(details.data.func);
                         }
-                    };
-                    document.addEventListener('ovmessage', one);
-                    
-                    var event = new CustomEvent('ovmessage', { detail: { func: obj.func || "NO_FUNCTION", data: obj.data || {}, sender: obj.sender || "self", hash: hash, bgdata: obj.bgdata } });
-                    document.dispatchEvent(event);
-                }
-                catch(e) {
-                    reject(e);
-                }
+                    }
+                });
+            }
+        }
+        export function send(obj : { data?: any;  func?: string; bgdata?: BackgroundData|null }) : Promise<Response> {
+            
+            return eventPingPong({ 
+                func: obj.func || "NO_FUNCTION", 
+                data: obj.data || {}, 
+                sender: { url: location.href }, 
+                bgdata: obj.bgdata, 
+                state: State.EvToMdw 
+            }, true);
+        }
+        function eventPingPong(data: Request, beforeBG : boolean) : Promise<Response>{
+            return new Promise(function(resolve, reject){
+                data.state = beforeBG ? State.EvToMdw : State.MdwToEv;
+               
+                let hash = OV.messages.generateHash();
+                let one = function(event : CustomEvent) : void {
+                    var details = event.detail as EventMessage<Response>;
+                    if(details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
+                        document.removeEventListener('ovmessage', one);
+                        
+                        resolve(details.data);
+                    }
+                };
+                document.addEventListener('ovmessage', one);
+                
+                let event = new CustomEvent('ovmessage', { 
+                    detail: { 
+                        hash: hash, 
+                        data: data
+                    } as EventMessage<Request>
+                });
+                document.dispatchEvent(event);
             });
+            
+        }
+        let isMiddleware_ = false;
+        export function isMiddleware() {
+            return isMiddleware;
         }
         export function setupMiddleware() {
-            document.addEventListener('ovmessage', function(event : CustomEvent){
-                var details = event.detail;
-                if(details.bgdata) {
-                    chrome.runtime.sendMessage({func: details.func, data: details.data, hash: details.hash, bgdata: details.bgdata}, function(resData){
+            if(isMiddleware_) {
+                throw Error("Middleware already set up!")
+            }
+            else {
+                isMiddleware_ = true;
+                document.addEventListener('ovmessage', function(event : CustomEvent){
+                    var details = event.detail as EventMessage<Request>;
+                    if(details.data.state === State.EvToMdw) {
+                        details.data.state = State.MdwToBG;
+                       
+                        if(details.data.bgdata) {
+                            
+                            chrome.runtime.sendMessage(details.data, function(resData : Response){
+                                if(resData.state === State.BGToMdwRsp) {
+                                    
+                                    var event = new CustomEvent('ovmessage', { 
+                                        detail: { 
+                                            hash: details.hash, 
+                                            data: {
+                                                data: resData.data, 
+                                                state: State.MdwToEvRsp, 
+                                                call: resData.call,
+                                                sender: resData.sender
+                                            }
+                                        } as EventMessage<Response>
+                                    });
+                                    document.dispatchEvent(event);
+                                }
+                                else {
+                                    throw Error("Wrong Response!")
+                                }
+                            });
+                        }
+                        else {
+                            
+                            eventPingPong(details.data, false).then(function(response){
+                                
+                                var event = new CustomEvent('ovmessage', { 
+                                    detail: { 
+                                        hash: details.hash, 
+                                        data: {
+                                            data: response.data, 
+                                            state: State.MdwToEvRsp, 
+                                            call: response.call,
+                                            sender: response.sender
+                                        }
+                                    } as EventMessage<Response>
+                                });
+                                document.dispatchEvent(event);
+                            });
+                        }
+                    }
+               
+                });
+                chrome.runtime.onMessage.addListener(function(msg : Request, sender, sendResponse){
+                    if(msg.state === State.BGToMdw) {
                         
-                        var event = new CustomEvent('ovmessage', { detail: {data: resData, hash: details.hash} });
-                        document.dispatchEvent(event);
-                    })
-                }
-            });
-            chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse){
-                if(!msg.bgdata) {
-                    
-                    OV.messages.send({func: msg.func, data: msg.data, sender: sender}).then(function(details){
-                        sendResponse(details.data);
-                    });
-                }
-            })
-        }
-        export function setupBackground(functions: {[key:string]: (msg: MessageData, bgData: Object, sender: chrome.runtime.MessageSender, sendResponse: (obj: Object) => void) => void }) {
-            chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse){
-                if(msg.bgdata) {
-                    
-                    if(functions[msg.bgdata.func]) {
-                        functions[msg.bgdata.func]({ func: msg.func, data: msg.data, hash: msg.hash }, msg.bgdata.data, sender, sendResponse);
+                        eventPingPong({ 
+                            func: msg.func, 
+                            data: msg.data, 
+                            sender: sender,  
+                            state: State.MdwToEv, 
+                            bgdata: msg.bgdata 
+                        }, false).then(function(response){
+                           
+                            sendResponse({ data: response.data, state: State.MdwToBGRsp, call: response.call, sender: response.sender } as Response);
+                        });
                         return true;
                     }
-                    
-                }
-                return false;
-            });
+                    return false;
+                });
+            }
+        }
+        let bgfunctions : BackgroundSetup = null;
+        export interface BackgroundSetup
+        {
+            [key:string]: (msg: Request, bgData: any, sender: chrome.runtime.MessageSender, sendResponse: (obj: any) => void) => void;
+        }
+        export function setupBackground(functions: BackgroundSetup) {
+            if(bgfunctions) {
+                bgfunctions = OV.object.merge(bgfunctions, functions);
+            }
+            else {
+                bgfunctions = functions;
+                chrome.runtime.onMessage.addListener(function(msg : Request, sender, sendResponse){
+                    if(msg.state === State.MdwToBG) {
+                       
+                        if(bgfunctions[msg.bgdata.func]) {
+                            bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function(response : any){
+                               
+                                sendResponse({ data: response, state: State.BGToMdwRsp, call: msg, sender: sender } as Response)
+                            });
+                            return true;
+                        }
+                        
+                    }
+                    return false;
+                });
+            }
         }
     } 
     

@@ -1,4 +1,3 @@
-OV.messages.setupMiddleware();
 (window as any)["Worker"] = undefined;
 OV.page.wrapType(XMLHttpRequest, {
     open: {
@@ -22,16 +21,17 @@ function getPlayer() {
 }
 
 document.addEventListener("DOMContentLoaded", function(event) {
-    Background.toTopWindow({ func: "requestPlayerCSS", data: {} }).then(function(response){
-        if(response.data && response.data.doChange) {
+    OVMetadata.requestPlayerCSS().then(function(css){
+        if(css && css.doChange) {
+            
             OV.page.lookupCSS({ value: /rgba?\(141, 199, 63,?([^\)]*)?\)/ }, function(data){
-                data.cssRule.style[data.key] = response.data.color;
+                data.cssRule.style[data.key] = css.color;
             });
             OV.page.lookupCSS({ value: /url\("\/assets\/icons\/playNormal\.png"\)/ }, function(data){
-                data.cssRule.style[data.key] = response.data.playimage;
+                data.cssRule.style[data.key] = css.playimage;
             });
             OV.page.lookupCSS({ value: /url\("\/assets\/icons\/playHover\.png"\)/ }, function(data){
-                data.cssRule.style[data.key] = response.data.playhoverimage;
+                data.cssRule.style[data.key] = css.playhoverimage;
             });
             /*lookupCSS({ value: 'url("/assets/icons/reloadNormal.png")' }, function(data){
                 data.cssRule.style[data.key] = response.reloadimage;
@@ -63,8 +63,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
     if(OV.page.isFrame()) {
         var TheaterButton = getPlayer().getChild('controlBar').addChild('TheaterButton', {});
         getPlayer().on("ready", function(){
-            TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(response){
-                if(response.data && response.data.reload) {
+            TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(data){
+                if(data && data.reload) {
                     location.reload();
                 }
             });
