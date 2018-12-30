@@ -13,7 +13,7 @@ namespace Background {
     chrome.runtime.setUninstallURL("https://goo.gl/forms/conIBydrACtZQR0A2");
     chrome.browserAction.setBadgeBackgroundColor({color: "#8dc73f"});
     chrome.browserAction.onClicked.addListener(function(tab){
-        chrome.tabs.sendMessage(tab.id,{func: "openPopup"});
+        Background.sendMessage(tab.id, { func: "openPopup", data: {} });
         chrome.browserAction.setPopup({tabId: tab.id, popup: "html/PopupMenu/PopupMenu.html"});
     });
     chrome.runtime.onInstalled.addListener(function(details){
@@ -81,12 +81,14 @@ namespace Background {
             }
             return OV.array.search(name, headers, searchHeader);
         }
-        if(OV.tools.parseUrl(details.url).query.isOV) {
+        if(details.url.match(/[\?&]isOV=true/i)) {
+            console.log("OV")
             setHeader(details.requestHeaders, "Origin", "*");
             setHeader(details.requestHeaders, "Referer", "*");
+            console.log(details.requestHeaders)
             //returnHash.redirectUrl = redirectUrl.replace(/[\?&]isOV=[^\?&]*/g, "");
         }
-        var referer = (details.url.match(/[\?&]OVreferer=([^\?&]*)/) || [null, null])[1];
+        var referer = (details.url.match(/[\?&]OVreferer=([^\?&]*)/i) || [null, null])[1];
         if(referer) {
            
             referer = atob(decodeURIComponent(referer));

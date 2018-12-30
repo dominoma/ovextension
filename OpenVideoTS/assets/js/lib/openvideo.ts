@@ -69,6 +69,14 @@ namespace OV {
         }
     }
     export namespace tools {
+        export function eventOne(elem : Node, type: string) {
+            return new Promise(function(resolve, reject){
+                elem.addEventListener(type, function one(e : Event){
+                    resolve(e);
+                    elem.removeEventListener(type, one);
+                });
+            });
+        }
         export function objToHash(obj: Object) : string {
             if(obj) {
                 return "?hash="+encodeURIComponent(JSON.stringify(obj));
@@ -320,29 +328,56 @@ namespace OV {
     }
     
         export namespace page {
-            export function injectNamespace(namespace : any, name: string) : void {
-                var script = document.createElement('script');
-                script.appendChild(document.createTextNode("window['"+name+"'] = "+OV.toJSONString(namespace)));
-                (document.head || document.body || document.documentElement).appendChild(script);
+            export function isReady() {
+                return new Promise(function(resolve, reject){
+                    if(document.readyState.match(/(loaded|complete)/)) {
+                        return Promise.resolve();
+                    }
+                    else {
+                        return OV.tools.eventOne(document, "DOMContentLoaded").then(function(e : Event){
+                            resolve();
+                        });
+                    }
+                });
             }
-            export function injectJS(source : ((data: StringMap) => void) | string, data?: StringMap) : void {
-                var injectStr = source.toString();
-                //if(typeof source === "function") {
-                
+            
+            export function injectScript(file : string) {
+                return new Promise(function(resolve, reject){
+                    var script = document.createElement('script');
+                    script.src = chrome.extension.getURL("/assets/js/lib/"+file+".js");
+                    script.async = true;
+                    script.onload = function (){
+                        script.onload = null;
+                        resolve(script);
+                    };
+                    document.body.appendChild(script);
+                });
+            }
+            export function injectScripts(files: string[]) {
+                return Promise.all(files.map(injectScript));
+            }
+
+            export function injectRawJS(source : ((data: StringMap) => void) | string, data?: StringMap) {
+                return new Promise(function(resolve, reject){
+                    var injectStr = source.toString();
                     injectStr = "("+source+")("+JSON.stringify(data||{})+");";
-                //}
-                var script = document.createElement('script');
-                script.appendChild(document.createTextNode(injectStr));
-                (document.body || document.head || document.documentElement).appendChild(script);
+                    var script = document.createElement('script');
+                    script.appendChild(document.createTextNode(injectStr));
+                    script.async = true;
+                    script.onload = function (){
+                        script.onload = null;
+                        resolve(script);
+                    };
+                    document.body.appendChild(script);
+                });
             }
-            export function execute(namespaces: { [key:string]: any }, source: (data: StringMap, sendResponse: (data: StringMap) => void) => void, data?: StringMap) : Promise<StringMap> {
+            
+            export function execute(files : string[], source: (data: StringMap, sendResponse: (data: StringMap) => void) => void, data?: StringMap) : Promise<StringMap> {
                 return new Promise<StringMap>(function(resolve, reject){
-                    
-                    for(let name in namespaces) {
-                        injectNamespace(namespaces[name], name);
+                    if(files.indexOf("openvideo") == -1) {
+                        files.unshift("openvideo");
                     }
                     
-                    injectNamespace(OV, "OV");
                     OV.messages.addListener({
                         ovInjectResponse: function(request, sendResponse) {
                             if(request.data.response) {
@@ -354,30 +389,38 @@ namespace OV {
                     var sendResponse = function (resData : any) : void {
                         OV.messages.send({ func: "ovInjectResponse", data: { response: resData } });
                     }
-                    OV.page.injectJS(
-                        "function(data){ ("+source+")(data, ("+sendResponse+")); }"
-                    , data);
+                    injectScripts(files).then(function(scripts){  
+                        return injectRawJS("function(data){ ("+source+")(data, ("+sendResponse+")); }", data); 
+                    });
                 });
             }
             
-            export function lookupCSS(args : { key?: string; value: RegExp|string; }, callback : (obj : { cssRule: any, key: string, value: RegExp|string, match: any }) => void) : void {
+            export function lookupCSS(args : { key?: string; value?: RegExp|string; }, callback : (obj : { cssRule: any, key: string, value: RegExp|string, match: any }) => void) : void {
                 for (let styleSheet of document.styleSheets as any){
-                    for(let cssRule of styleSheet.cssRules) {
-                        if(cssRule.style) {
-                            if(args.key) {
-                                if(cssRule.style[args.key].match(args.value)) {
-                                    callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
-                                }
-                            }
-                            else {
-                                for(var style of cssRule.style) {
-                                    if(cssRule.style[style] && cssRule.style[style].match(args.value)) {
-                                        callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                    try {
+                        for(let cssRule of styleSheet.cssRules) {
+                            
+                                if(cssRule.style) {
+                                    if(args.key) {
+                                        if(cssRule.style[args.key].match(args.value)) {
+                                            callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                                        }
+                                    }
+                                    else if(args.value) {
+                                        for(var style of cssRule.style) {
+                                            if(cssRule.style[style] && cssRule.style[style].match(args.value)) {
+                                                callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        callback({ cssRule: cssRule, key: null, value: null, match: null });
                                     }
                                 }
                             }
+                            
                         }
-                    }
+                    catch(e){};
                 }
             }
 
@@ -405,7 +448,7 @@ namespace OV {
                 (<any>window)[origConstr.name] = function (a : any,b : any,c : any,d : any,e : any,f : any) {
                     var obj = new origConstr(a,b,c,d,e,f);
                     var proxyWrapper = new Proxy(obj, { 
-                        get: function(target, name) {
+                        get: function(target : any, name : string) {
                             if(wrapper[name]) {
                                 return wrapper[name].get(target);
                             }
@@ -415,7 +458,7 @@ namespace OV {
                             else {
                                 return (<any>target)[name];
                             }
-                        }, set: function(target, name, value){
+                        }, set: function(target : any, name : string, value : any){
                             if(wrapper[name]) {
                                 if(wrapper[name].set) {
                                     wrapper[name].set(target, value);
@@ -895,22 +938,26 @@ namespace OV {
                     var details = event.detail as EventMessage<Request>;
                     
                     if(lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
-                       
-                        var result = lnfunctions[details.data.func](details.data, function(data){
-                            
-                            var event = new CustomEvent('ovmessage', { 
-                                detail: {
-                                    hash: details.hash, 
-                                    data: {
-                                        data: data, 
-                                        state: State.EvToMdwRsp, 
-                                        call: details.data, 
-                                        sender: { url: location.href } 
-                                    } 
-                                } as EventMessage<Response> 
+                        try {
+                            var result = lnfunctions[details.data.func](details.data, function(data){
+                                
+                                var event = new CustomEvent('ovmessage', { 
+                                    detail: {
+                                        hash: details.hash, 
+                                        data: {
+                                            data: data, 
+                                            state: State.EvToMdwRsp, 
+                                            call: details.data, 
+                                            sender: { url: location.href } 
+                                        } 
+                                    } as EventMessage<Response> 
+                                });
+                                document.dispatchEvent(event);
                             });
-                            document.dispatchEvent(event);
-                        });
+                        }
+                        catch(e) {
+                            throw { error: e, sender: details.data.sender };
+                        }
                         if(result && result.blocked) {
                             blockedFuncs.push(details.data.func);
                         }

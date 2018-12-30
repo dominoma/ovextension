@@ -20,7 +20,7 @@ function getPlayer() {
     return player;
 }
 
-document.addEventListener("DOMContentLoaded", function(event) {
+OV.page.isReady().then(function(event) {
     OVMetadata.requestPlayerCSS().then(function(css){
         if(css && css.doChange) {
             
@@ -63,11 +63,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
     if(OV.page.isFrame()) {
         var TheaterButton = getPlayer().getChild('controlBar').addChild('TheaterButton', {});
         getPlayer().on("ready", function(){
-            TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(data){
+            /*TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(data){
                 if(data && data.reload) {
                     location.reload();
                 }
-            });
+            });*/
             getPlayer().controlBar.el().insertBefore(TheaterButton.el(), (getPlayer().controlBar as any).fullscreenToggle.el());
         });
         getPlayer().on("fullscreenchange", function(){

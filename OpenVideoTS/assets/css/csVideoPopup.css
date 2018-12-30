@@ -11,6 +11,8 @@
 	pointer-events: none;
 	transition: opacity 0.3s;
 	opacity: 0;
+	display:block;
+	cursor: default;
 }
 .ov-iframe-theaterMode {
 	position: fixed !important;

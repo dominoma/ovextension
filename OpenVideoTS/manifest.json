@@ -4,8 +4,8 @@
   "name": "OpenVideo FastStream",
   "short_name": "OpenVideo",
   "description": "__MSG_extDescr__",
-  "version": "1.10",
-  "content_security_policy": "script-src 'self'; object-src 'self'",
+  "version": "1.10.7",
+  "content_security_policy": "script-src 'self'; object-src 'self';",
   "browser_action": {
     "default_icon": "assets/icons/logo256.png",
     "default_popup": "html/PopupMenu/PopupMenu.html"
@@ -51,7 +51,10 @@
   	"html/VidPlaySite/VidPlaySite.html",
   	"html/VideoPopup/VideoPopup.html",
   	"html/VideoPopup/VideoPopup.css",
-  	"html/LibrarySite/LibrarySite.html"
+  	"html/LibrarySite/LibrarySite.html",
+  	"assets/js/lib/openvideo.js",
+  	"assets/js/lib/messages.js",
+  	"assets/js/lib/video_search_inject.js"
   ],
    "content_scripts": [
     {

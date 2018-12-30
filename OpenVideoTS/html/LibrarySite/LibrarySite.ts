@@ -59,7 +59,7 @@ function createVideoLink(videoData : OVPlayer.HistoryEntry) {
         VideoLink.parentElement.removeChild(VideoLink);
     });
 }
-document.addEventListener("DOMContentLoaded", function() {
+OV.page.isReady().then(function() {
     
     OV.analytics.fireEvent("Library", "PlayerEvent", "");
     

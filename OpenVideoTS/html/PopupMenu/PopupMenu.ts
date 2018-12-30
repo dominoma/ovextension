@@ -1,5 +1,5 @@
 OV.messages.setupMiddleware();
-document.addEventListener("DOMContentLoaded", function() {
+OV.page.isReady().then(function() {
     
     document.getElementById('library').innerText = OV.languages.getMsg("popup_menu_library_btn");
     document.getElementById('options').innerText = OV.languages.getMsg("popup_menu_options_btn");
@@ -53,9 +53,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 fieldText: (proxy.country === "Custom" ? proxy.ip+":"+proxy.port : "proxy-ip:port")
             }).then(function(response){
                 console.log(response);
-                if(response.data.text) {
+                if(response.aborted) {
                     document.getElementById('proxyCountry').innerText = "Custom";
-                    var data = response.data.text.split(":");
+                    var data = response.text.split(":");
                     OV.proxy.setup({ ip: data[0], port: parseInt(data[1]), country: "Custom" });
                 }
             });

@@ -1,7 +1,6 @@
 var Player : OVPlayer.Player = null;
 var currentVideoHost = "";
 (window as any)["Worker"] = undefined;
-OV.messages.setupMiddleware();
 OV.page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {
@@ -24,6 +23,7 @@ function LoadVideo(popupData : PopupData, index : number) {
     currentVideoHost = videoData.origin;
     if(!Player) {
         Player = OVPlayer.initPlayer('openVideo', { autoplay: popupData.autoplay }, videoData);
+        (Player.el() as HTMLDivElement).style.paddingTop = "unset";
     }
     else {
         Player.autoplay(!!popupData.autoplay);
@@ -31,7 +31,7 @@ function LoadVideo(popupData : PopupData, index : number) {
     }
     document.getElementById("currentVideo").innerText = OV.languages.getMsg("video_popup_video_bar_lbl", { "curr_vid": (index+1).toString(), "vid_count": popupData.videos.length.toString() })
 }
-document.addEventListener("DOMContentLoaded", function() {
+OV.page.isReady().then(function() {
     
     document.getElementById("title").innerText = OV.languages.getMsg("video_popup_msg_lbl");
     document.getElementById("js_err_msg").innerText = OV.languages.getMsg("video_player_js_err_msg");

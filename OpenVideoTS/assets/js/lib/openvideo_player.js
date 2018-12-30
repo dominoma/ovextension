@@ -29,6 +29,8 @@ var OVPlayer;
             return null;
         };
         Player.on("ready", function () {
+            Player.el().style.width = "100%";
+            Player.el().style.height = "100%";
             let ControlBar = Player.getChild('controlBar');
             var FavButton = ControlBar.addChild('FavButton', {});
             var DownloadButton = ControlBar.addChild('DownloadButton', {});
@@ -86,11 +88,7 @@ var OVPlayer;
             return videoData;
         };
         Player.setVideoData(videoData);
-        var Parent = document.getElementById(playerId).parentNode;
-        /*new ResizeSensor(Parent, function(){
-            Player.aspectRatio(Parent.clientWidth+":"+Parent.clientHeight);
-        });*/
-        Player.aspectRatio(Parent.clientWidth + ":" + Parent.clientHeight);
+        //Player.aspectRatio("0:0");
         Player.saveToHistory = function () {
             OV.storage.sync.get("disableHistory").then(function (disabled) {
                 if (!disabled) {
@@ -136,29 +134,5 @@ var OVPlayer;
         return Player;
     }
     OVPlayer.initPlayer = initPlayer;
-    /*function clearAllTextTracks(player : Player) : void {
-        
-
-        
-        
-        
-        player.addRemoteTextTrack({kind: "caption", label: "load VTT/SRT from URL", language: "FromURL", src: ""} as any, false);
-        player.textTracks().on('change', function(){
-            if(player.textTracks()[0] != undefined && player.textTracks()[0].mode == "showing") {
-                loadSrtFromUrl();
-                player.textTracks()[0].mode = "disabled";
-            }
-        });
-        player.addRemoteTextTrack({kind: "caption", label: "load VTT/SRT from File", language: "FromFile", src: ""} as any, false);
-        player.textTracks().on('change', function(){
-            if(player.textTracks()[1] != undefined && player.textTracks()[1].mode == "showing") {
-                loadSrtFromFile();
-                player.textTracks()[1].mode = "disabled";
-            }
-        });
-        var Menu = (player.controlBar as any).subsCapsButton.menu.el_;
-        Menu.style = "width:200px; left:-80px;";
-        Menu.childNodes[0].style = "overflow: hidden;";
-    }*/
 })(OVPlayer || (OVPlayer = {}));
 //# sourceMappingURL=openvideo_player.js.map

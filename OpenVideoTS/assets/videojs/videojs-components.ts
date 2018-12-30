@@ -68,22 +68,6 @@ namespace OVPlayer {
             Button.apply(this, arguments);
             this.addClass('vjs-theaterbutton-disabled');
             this.theaterMode = false;
-
-            let oldX: number | null = null;
-            this.on('dragstart', function(event: Event) {
-                oldX = null;
-            });
-            this.on('drag', function(event: DragEvent) {
-                if (oldX != null && event.screenX > 0) {
-                    TheatreMode.dragChanged({ dragChange: event.screenX - oldX, frameWidth: window.innerWidth });
-
-                }
-                oldX = event.screenX;
-            });
-            this.on('dragend', function(event: Event) {
-                TheatreMode.dragStopped();
-            });
-
         },
         handleClick: function() {
             OV.analytics.fireEvent("TheaterMode", "PlayerEvent", "");
@@ -93,7 +77,6 @@ namespace OVPlayer {
             return this.theaterMode;
         },
         setTheaterMode: function(theaterMode: boolean) {
-            this.el_.draggable = theaterMode;
             this.theaterMode = theaterMode;
             if (this.theaterMode) {
                 this.removeClass('vjs-theaterbutton-disabled');
@@ -103,11 +86,7 @@ namespace OVPlayer {
                 this.removeClass('vjs-theaterbutton-enabled');
                 this.addClass('vjs-theaterbutton-disabled');
             }
-            TheatreMode.setTheatreMode({
-                enabled: this.theaterMode,
-                frameWidth: window.innerWidth,
-                frameHeight: window.innerHeight
-            });
+            TheatreMode.setTheatreMode(this.theaterMode);
         }
 
     });
@@ -285,10 +264,11 @@ namespace OVPlayer {
             srtSelector.addEventListener("change", function() {
                 var collection = new FileReader;
                 collection.onload = function(dataAndEvents) {
-                    if (collection.result.indexOf("-->") !== -1) {
+                    let result = collection.result as string;
+                    if (result.indexOf("-->") !== -1) {
                         player.addTextTrack("captions", srtSelector.files[0].name, "AddedFromUser");
                         var track = player.textTracks()[player.textTracks().length - 1];
-                        parseSrt(collection.result, function(cue) {
+                        parseSrt(result, function(cue) {
                             track.addCue(cue);
                         });
                     } else {
@@ -370,7 +350,7 @@ namespace OVPlayer {
                     return track.label == rawtrack.label;
                 });
                 if(rawTrack) {
-                    el.appendChild(OVPlayer.createDownloadButton(rawTrack.src, "["+rawTrack.label+"]"+videoData.title+".vtt", null));
+                    el.appendChild(OVPlayer.createDownloadButton(rawTrack.src, "["+rawTrack.label+"]"+videoData.title+".vtt", "text/vtt"));
                 }
             }
             return el;

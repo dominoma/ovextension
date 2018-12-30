@@ -24,7 +24,7 @@ function createSwitch(labelText : string, tableRow : HTMLTableRowElement, labelI
     hostCell.style.paddingBottom = '5px';
     return switchInput;
 }
-document.addEventListener("DOMContentLoaded", function() {
+OV.page.isReady().then(function() {
     
     document.getElementById("options_site_redirect_options_lbl").innerText = OV.languages.getMsg("options_site_redirect_options_lbl");
     document.getElementById("options_site_redirections_lbl").innerText = OV.languages.getMsg("options_site_redirections_lbl");

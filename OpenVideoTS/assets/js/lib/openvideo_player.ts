@@ -49,6 +49,8 @@ namespace OVPlayer {
         
         
         Player.on("ready", function(){
+            (Player.el() as HTMLElement).style.width = "100%";
+            (Player.el() as HTMLElement).style.height = "100%";
             let ControlBar = Player.getChild('controlBar');
             var FavButton = ControlBar.addChild('FavButton', {}) as FavButton;
             var DownloadButton = ControlBar.addChild('DownloadButton', {});
@@ -114,11 +116,7 @@ namespace OVPlayer {
         }
         Player.setVideoData(videoData);
             
-        var Parent = document.getElementById(playerId).parentNode;
-        /*new ResizeSensor(Parent, function(){ 
-            Player.aspectRatio(Parent.clientWidth+":"+Parent.clientHeight);
-        });*/
-        Player.aspectRatio((<any>Parent).clientWidth+":"+(<any>Parent).clientHeight);
+        //Player.aspectRatio("0:0");
         
         Player.saveToHistory = function(){
             OV.storage.sync.get("disableHistory").then(function(disabled){
@@ -168,28 +166,4 @@ namespace OVPlayer {
         
         return Player;
     }
-    /*function clearAllTextTracks(player : Player) : void {
-        
-
-        
-        
-        
-        player.addRemoteTextTrack({kind: "caption", label: "load VTT/SRT from URL", language: "FromURL", src: ""} as any, false);
-        player.textTracks().on('change', function(){ 
-            if(player.textTracks()[0] != undefined && player.textTracks()[0].mode == "showing") {
-                loadSrtFromUrl();
-                player.textTracks()[0].mode = "disabled";
-            }
-        });
-        player.addRemoteTextTrack({kind: "caption", label: "load VTT/SRT from File", language: "FromFile", src: ""} as any, false);
-        player.textTracks().on('change', function(){ 
-            if(player.textTracks()[1] != undefined && player.textTracks()[1].mode == "showing") {
-                loadSrtFromFile();
-                player.textTracks()[1].mode = "disabled";
-            }
-        });
-        var Menu = (player.controlBar as any).subsCapsButton.menu.el_;
-        Menu.style = "width:200px; left:-80px;";
-        Menu.childNodes[0].style = "overflow: hidden;";
-    }*/
 }

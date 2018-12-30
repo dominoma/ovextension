@@ -50,6 +50,21 @@ var Background;
         });
     }
     Background.prompt = prompt;
+    function sendMessage(tabid, msg) {
+        return new Promise(function (response, reject) {
+            chrome.tabs.sendMessage(tabid, {
+                func: msg.func,
+                data: msg.data,
+                state: OV.messages.State.BGToMdw,
+                sender: { url: location.href },
+            }, {
+                frameId: 0
+            }, function (resData) {
+                response(resData);
+            });
+        });
+    }
+    Background.sendMessage = sendMessage;
     function setup() {
         OV.messages.setupBackground({
             toTopWindow: function (msg, bgdata, sender, sendResponse) {
@@ -119,98 +134,214 @@ var Background;
 })(Background || (Background = {}));
 var TheatreMode;
 (function (TheatreMode) {
-    let layerDiv = null;
-    let iframeStyle = null;
-    let currIframe = null;
-    function enableTheaterMode(iframe) {
-        document.body.style.overflow = "hidden";
-        currIframe = iframe;
-        if (iframeStyle == null) {
-            iframeStyle = iframe.style.cssText;
+    let iframes = [];
+    let activeEntry = null;
+    function checkCleanup(entry) {
+        if (entry == null) {
+            return false;
         }
-        OV.storage.sync.get("TheatreModeFrameWidth").then(function (frameWidth) {
-            setFrameWidth(frameWidth == null ? 70 : frameWidth);
-        });
-        //iframe.className += " ov-theater-mode";
-        if (layerDiv) {
-            layerDiv.style.opacity = "1";
+        else if (!entry.iframe || !entry.iframe.parentElement) {
+            entry.observer.disconnect();
+            entry.shadow.remove();
+            return true;
         }
         else {
-            layerDiv = document.createElement("div");
-            layerDiv.className = "ov-theaterMode";
-            iframe.parentNode.appendChild(layerDiv);
-            window.setTimeout(function () { layerDiv.style.opacity = "1"; }, 10);
+            return false;
         }
     }
-    var currentFrameWidth = 0;
-    function setFrameWidth(width) {
-        width = width > 100 ? 100 : width;
-        width = width < 50 ? 50 : width;
-        currentFrameWidth = width;
-        currIframe.style.cssText = "position: fixed !important;width: " + width + "vw !important;height: calc(( 9/ 16)*" + width + "vw) !important;top: calc((100vh - ( 9/ 16)*" + width + "vw)/2) !important;left: calc((100vw - " + width + "vw)/2) !important;z-index:2147483647 !important; border: 0px !important; max-width:100vw !important; min-width: 50vw !important; max-height: 100vh !important; min-height: 50vh !important";
+    function getActiveFrame() {
+        if (isFrameActive()) {
+            return activeEntry.entry;
+        }
+        else {
+            throw Error("No IFrame in theatre mode!");
+        }
     }
-    function disableTheaterMode(iframe) {
-        layerDiv.style.opacity = "0";
+    TheatreMode.getActiveFrame = getActiveFrame;
+    function isFrameActive() {
+        if (activeEntry && checkCleanup(activeEntry.entry)) {
+            activeEntry = null;
+        }
+        return activeEntry != null;
+    }
+    TheatreMode.isFrameActive = isFrameActive;
+    function getEntry(frameid) {
+        for (let i = 0; i < iframes.length; i++) {
+            if (checkCleanup(iframes[i])) {
+                iframes.splice(i, 1);
+                i--;
+            }
+            else if (iframes[i].iframe.name === frameid) {
+                return iframes[i];
+            }
+        }
+        return null;
+    }
+    TheatreMode.getEntry = getEntry;
+    function registerIFrame(iframe) {
+        function matchesSelector(selector, element) {
+            var all = document.querySelectorAll(selector);
+            for (var i = 0; i < all.length; i++) {
+                if (all[i] === element) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        let shadow = document.createElement("ovshadow");
+        OV.page.lookupCSS({}, function (obj) {
+            if (obj.cssRule.selectorText.indexOf(" iframe") != -1) {
+                if (matchesSelector(obj.cssRule.selectorText, iframe)) {
+                    if (obj.cssRule.style.width != "") {
+                        obj.cssRule.style.setProperty("width", obj.cssRule.style.getPropertyValue("width"), "");
+                        obj.cssRule.style.setProperty("height", obj.cssRule.style.getPropertyValue("height"), "");
+                    }
+                }
+            }
+        });
+        if (iframe.hasAttribute("allow")) {
+            iframe.removeAttribute("allow");
+        }
+        let observer = new MutationObserver(function (mutations) {
+            if (isFrameActive() && getActiveFrame().iframe == iframe) {
+                let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
+                let newtop = Math.floor((window.innerHeight - iframe.clientHeight) / 2).toString() + "px";
+                if (iframe.style.left != newleft) {
+                    iframe.style.setProperty("left", newleft);
+                    iframe.style.setProperty("top", newtop);
+                }
+            }
+        });
+        observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });
+        shadow.className = "ov-theaterMode";
+        shadow.addEventListener("click", function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        iframe.addEventListener("click", function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        iframe.parentNode.appendChild(shadow);
+        iframes.push({ shadow: shadow, iframe: iframe, observer: observer });
+        return OV.array.last(iframes);
+    }
+    TheatreMode.registerIFrame = registerIFrame;
+    function nameIFrames() {
+        function nameIFrame(iframe) {
+            if (!iframe.hasAttribute("name")) {
+                iframe.name = OV.messages.generateHash();
+                if (iframe.width) {
+                    iframe.style.width = iframe.width;
+                    iframe.removeAttribute("width");
+                }
+                if (iframe.height) {
+                    iframe.style.height = iframe.height;
+                    iframe.removeAttribute("height");
+                }
+                let sibling = iframe.nextElementSibling;
+                let parent = iframe.parentElement;
+                iframe.remove();
+                parent.insertBefore(iframe, sibling);
+            }
+        }
+        OV.page.isReady().then(function () {
+            for (let iframe of document.getElementsByTagName("iframe")) {
+                nameIFrame(iframe);
+            }
+        });
+        document.addEventListener("DOMNodeInserted", function (e) {
+            let target = e.target;
+            if (target.getElementsByTagName) {
+                let iframes = target.getElementsByTagName("iframe");
+                if (target.nodeName.toLowerCase() === "iframe") {
+                    nameIFrame(target);
+                }
+                for (let iframe of iframes) {
+                    nameIFrame(iframe);
+                }
+            }
+        });
+    }
+    TheatreMode.nameIFrames = nameIFrames;
+    function activateEntry(entry) {
+        if (isFrameActive()) {
+            console.log(activeEntry);
+            throw Error("Some IFrame is already in theatre mode!");
+        }
+        else if (entry == null) {
+            throw Error("Entry must not be null!");
+        }
+        else {
+            document.body.style.overflow = "hidden";
+            activeEntry = { oldCSS: entry.iframe.style.cssText, entry: entry };
+            OV.storage.sync.get("TheatreModeFrameWidth").then(function (frameWidth) {
+                setWrapperStyle(entry, frameWidth || 70);
+            });
+            entry.shadow.style.opacity = "1";
+            entry.shadow.style.pointerEvents = "all";
+        }
+    }
+    TheatreMode.activateEntry = activateEntry;
+    function deactivateEntry() {
+        if (!isFrameActive()) {
+            throw Error("No IFrame is in theatre mode!");
+        }
+        let entry = activeEntry;
+        activeEntry = null;
+        let newrelwidth = Math.floor((entry.entry.iframe.clientWidth / window.innerWidth) * 100);
+        console.log(newrelwidth);
+        OV.storage.sync.set("TheatreModeFrameWidth", newrelwidth);
+        entry.entry.shadow.style.opacity = "0";
+        entry.entry.shadow.style.removeProperty("pointer-events");
         window.setTimeout(function () {
-            layerDiv.remove();
-            layerDiv = null;
-            iframe.style.cssText = iframeStyle;
+            entry.entry.iframe.style.cssText = entry.oldCSS;
             document.body.style.removeProperty("overflow");
         }, 150);
     }
-    function getFrameByDims(width, height) {
-        for (var iframe of document.getElementsByTagName("iframe")) {
-            if (Math.abs(iframe.clientWidth - width) <= 1 && Math.abs(iframe.clientHeight - height) <= 1) {
-                return iframe;
-            }
-        }
-        throw Error("Could not find iframe with dims [" + width + ", " + height + "]!");
+    TheatreMode.deactivateEntry = deactivateEntry;
+    function setWrapperStyle(entry, width) {
+        width = width > 100 ? 100 : width;
+        width = width < 50 ? 50 : width;
+        entry.iframe.style.cssText = "padding-right:5px;padding-bottom:5px;display:block;overflow: hidden; resize: both;position: fixed !important;width: " + width + "vw !important;height: calc(( 9/ 16)*" + width + "vw) !important;top: calc((100vh - ( 9/ 16)*" + width + "vw)/2) !important;left: calc((100vw - " + width + "vw)/2) !important;z-index:2147483647 !important; border: 0px !important; max-width:100vw !important; min-width: 50vw !important; max-height: 100vh !important; min-height: 50vh !important";
     }
-    function setTheatreMode(data) {
-        Background.toTopWindow({ data: data, func: "setTheatreMode" });
+    function getIFrameByID(frameid) {
+        let iframe = document.getElementsByName(frameid)[0];
+        if (iframe) {
+            return iframe;
+        }
+        else {
+            throw Error("Could not find iframe with id '" + frameid + "'!");
+        }
+    }
+    function setTheatreMode(enabled) {
+        Background.toTopWindow({ data: { enabled: enabled, frameID: window.name }, func: "setTheatreMode" });
     }
     TheatreMode.setTheatreMode = setTheatreMode;
-    function dragChanged(data) {
-        Background.toTopWindow({ data: data, func: "theatreModeDragChanged" });
-    }
-    TheatreMode.dragChanged = dragChanged;
-    function dragStopped() {
-        Background.toTopWindow({ data: {}, func: "theatreModeDragStopped" });
-    }
-    TheatreMode.dragStopped = dragStopped;
-    function setupIframe(data) {
-        return Background.toTopWindow({ data: data, func: "setupIframe" }).then(function (response) {
-            return { reload: response.data.reload };
-        });
+    function setupIframe() {
+        Background.toTopWindow({ data: { frameID: window.name, url: location.href }, func: "setupIframe" });
     }
     TheatreMode.setupIframe = setupIframe;
     function setup() {
+        nameIFrames();
         OV.messages.addListener({
             setTheatreMode: function (request, sendResponse) {
-                var theatreFrame = getFrameByDims(request.data.frameWidth, request.data.frameHeight);
-                if (request.data.enabled) {
-                    enableTheaterMode(theatreFrame);
+                var data = request.data;
+                if (data.enabled) {
+                    var entry = getEntry(data.frameID);
+                    activateEntry(entry);
                 }
                 else {
-                    disableTheaterMode(theatreFrame);
+                    deactivateEntry();
                 }
-            },
-            theatreModeDragChanged: function (request, sendResponse) {
-                var scaledChange = (request.data.dragChange / request.data.frameWidth) * 100;
-                setFrameWidth(currentFrameWidth + scaledChange);
-            },
-            theatreModeDragStopped: function (request, sendResponse) {
-                OV.storage.sync.set("TheatreModeFrameWidth", currentFrameWidth);
             },
             setupIframe: function (request, sendResponse) {
-                var theatreFrame = getFrameByDims(request.data.frameWidth, request.data.frameHeight);
-                if (theatreFrame && theatreFrame.hasAttribute("allow") && theatreFrame.getAttribute("allow").indexOf("fullscreen") != -1) {
-                    theatreFrame.setAttribute("allow", theatreFrame.getAttribute("allow").replace("fullscreen", "").trim());
-                    console.log("TRUE");
-                    sendResponse({ reload: true });
-                }
-                else {
-                    sendResponse({ reload: false });
+                let data = request.data;
+                var entry = getEntry(data.frameID);
+                if (!entry) {
+                    let iframe = getIFrameByID(data.frameID);
+                    //iframe.src = data.url;
+                    entry = registerIFrame(iframe);
                 }
             }
         });
@@ -340,7 +471,7 @@ var OVMetadata;
     }
     OVMetadata.requestPlayerCSS = requestPlayerCSS;
     function setup() {
-        document.addEventListener("DOMContentLoaded", function (event) {
+        OV.page.isReady().then(function (event) {
             let ovtags = document.getElementsByTagName("openvideo");
             if (ovtags.length > 0) {
                 let ovtag = ovtags[0];

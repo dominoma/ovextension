@@ -70,6 +70,15 @@ var OV;
     OV.toJSONString = toJSONString;
     let tools;
     (function (tools) {
+        function eventOne(elem, type) {
+            return new Promise(function (resolve, reject) {
+                elem.addEventListener(type, function one(e) {
+                    resolve(e);
+                    elem.removeEventListener(type, one);
+                });
+            });
+        }
+        tools.eventOne = eventOne;
         function objToHash(obj) {
             if (obj) {
                 return "?hash=" + encodeURIComponent(JSON.stringify(obj));
@@ -302,28 +311,56 @@ var OV;
     })(html = OV.html || (OV.html = {}));
     let page;
     (function (page) {
-        function injectNamespace(namespace, name) {
-            var script = document.createElement('script');
-            script.appendChild(document.createTextNode("window['" + name + "'] = " + OV.toJSONString(namespace)));
-            (document.head || document.body || document.documentElement).appendChild(script);
-        }
-        page.injectNamespace = injectNamespace;
-        function injectJS(source, data) {
-            var injectStr = source.toString();
-            //if(typeof source === "function") {
-            injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
-            //}
-            var script = document.createElement('script');
-            script.appendChild(document.createTextNode(injectStr));
-            (document.body || document.head || document.documentElement).appendChild(script);
-        }
-        page.injectJS = injectJS;
-        function execute(namespaces, source, data) {
+        function isReady() {
             return new Promise(function (resolve, reject) {
-                for (let name in namespaces) {
-                    injectNamespace(namespaces[name], name);
+                if (document.readyState.match(/(loaded|complete)/)) {
+                    return Promise.resolve();
                 }
-                injectNamespace(OV, "OV");
+                else {
+                    return OV.tools.eventOne(document, "DOMContentLoaded").then(function (e) {
+                        resolve();
+                    });
+                }
+            });
+        }
+        page.isReady = isReady;
+        function injectScript(file) {
+            return new Promise(function (resolve, reject) {
+                var script = document.createElement('script');
+                script.src = chrome.extension.getURL("/assets/js/lib/" + file + ".js");
+                script.async = true;
+                script.onload = function () {
+                    script.onload = null;
+                    resolve(script);
+                };
+                document.body.appendChild(script);
+            });
+        }
+        page.injectScript = injectScript;
+        function injectScripts(files) {
+            return Promise.all(files.map(injectScript));
+        }
+        page.injectScripts = injectScripts;
+        function injectRawJS(source, data) {
+            return new Promise(function (resolve, reject) {
+                var injectStr = source.toString();
+                injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
+                var script = document.createElement('script');
+                script.appendChild(document.createTextNode(injectStr));
+                script.async = true;
+                script.onload = function () {
+                    script.onload = null;
+                    resolve(script);
+                };
+                document.body.appendChild(script);
+            });
+        }
+        page.injectRawJS = injectRawJS;
+        function execute(files, source, data) {
+            return new Promise(function (resolve, reject) {
+                if (files.indexOf("openvideo") == -1) {
+                    files.unshift("openvideo");
+                }
                 OV.messages.addListener({
                     ovInjectResponse: function (request, sendResponse) {
                         if (request.data.response) {
@@ -335,28 +372,37 @@ var OV;
                 var sendResponse = function (resData) {
                     OV.messages.send({ func: "ovInjectResponse", data: { response: resData } });
                 };
-                OV.page.injectJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
+                injectScripts(files).then(function (scripts) {
+                    return injectRawJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
+                });
             });
         }
         page.execute = execute;
         function lookupCSS(args, callback) {
             for (let styleSheet of document.styleSheets) {
-                for (let cssRule of styleSheet.cssRules) {
-                    if (cssRule.style) {
-                        if (args.key) {
-                            if (cssRule.style[args.key].match(args.value)) {
-                                callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
-                            }
-                        }
-                        else {
-                            for (var style of cssRule.style) {
-                                if (cssRule.style[style] && cssRule.style[style].match(args.value)) {
-                                    callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                try {
+                    for (let cssRule of styleSheet.cssRules) {
+                        if (cssRule.style) {
+                            if (args.key) {
+                                if (cssRule.style[args.key].match(args.value)) {
+                                    callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
                                 }
+                            }
+                            else if (args.value) {
+                                for (var style of cssRule.style) {
+                                    if (cssRule.style[style] && cssRule.style[style].match(args.value)) {
+                                        callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                                    }
+                                }
+                            }
+                            else {
+                                callback({ cssRule: cssRule, key: null, value: null, match: null });
                             }
                         }
                     }
                 }
+                catch (e) { }
+                ;
             }
         }
         page.lookupCSS = lookupCSS;
@@ -859,20 +905,25 @@ var OV;
                 document.addEventListener('ovmessage', function (event) {
                     var details = event.detail;
                     if (lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
-                        var result = lnfunctions[details.data.func](details.data, function (data) {
-                            var event = new CustomEvent('ovmessage', {
-                                detail: {
-                                    hash: details.hash,
-                                    data: {
-                                        data: data,
-                                        state: State.EvToMdwRsp,
-                                        call: details.data,
-                                        sender: { url: location.href }
+                        try {
+                            var result = lnfunctions[details.data.func](details.data, function (data) {
+                                var event = new CustomEvent('ovmessage', {
+                                    detail: {
+                                        hash: details.hash,
+                                        data: {
+                                            data: data,
+                                            state: State.EvToMdwRsp,
+                                            call: details.data,
+                                            sender: { url: location.href }
+                                        }
                                     }
-                                }
+                                });
+                                document.dispatchEvent(event);
                             });
-                            document.dispatchEvent(event);
-                        });
+                        }
+                        catch (e) {
+                            throw { error: e, sender: details.data.sender };
+                        }
                         if (result && result.blocked) {
                             blockedFuncs.push(details.data.func);
                         }

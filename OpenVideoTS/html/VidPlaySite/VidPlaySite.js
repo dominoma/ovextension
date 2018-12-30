@@ -15,7 +15,7 @@ var player = null;
 function getPlayer() {
     return player;
 }
-document.addEventListener("DOMContentLoaded", function (event) {
+OV.page.isReady().then(function (event) {
     OVMetadata.requestPlayerCSS().then(function (css) {
         if (css && css.doChange) {
             OV.page.lookupCSS({ value: /rgba?\(141, 199, 63,?([^\)]*)?\)/ }, function (data) {
@@ -55,11 +55,11 @@ document.addEventListener("DOMContentLoaded", function (event) {
     if (OV.page.isFrame()) {
         var TheaterButton = getPlayer().getChild('controlBar').addChild('TheaterButton', {});
         getPlayer().on("ready", function () {
-            TheatreMode.setupIframe({ frameWidth: window.innerWidth, frameHeight: window.innerHeight }).then(function (data) {
-                if (data && data.reload) {
+            /*TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(data){
+                if(data && data.reload) {
                     location.reload();
                 }
-            });
+            });*/
             getPlayer().controlBar.el().insertBefore(TheaterButton.el(), getPlayer().controlBar.fullscreenToggle.el());
         });
         getPlayer().on("fullscreenchange", function () {

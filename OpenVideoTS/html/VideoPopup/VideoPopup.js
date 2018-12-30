@@ -1,7 +1,6 @@
 var Player = null;
 var currentVideoHost = "";
 window["Worker"] = undefined;
-OV.messages.setupMiddleware();
 OV.page.wrapType(XMLHttpRequest, {
     open: {
         get: function (target) {
@@ -20,6 +19,7 @@ function LoadVideo(popupData, index) {
     currentVideoHost = videoData.origin;
     if (!Player) {
         Player = OVPlayer.initPlayer('openVideo', { autoplay: popupData.autoplay }, videoData);
+        Player.el().style.paddingTop = "unset";
     }
     else {
         Player.autoplay(!!popupData.autoplay);
@@ -27,7 +27,7 @@ function LoadVideo(popupData, index) {
     }
     document.getElementById("currentVideo").innerText = OV.languages.getMsg("video_popup_video_bar_lbl", { "curr_vid": (index + 1).toString(), "vid_count": popupData.videos.length.toString() });
 }
-document.addEventListener("DOMContentLoaded", function () {
+OV.page.isReady().then(function () {
     document.getElementById("title").innerText = OV.languages.getMsg("video_popup_msg_lbl");
     document.getElementById("js_err_msg").innerText = OV.languages.getMsg("video_player_js_err_msg");
     var Hash = OV.page.getUrlObj();
