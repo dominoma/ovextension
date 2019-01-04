@@ -41,13 +41,24 @@ var Background;
     }
     Background.redirectHosts = redirectHosts;
     function alert(msg) {
-        OV.messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+        if (OV.environment.browser() == "chrome" /* Chrome */) {
+            OV.messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+        }
+        else {
+            window.alert(msg);
+        }
     }
     Background.alert = alert;
     function prompt(data) {
-        return OV.messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
-            return { aborted: response.data.aborted, text: response.data.text };
-        });
+        if (OV.environment.browser() == "chrome" /* Chrome */) {
+            return OV.messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
+                return { aborted: response.data.aborted, text: response.data.text };
+            });
+        }
+        else {
+            let value = window.prompt(data.msg, data.fieldText);
+            return Promise.resolve({ aborted: !value, text: value });
+        }
     }
     Background.prompt = prompt;
     function sendMessage(tabid, msg) {

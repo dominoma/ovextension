@@ -72,10 +72,13 @@ namespace OV {
         export function eventOne(elem : Node, type: string) {
             return new Promise(function(resolve, reject){
                 elem.addEventListener(type, function one(e : Event){
-                    resolve(e);
                     elem.removeEventListener(type, one);
+                    resolve(e);
                 });
             });
+        }
+        export function matchNull(str : string, regexp : RegExp, index?: number) {
+            return (str.match(regexp) || [])[index || 1] || "";
         }
         export function objToHash(obj: Object) : string {
             if(obj) {
@@ -251,11 +254,39 @@ namespace OV {
             POST = "POST",
             HEAD = "HEAD"
         }
-        export function createRequest(args: { url: string; type?: HTTPMethods; protocol?: string; cache?: boolean; headers?: StringMap; xmlHttpObj?: XMLHttpRequest; formData?: StringMap; data?: StringMap; beforeSend?: (xhr: XMLHttpRequest) => void; }) : Promise<XMLHttpRequest> {
+        export interface Request { 
+            url: string; 
+            type?: HTTPMethods; 
+            protocol?: string; 
+            cache?: boolean; 
+            referer?: string;
+            hideRef?: boolean;
+            headers?: StringMap; 
+            xmlHttpObj?: XMLHttpRequest; 
+            formData?: StringMap; 
+            data?: StringMap; 
+            beforeSend?: (xhr: XMLHttpRequest) => void; 
+        }
+        export function createRequest(args: Request) : Promise<XMLHttpRequest> {
             return new Promise<XMLHttpRequest>((resolve, reject) => {
-                var xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+                let xmlHttpObj : XMLHttpRequest = null;
+                if(OV.environment.browser() == OV.environment.Browsers.Firefox && (args.referer || args.hideRef)) {
+                    xmlHttpObj = new XMLHttpRequest()//(window as any).XPCNativeWrapper(new (window as any).wrappedJSObject.XMLHttpRequest());
+                }
+                else if(args.xmlHttpObj) {
+                    xmlHttpObj = args.xmlHttpObj;
+                }
+                else {
+                    xmlHttpObj = new XMLHttpRequest();
+                }
                 var type = args.type || HTTPMethods.GET;
                 var protocol = args.protocol || "https://";
+                if(args.referer) {
+                    args.data = OV.object.merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+                }
+                else if(args.hideRef) {
+                    args.data = OV.object.merge(args.data, { isOV: "true" });
+                }
                 var url  = OV.tools.addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
                
                 xmlHttpObj.open(type, url, true); 

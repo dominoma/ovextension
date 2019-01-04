@@ -73,12 +73,16 @@ var OV;
         function eventOne(elem, type) {
             return new Promise(function (resolve, reject) {
                 elem.addEventListener(type, function one(e) {
-                    resolve(e);
                     elem.removeEventListener(type, one);
+                    resolve(e);
                 });
             });
         }
         tools.eventOne = eventOne;
+        function matchNull(str, regexp, index) {
+            return (str.match(regexp) || [])[index || 1] || "";
+        }
+        tools.matchNull = matchNull;
         function objToHash(obj) {
             if (obj) {
                 return "?hash=" + encodeURIComponent(JSON.stringify(obj));
@@ -244,9 +248,24 @@ var OV;
         tools.addParamsToURL = addParamsToURL;
         function createRequest(args) {
             return new Promise((resolve, reject) => {
-                var xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+                let xmlHttpObj = null;
+                if (OV.environment.browser() == "firefox" /* Firefox */ && (args.referer || args.hideRef)) {
+                    xmlHttpObj = new XMLHttpRequest(); //(window as any).XPCNativeWrapper(new (window as any).wrappedJSObject.XMLHttpRequest());
+                }
+                else if (args.xmlHttpObj) {
+                    xmlHttpObj = args.xmlHttpObj;
+                }
+                else {
+                    xmlHttpObj = new XMLHttpRequest();
+                }
                 var type = args.type || "GET" /* GET */;
                 var protocol = args.protocol || "https://";
+                if (args.referer) {
+                    args.data = OV.object.merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+                }
+                else if (args.hideRef) {
+                    args.data = OV.object.merge(args.data, { isOV: "true" });
+                }
                 var url = OV.tools.addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
                 xmlHttpObj.open(type, url, true);
                 xmlHttpObj.onload = function () {

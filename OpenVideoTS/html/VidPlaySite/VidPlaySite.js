@@ -1,20 +1,3 @@
-window["Worker"] = undefined;
-OV.page.wrapType(XMLHttpRequest, {
-    open: {
-        get: function (target) {
-            return function (method, url) {
-                if (getPlayer() && getPlayer().currentType().indexOf("application/") != -1 && url.indexOf("OVreferer") == -1) {
-                    arguments[1] = url + (url.indexOf("?") == -1 ? "?" : "&") + "OVreferer=" + encodeURIComponent(btoa(OV.page.getUrlObj().origin));
-                }
-                target.open.apply(target, arguments);
-            };
-        }
-    }
-});
-var player = null;
-function getPlayer() {
-    return player;
-}
 OV.page.isReady().then(function (event) {
     OVMetadata.requestPlayerCSS().then(function (css) {
         if (css && css.doChange) {
@@ -49,31 +32,31 @@ OV.page.isReady().then(function (event) {
     var Hash = OV.page.getUrlObj();
     document.title = Hash.title + " - OpenVideo";
     OV.analytics.fireEvent(Hash.scriptName, "HosterUsed", "");
-    player = OVPlayer.initPlayer('openVideo', {}, Hash);
+    OVPlayer.initPlayer('openVideo', {}, Hash);
     //document.body.style.display = 'none'
     //document.body.style.display = 'block'
     if (OV.page.isFrame()) {
-        var TheaterButton = getPlayer().getChild('controlBar').addChild('TheaterButton', {});
-        getPlayer().on("ready", function () {
+        var TheaterButton = OVPlayer.getPlayer().getChild('controlBar').addChild('TheaterButton', {});
+        OVPlayer.getPlayer().on("ready", function () {
             /*TheatreMode.setupIframe({frameWidth: window.innerWidth, frameHeight: window.innerHeight}).then(function(data){
                 if(data && data.reload) {
                     location.reload();
                 }
             });*/
-            getPlayer().controlBar.el().insertBefore(TheaterButton.el(), getPlayer().controlBar.fullscreenToggle.el());
+            OVPlayer.getPlayer().controlBar.el().insertBefore(TheaterButton.el(), OVPlayer.getPlayer().controlBar.fullscreenToggle.el());
         });
-        getPlayer().on("fullscreenchange", function () {
-            TheaterButton.el().style.display = getPlayer().isFullscreen() ? "none" : "inherit";
+        OVPlayer.getPlayer().on("fullscreenchange", function () {
+            TheaterButton.el().style.display = OVPlayer.getPlayer().isFullscreen() ? "none" : "inherit";
         });
     }
-    getPlayer().on('error', function () {
-        if (getPlayer().readyState() == 0) {
+    OVPlayer.getPlayer().on('error', function () {
+        if (OVPlayer.getPlayer().readyState() == 0) {
             //if(Response.status == 404 || Response.status == 400 || Response.status == 403) {
-            var url = getPlayer().getVideoData().origin;
+            var url = OVPlayer.getPlayer().getVideoData().origin;
             var templateParams = {
                 url: url,
                 host: Hash.scriptName,
-                exception: getPlayer().error().message,
+                exception: OVPlayer.getPlayer().error().message,
                 version: OV.environment.getManifest().version,
                 browser: OV.environment.browser()
             };
@@ -83,10 +66,10 @@ OV.page.isReady().then(function (event) {
             //document.location.replace(Hash.vidSiteUrl + (Hash.vidSiteUrl.indexOf("?") == -1 ? "?" : "&") + "ignoreRequestCheck=true");
         }
         else {
-            getPlayer().bigPlayButton.on("click", function () {
-                location.replace(getPlayer().getVideoData().origin);
+            OVPlayer.getPlayer().bigPlayButton.on("click", function () {
+                location.replace(OVPlayer.getPlayer().getVideoData().origin);
             });
-            getPlayer().bigPlayButton.addClass("reloadButton");
+            OVPlayer.getPlayer().bigPlayButton.addClass("reloadButton");
         }
     });
 });

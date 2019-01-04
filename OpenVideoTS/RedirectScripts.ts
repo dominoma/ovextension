@@ -1,17 +1,16 @@
 function suspectSubtitledVideo(details: ScriptBase.ScriptDetails, xhr : XMLHttpRequest) {
-    if(xhr.response.indexOf(/(<track>|\.vtt|"?tracks"?: \[\{|)/) != -1) {
+    if(xhr.response.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
         OV.analytics.fireEvent(details.hostname, "TracksFound", details.url)
     }
 }
 ScriptBase.addRedirectHost({
     name: "RapidVideo",
     scripts: [{
-        urlPattern: /https?:\/\/(www\.)?rapidvideo\.[^\/,^\.]{2,}\/[\?v=[^&\?]*|e\/.+]/i,
+        urlPattern: /https?:\/\/(www\.)?rapidvideo\.[^\/,^\.]{2,}\/(\?v=[^&\?]*|e\/.+|v\/.+)/i,
         runScopes: [{
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
-                details.url = details.url.replace(/\/?\?v=/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");
-                let xmlHttpObj = OV.environment.browser() == OV.environment.Browsers.Chrome ? null : (window as any).XPCNativeWrapper(new (window as any).wrappedJSObject.XMLHttpRequest());
+                details.url = details.url.replace(/(\/?\?v=|\/v\/)/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");
                 let parser = new DOMParser();
                 interface VideoInfo {
                     title: string;
@@ -25,7 +24,7 @@ ScriptBase.addRedirectHost({
                     }
                 }
                 function getVideoInfo(): Promise<VideoInfo> {
-                    return OV.tools.createRequest({ url: details.url, xmlHttpObj: xmlHttpObj }).then(function(xhr) {
+                    return OV.tools.createRequest({ url: details.url, referer: details.url }).then(function(xhr) {
                         suspectSubtitledVideo(details, xhr);
                         checkResponse(xhr);
                         let html = parser.parseFromString(xhr.response, "text/html");
@@ -42,12 +41,15 @@ ScriptBase.addRedirectHost({
                         for (let url of urlsHTML) {
                             urls.push(url.href);
                         }
+                        if(urls.length == 0) {
+                            urls.push(details.url);
+                        }
                         return { title: title, poster: poster, tracks: tracks, urls: urls };
 
                     });
                 }
                 function getVideoSrc(url: string): Promise<VideoTypes.VideoSource> {
-                    return OV.tools.createRequest({ url: url, xmlHttpObj: xmlHttpObj }).then(function(xhr) {
+                    return OV.tools.createRequest({ url: url, referer: details.url }).then(function(xhr) {
                         checkResponse(xhr);
                         let html = parser.parseFromString(xhr.response, "text/html");
                         let source = html.getElementsByTagName("source")[0];
@@ -80,7 +82,7 @@ ScriptBase.addRedirectHost({
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
                 if(details.url.indexOf("openload.co") == -1) {
-                    location.href = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
+                    details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
                 }
                 
                 if (details.url.indexOf("/f/") != -1) {
@@ -122,7 +124,7 @@ ScriptBase.addRedirectHost({
                     return streamUrl;
                 }
                 console.log(details.url);
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.responseText;
                     console.log(xhr.responseURL);
@@ -131,16 +133,16 @@ ScriptBase.addRedirectHost({
                         throw Error("No Video");
                     }
 
-                    let thumbnailUrl = HTML.match(/poster="([^"]*)"/)[1];
-                    let title = HTML.match(/meta name="og:title" content="([^"]*)"/)[1];
+                    let thumbnailUrl = OV.tools.matchNull(HTML, /poster="([^"]*)"/);
+                    let title = OV.tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
 
                     let subtitleTags = HTML.match(/<track(.*)\/>/g) || [];
                     let subtitles = [];
                     for (let subtitleTag of subtitleTags) {
-                        let label = subtitleTag.match(/label="([^"]*)"/)[1];
-                        let src = subtitleTag.match(/src="([^"]*)"/);
+                        let label = OV.tools.matchNull(subtitleTag,/label="([^"]*)"/);
+                        let src = OV.tools.matchNull(subtitleTag, /src="([^"]*)"/);
                         if (src) {
-                            subtitles.push({ kind: "captions", label: label, src: src[1], default: subtitleTag.indexOf("default") != -1 });
+                            subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
                         }
                     }
 
@@ -196,7 +198,7 @@ ScriptBase.addRedirectHost({
 ScriptBase.addRedirectHost({
     name: "FruitStreams",
     scripts: [{
-        urlPattern: /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i,
+        urlPattern: /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i,
         runScopes: [{
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
@@ -221,7 +223,7 @@ ScriptBase.addRedirectHost({
                     }
                     return retVal;
                 }
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.responseText;
                     if (xhr.status != 200 || HTML.indexOf("We are unable to find the video you're looking for.") != -1) {
@@ -232,8 +234,8 @@ ScriptBase.addRedirectHost({
                     let funcInt = parseInt(funcParams[2]);
 
                     let src = { type: "video/mp4", src: "https:" + resolveVideo(funcStr, funcInt), label: "SD" };
-                    let poster = HTML.match(/poster="([^"]*)"/)[1];
-                    let title = HTML.match(/meta name="og:title" content="([^"]*)"/)[1];
+                    let poster = OV.tools.matchNull(HTML, /poster="([^"]*)"/);
+                    let title = OV.tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
                     return { src: [src], poster: poster, title: title, tracks: [] };
                 });
             }
@@ -250,13 +252,13 @@ ScriptBase.addRedirectHost({
                 return new Promise<VideoTypes.VideoData>(function(resolve, reject) {
                     OV.page.isReady().then(function() {
                         let HTML = document.documentElement.innerHTML;
-                        let title = HTML.match(/<title>([^<]*)<\/title>/)[1];
+                        let title = OV.tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
                         let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)[1]);
                         let srces: VideoTypes.VideoSource[] = [];
                         for (let src of rawsrces) {
                             srces.push({ src: src.file, type: "application/x-mpegURL", label: "SD" });
                         };
-                        let poster = HTML.match(/image: '([^']*)'/)[1];
+                        let poster = OV.tools.matchNull(HTML, /image: '([^']*)'/);
                         resolve({
                             src: srces,
                             poster: poster,
@@ -293,9 +295,9 @@ ScriptBase.addRedirectHost({
                     }
 
                     let rawSrces = JSON.parse("[" + html.match(/.*sources = \[([^\]]*)/)[1] + "]");
-                    let rawTracks = JSON.parse("[" + html.match(/.*tracks = \[([^\]]*)/)[1] + "]");
-                    let title = html.match(/title: '([^']*)'/)[1];
-                    let poster = html.match(/image: '([^']*)'/)[1];
+                    let rawTracks = JSON.parse("[" + OV.tools.matchNull(html, /.*tracks = \[([^\]]*)/) + "]");
+                    let title = OV.tools.matchNull(html, /title: '([^']*)'/);
+                    let poster = OV.tools.matchNull(html, /image: '([^']*)'/);
                     let srces: VideoTypes.VideoSource[] = [];
                     for (let i = 0; i < rawSrces.length; i++) {
                         srces.push({ src: rawSrces[i].file, type: "application/x-mpegURL", dlsrc: dlsrces[0], label: "SD" })
@@ -324,7 +326,7 @@ ScriptBase.addRedirectHost({
         runScopes: [{
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
                     if (details.url.indexOf("/embed") == -1) {
@@ -342,8 +344,8 @@ ScriptBase.addRedirectHost({
                         for (let src of rawsources) {
                             sources.push({ src: src.src, label: src.res, type: src.type });
                         }
-                        let title = HTML.match(/<title>([^<]*)<\/title>/)[1];
-                        let poster = HTML.match(/poster: "([^"]*)"/)[1];
+                        let title = OV.tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+                        let poster = OV.tools.matchNull(HTML, /poster: "([^"]*)"/);
                         return {
                             src: sources,
                             poster: poster,
@@ -364,9 +366,12 @@ ScriptBase.addRedirectHost({
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
                 console.log("W")
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
+                    if(HTML.indexOf("File was deleted") != -1) {
+                        throw Error("No Video!");
+                    }
                     let evalStr = HTML.match(/(eval\(function\(p,a,c,k,e,d\).*\.split\('\|'\)\)\))/)[1];
                     let code = OV.tools.unpackJS(evalStr);
                     let hash = JSON.parse(code.match(/player\.setup\((.*),"height"/)[1] + "}");
@@ -392,11 +397,11 @@ ScriptBase.addRedirectHost({
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
                 
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
                     let videoURL = atob(HTML.match(/data-stream="([^"]*)"/)[1]);
-                    let title = HTML.match(/<title>([^<]*)<\/title>/)[1];
+                    let title = OV.tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
 
                     return {
                         src: [{ type: "video/mp4", src: videoURL, label: "SD" }],
@@ -419,7 +424,7 @@ ScriptBase.addRedirectHost({
                 if (details.url.indexOf("embed-") == -1 && details.url.indexOf(".html") != -1) {
                     details.url = details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
                 }
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.responseText;
                     if (xhr.status != 200 || HTML.indexOf("File Does not Exist, or Has Been Removed") != -1) {
@@ -432,7 +437,7 @@ ScriptBase.addRedirectHost({
                     sources = sources.replace(/label:/g, '"label":');
                     let srcObj = JSON.parse(sources);
                     srcObj[0].default = true;
-                    let image = playerHashStr.match(/image: "([^"]*)"/)[1];
+                    let image = OV.tools.matchNull(playerHashStr, /image: "([^"]*)"/);
                     return {
                         src: srcObj,
                         title: "VidTo.me video",
@@ -467,16 +472,17 @@ ScriptBase.addRedirectHost({
                                     protocol: "http://",
                                     formData: {
                                         op: "download1",
-                                        id: details.match[2]
+                                        id: details.match[2].match(/([^\/]*)(\/.*)?/)[1]
                                     }
                                 }).then(function(xhr) {
                                     suspectSubtitledVideo(details, xhr);
                                     let HTML = xhr.response;
+                                    console.log(HTML);
                                     
                                     let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
                                     let src = videoHashStr.match(/file: "([^"]*)"/)[1];
-                                    let poster = videoHashStr.match(/image: "([^"]*)"/)[1];
-                                    let title = HTML.match(/<title>([^<]*)<\/title>/)[1];
+                                    let poster = OV.tools.matchNull(videoHashStr, /image: "([^"]*)"/);
+                                    let title = OV.tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
                                     return {
 
                                         src: [{
@@ -568,16 +574,16 @@ ScriptBase.addRedirectHost({
                     }
                     console.log(details.url);
                 }
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.responseText;
                     if (xhr.status != 200 || HTML.indexOf("file was deleted") != -1 || HTML.indexOf("yt-uix-form-textarea share-embed-code") == -1) {
                         throw Error("No Video!");
                     }
                     let videoHash = HTML.match(/jwplayer\("vplayer"\)\.setup\(\{(.*)\}\);/)[1];
-                    let image = videoHash.match(/image: "([^"]*)"/)[1];
+                    let image = OV.tools.matchNull(videoHash, /image: "([^"]*)"/);
                     let src = videoHash.match(/sources: \[\{file: "([^"]*)"/)[1];
-                    let title = videoHash.match(/<title>([<"]*)<\/title>/i)[1];
+                    let title = OV.tools.matchNull(HTML, /<title>([<"]*)<\/title>/i);
 
                     return {
                         src: [{ src: src, type: "application/x-mpegURL", label: "SD" }],
@@ -600,15 +606,15 @@ ScriptBase.addRedirectHost({
                 if (details.url.indexOf("sn-") != -1) {
                     details.url = "https://www.speedvid.net/" + details.url.match(/sn\-([^\-]*)\-/i)[1];
                 }
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.responseText;
                     if (xhr.status != 200 || HTML.indexOf("<Title>Watch </Title>") == -1) {
                         throw Error("No Video!");
                     }
-                    let image = HTML.match(/image:'([^']*)'/)[1];
+                    let image = OV.tools.matchNull(HTML, /image:'([^']*)'/);
                     let src = HTML.match(/file: '([^']*)'/)[1];
-                    let title = HTML.match(/div class="dltitre">([^<]*)<\/div>/)[1];
+                    let title = OV.tools.matchNull(HTML, /div class="dltitre">([^<]*)<\/div>/);
 
                     return {
                         src: [{ src: src, type: "video/mp4", label: "SD" }],
@@ -628,12 +634,13 @@ ScriptBase.addRedirectHost({
         runScopes: [{
             run_at: ScriptBase.RunScopes.document_start,
             script: function(details): Promise<VideoTypes.VideoData> {
-                return OV.tools.createRequest({ url: details.url }).then(function(xhr) {
+                return OV.tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
+                    console.log(HTML);
                     let src = JSON.parse(HTML.match(/sources: (\[.*\]),/)[1])[0];
                     //let title = HTML.match(/<title>([<"]*)<\/title>/i)[1];
-                    let poster = HTML.match(/poster: "([^"]*)"/)[1];
+                    let poster = OV.tools.matchNull(HTML, /poster: "([^"]*)"/);
                     return {
                         src: [{ type: "application/x-mpegURL", src: src, label: "SD" }],
                         poster: poster,
@@ -666,7 +673,7 @@ ScriptBase.addRedirectHost({
                         });
                     }
                 }).then(function(videoCode) {
-                    return OV.tools.createRequest({ url: "https://flashx.co/playvideo-" + videoCode + ".html?playvid" });
+                    return OV.tools.createRequest({ url: "https://flashx.co/playvideo-" + videoCode + ".html?playvid", hideRef: true });
                 }).then(function(xhr) {
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.responseText;
@@ -684,7 +691,7 @@ ScriptBase.addRedirectHost({
                     srcHashStr = srcHashStr.replace(/'/g, '"');
                     console.log(srcHashStr)
                     let src = JSON.parse(srcHashStr);
-                    let poster = HTML.match(/poster="([^"]*)"/)[1];
+                    let poster = OV.tools.matchNull(HTML, /poster="([^"]*)"/);
 
                     return {
                         src: [{ src: src[0].src, type: src[0].type, label: "SD" }],

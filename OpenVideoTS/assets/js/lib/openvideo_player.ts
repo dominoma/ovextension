@@ -1,5 +1,18 @@
 namespace OVPlayer {
+    (window as any)["Worker"] = undefined;
     OV.messages.setupMiddleware();
+    OV.page.wrapType(XMLHttpRequest, {
+        open: {
+            get: function(target) {
+                return function(method : string, url : string) {
+                    if(getPlayer() && getPlayer().currentType().match(/application\//i) && !url.match(/OVReferer/i)) {
+                        arguments[1] = url+(url.indexOf("?") == -1 ? "?" : "&")+"OVreferer="+encodeURIComponent(btoa(OV.page.getUrlObj().origin));
+                    }
+                    target.open.apply(target, arguments);
+                }
+            }   
+        }
+    });
     export interface Player extends videojs.Player {
         hotkeys?: (obj : Object) => void;
         getActiveVideoSource?: () => VideoTypes.VideoSource;
@@ -16,7 +29,10 @@ namespace OVPlayer {
         origin: string;
         stoppedTime: number;
     }
-    
+    let player : Player = null;
+    export function getPlayer() {
+        return player;
+    }
     export function initPlayer(playerId : string, options: Object, videoData: VideoTypes.VideoData) : Player {
         
         options = OV.object.merge(options, {
@@ -31,16 +47,16 @@ namespace OVPlayer {
             playbackRates: [0.5, 1, 2],
             language: OV.languages.getMsg("video_player_locale")
         });
-        var Player : Player = videojs(playerId,options); 
-        Player.hotkeys({
+        player = videojs(playerId,options); 
+        player.hotkeys({
             volumeStep: 0.1,
             seekStep: 5,
             enableModifiersForNumbers: false
         });
         
-        Player.getActiveVideoSource = function() : VideoTypes.VideoSource { 
+        player.getActiveVideoSource = function() : VideoTypes.VideoSource { 
             for(var src of videoData.src) {
-                if(Player.src().indexOf(src.src) == 0) {
+                if(player.src().indexOf(src.src) == 0) {
                     return src;
                 }
             } 
@@ -48,45 +64,45 @@ namespace OVPlayer {
         }
         
         
-        Player.on("ready", function(){
-            (Player.el() as HTMLElement).style.width = "100%";
-            (Player.el() as HTMLElement).style.height = "100%";
-            let ControlBar = Player.getChild('controlBar');
+        player.on("ready", function(){
+            (player.el() as HTMLElement).style.width = "100%";
+            (player.el() as HTMLElement).style.height = "100%";
+            let ControlBar = player.getChild('controlBar');
             var FavButton = ControlBar.addChild('FavButton', {}) as FavButton;
             var DownloadButton = ControlBar.addChild('DownloadButton', {});
             var PatreonButton = ControlBar.addChild('PatreonButton', {});
             var FullscreenToggle = ControlBar.getChild('fullscreenToggle') as videojs.FullscreenToggle;
             var CaptionsButton = ControlBar.getChild('SubsCapsButton') as videojs.CaptionsButton;
             CaptionsButton.show();
-            Player.on("ratechange", function(){
+            player.on("ratechange", function(){
                 OV.analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
             });
-            Player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
-            Player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
-            Player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
+            player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
+            player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
+            player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
             OV.storage.sync.get("PlayerVolume").then(function(volume){
                 if(volume) {
-                    Player.volume(volume);
+                    player.volume(volume);
                 }
             });
-            Player.on('volumechange', function(){
-                OV.storage.sync.set("PlayerVolume",Player.volume());
+            player.on('volumechange', function(){
+                OV.storage.sync.set("PlayerVolume",player.volume());
             });
-            Player.on('loadedmetadata',function() {
-                Player.loadFromHistory();
+            player.on('loadedmetadata',function() {
+                player.loadFromHistory();
                 FavButton.updateDesign();
             });
             document.body.onmouseleave  = function() {
-                if(Player.currentTime() != 0) {
-                    Player.saveToHistory();
+                if(player.currentTime() != 0) {
+                    player.saveToHistory();
                 }
             };
         });
         
-        Player.setVideoData = function(videoData : VideoTypes.VideoData) {
+        player.setVideoData = function(videoData : VideoTypes.VideoData) {
            
             
-            Player.poster(videoData.poster);
+            player.poster(OV.tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
             var srces = videoData.src;
             
             var checkedSrces = [];
@@ -98,27 +114,27 @@ namespace OVPlayer {
             }
             srces = checkedSrces;
             if(srces.length == 1) {
-                Player.src(srces[0]);
+                player.src(srces[0]);
             }
             else {
-                Player.updateSrc(srces);
+                player.updateSrc(srces);
             
                 
             }
             for(let track of videoData.tracks) {
-                OVPlayer.addTextTrack(Player, track);
-                //Player.addRemoteTextTrack(<any>track, true);
+                OVPlayer.addTextTrack(player, track);
+                //player.addRemoteTextTrack(<any>track, true);
             }
             
         }
-        Player.getVideoData = function() {
+        player.getVideoData = function() {
             return videoData;
         }
-        Player.setVideoData(videoData);
+        player.setVideoData(videoData);
             
-        //Player.aspectRatio("0:0");
+        //player.aspectRatio("0:0");
         
-        Player.saveToHistory = function(){
+        player.saveToHistory = function(){
             OV.storage.sync.get("disableHistory").then(function(disabled){
                 if(!disabled) {
                     OV.storage.local.get("OpenVideoHistory").then(function(history : Array<HistoryEntry>){
@@ -135,11 +151,11 @@ namespace OVPlayer {
                                 poster: videoData.poster,
                                 title: videoData.title,
                                 origin: videoData.origin,
-                                stoppedTime: Player.currentTime()
+                                stoppedTime: player.currentTime()
                         };
                         
                         
-                        //Player.getVideoFileHash(function(fileHash){
+                        //player.getVideoFileHash(function(fileHash){
                             //HistHash.fileHash = fileHash;
                         history.unshift(histHash);
                         OV.storage.local.set("OpenVideoHistory", history);
@@ -148,15 +164,15 @@ namespace OVPlayer {
                 }
             });
         };
-        Player.loadFromHistory = function(){
+        player.loadFromHistory = function(){
             OV.storage.local.get("OpenVideoHistory").then(function(history : Array<HistoryEntry>){
                 if(history){
-                    //Player.getVideoFileHash(function(fileHash){
+                    //player.getVideoFileHash(function(fileHash){
                         var item = OV.array.search(videoData.origin, history, function(origin, arrElem){
                             return arrElem.origin == origin;
                         });
                         if(item) {
-                            Player.currentTime(item.stoppedTime);
+                            player.currentTime(item.stoppedTime);
                         }
                     //});
                 }
@@ -164,6 +180,6 @@ namespace OVPlayer {
         };
         
         
-        return Player;
+        return player;
     }
 }

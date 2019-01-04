@@ -57,7 +57,7 @@ function createVideoLink(videoData) {
         VideoLink.parentElement.removeChild(VideoLink);
     });
 }
-document.addEventListener("DOMContentLoaded", function () {
+OV.page.isReady().then(function () {
     OV.analytics.fireEvent("Library", "PlayerEvent", "");
     document.title = OV.languages.getMsg("library_site_library_lbl") + " - OpenVideo";
     document.getElementById("title").innerText = OV.languages.getMsg("library_site_library_lbl");

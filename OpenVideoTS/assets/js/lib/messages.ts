@@ -56,12 +56,23 @@ namespace Background {
         return OV.messages.send({ bgdata: { func: "redirectHosts", data: {} } });
     }
     export function alert(msg: string) {
-        OV.messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+        if(OV.environment.browser() == OV.environment.Browsers.Chrome) {
+            OV.messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+        }
+        else {
+            window.alert(msg);
+        }
     }
     export function prompt(data: Promt) {
-        return OV.messages.send({ bgdata: { func: "prompt", data: data } }).then(function(response) {
-            return { aborted: response.data.aborted, text: response.data.text };
-        });
+        if(OV.environment.browser() == OV.environment.Browsers.Chrome) {
+            return OV.messages.send({ bgdata: { func: "prompt", data: data } }).then(function(response) {
+                return { aborted: response.data.aborted, text: response.data.text };
+            });
+        }
+        else {
+            let value = window.prompt(data.msg, data.fieldText);
+            return Promise.resolve({ aborted: !value, text: value });
+        }
     }
     export function sendMessage(tabid: number, msg: { func: string; data: any; }) {
         return new Promise(function(response, reject) {

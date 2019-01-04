@@ -76,21 +76,27 @@ var Background;
             }
             return OV.array.search(name, headers, searchHeader);
         }
-        if (details.url.match(/[\?&]isOV=true/i)) {
-            console.log("OV");
-            setHeader(details.requestHeaders, "Origin", "*");
-            setHeader(details.requestHeaders, "Referer", "*");
-            console.log(details.requestHeaders);
-            //returnHash.redirectUrl = redirectUrl.replace(/[\?&]isOV=[^\?&]*/g, "");
+        function removeHeader(headers, name) {
+            var header = getHeader(headers, name);
+            headers.splice(headers.indexOf(header), 1);
         }
         var referer = (details.url.match(/[\?&]OVreferer=([^\?&]*)/i) || [null, null])[1];
         if (referer) {
             referer = atob(decodeURIComponent(referer));
             //returnHash.redirectUrl = redirectUrl.replace(/[\?&]OVreferer=[^\?&]*/g, "");
             setHeader(details.requestHeaders, "Referer", referer);
+            return { requestHeaders: details.requestHeaders };
             //setHeader(requestHeaders, "Origin", "https://"+OV.tools.parseUrl(referer).host);
         }
-        return { requestHeaders: details.requestHeaders };
+        if (details.url.match(/[\?&]isOV=true/i)) {
+            console.log(details.requestHeaders, details.url);
+            setHeader(details.requestHeaders, "Origin", "*");
+            removeHeader(details.requestHeaders, "Referer");
+            console.log(details.requestHeaders);
+            return { requestHeaders: details.requestHeaders };
+            //returnHash.redirectUrl = redirectUrl.replace(/[\?&]isOV=[^\?&]*/g, "");
+        }
+        return null;
     }, {
         urls: ["<all_urls>"]
     }, ['blocking', 'requestHeaders']);
