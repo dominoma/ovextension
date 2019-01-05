@@ -242,7 +242,7 @@ namespace OV {
             return str.substr(1);
         }
         export function addParamsToURL(url: string, obj: StringMap) : string {
-            if(obj) {
+            if(url && obj) {
                 return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
             }
             else {

@@ -135,6 +135,10 @@ namespace Background {
                 chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
             },
             analytics: function(msg, bgdata: StringMap, sender, sendResponse) {
+                if(bgdata["el"]) {
+                    bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+                }
+                console.log(bgdata)
                 OV.analytics.postData(bgdata);
             },
             redirectHosts: function(msg, bgdata, sender, sendResponse) {
@@ -235,9 +239,10 @@ namespace TheatreMode {
         });
 
         
-        if (iframe.hasAttribute("allow")) {
-            iframe.removeAttribute("allow");
+        if(iframe.hasAttribute("allow")) {
+            iframe.setAttribute("allow", iframe.getAttribute("allow").replace("fullscreen", ""));
         }
+        iframe.allowFullscreen = true;
         let observer = new MutationObserver(function(mutations) {
             if(isFrameActive() && getActiveFrame().iframe == iframe) {
                 let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
@@ -427,6 +432,7 @@ namespace VideoPopup {
             newVideos++;
             if (!isPopupCreated()) {
                 getPopupFrame().hidden = true;
+                getPopupFrame().style.setProperty("display", "none", "important");
                 Background.setIconPopup();
 
             }
@@ -473,6 +479,7 @@ namespace VideoPopup {
             },
             openPopup: function(request, sendResponse) {
                 getPopupFrame().hidden = false;
+                getPopupFrame().style.removeProperty("display");
                 if (firstpopup) {
                     getPopupFrame().src = getPopupFrame().src;
                     firstpopup = false;
@@ -482,6 +489,7 @@ namespace VideoPopup {
             },
             closePopup: function(request, sendResponse) {
                 document.getElementById("videoPopup").hidden = true;
+                getPopupFrame().style.setProperty("display", "none", "important");
                 Background.setIconPopup();
                 setUnviewedVideos(newVideos);
             },

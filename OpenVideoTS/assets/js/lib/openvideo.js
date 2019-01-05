@@ -238,7 +238,7 @@ var OV;
         }
         tools.objToURLParams = objToURLParams;
         function addParamsToURL(url, obj) {
-            if (obj) {
+            if (url && obj) {
                 return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
             }
             else {

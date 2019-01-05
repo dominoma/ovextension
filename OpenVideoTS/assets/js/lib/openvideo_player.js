@@ -59,6 +59,15 @@ var OVPlayer;
             player.on("ratechange", function () {
                 OV.analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
             });
+            FullscreenToggle.on("click", function () {
+                let fullscreen = player.isFullscreen();
+                window.setTimeout(function () {
+                    if (OV.environment.browser() == "chrome" /* Chrome */ && !document.fullscreen && player.isFullscreen()) {
+                        console.log("FULLSCREEN ERROR");
+                        OV.analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + videoData.origin + "' Page: '<PAGE_URL>'");
+                    }
+                }, 1000);
+            });
             player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
             player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
             player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
