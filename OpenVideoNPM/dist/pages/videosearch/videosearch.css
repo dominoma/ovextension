@@ -1,0 +1,72 @@
+body {
+	background: #f1f1fa;
+	overflow: hidden;
+	font-family: "Open Sans", sans-serif;
+}
+
+
+
+
+
+input[type='text'], textarea, button, .inputstyle {
+	padding: 10px;
+	border: solid 1px gainsboro;
+	-webkit-transition: box-shadow 0.3s, border 0.3s;
+	-moz-transition: box-shadow 0.3s, border 0.3s;
+	-o-transition: box-shadow 0.3s, border 0.3s;
+	transition: box-shadow 0.3s, border 0.3s;
+	margin: 3px;
+	font-family: "Open Sans", sans-serif;
+	outline-color: #b1d97b;
+	resize: none;
+	margin: 10px 10px 10px 0px;
+	background: white;
+}
+
+input[type='text']:focus, textarea:focus, button:hover, .inputstyle:hover {
+	border: solid 1px #8dc73f;
+	-webkit-box-shadow: 0 0 5px 1px #8dc73f;
+	-moz-box-shadow: 0 0 5px 1px #8dc73f;
+	box-shadow: 0 0 5px 1px #8dc73f;
+}
+
+button {
+	background-color: #8dc73f; /* Green */
+	border: none;
+	color: white;
+}
+
+.outer {
+	display: table;
+	position: absolute;
+	height: 100%;
+	width: 100%;
+}
+
+.middle {
+	display: table-cell;
+	vertical-align: middle;
+}
+
+.inner {
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+
+div {
+	display: block;
+}
+
+a, a:active, a:hover, a:visited {
+	color: inherit;
+	text-decoration: none;
+}
+.vs-host-icon {
+	position: absolute;
+}
+
+.vs-host-icon img {
+	height: 100%;
+	width: 100%;
+}

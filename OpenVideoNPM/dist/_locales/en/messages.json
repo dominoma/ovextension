@@ -1,0 +1,98 @@
+{
+	"extDescr": {
+		"message": "Watch videos from OpenLoad, Streamango, RapidVideo, ... without ads or popups!",
+		"description": "Extension Description"
+	},
+	
+	"popup_menu_library_btn": {
+		"message": "Library"
+	},
+	"popup_menu_options_btn": {
+		"message": "Options"
+	},
+	"popup_menu_proxy_btn_enable": {
+		"message": "Enable Proxy"
+	},
+	"popup_menu_proxy_btn_disable": {
+		"message": "Disable Proxy"
+	},
+	"popup_menu_suggest_host_btn": {
+		"message": "Suggest a video hoster"
+	},
+	"popup_menu_search_movie_btn": {
+		"message": "Search for movies"
+	},
+	"popup_menu_rating_btn": {
+		"message": "Love it? Rate it <i>here</i>"
+	},
+	"popup_menu_support_btn": {
+		"message": "Support"
+	},
+	"popup_menu_version_lbl": {
+		"message": "Version"
+	},
+	
+	"options_site_redirect_options_lbl": {
+		"message": "Redirect-Options"
+	},
+	"options_site_redirections_lbl": {
+		"message": "Redirections"
+	},
+	"options_site_other_options_lbl": {
+		"message": "Other Options"
+	},
+	"options_site_enable_history_ckb": {
+		"message": "Enable History"
+	},
+	"options_site_enable_popup_ckb": {
+		"message": "Enable Popup"
+	},
+	"options_site_use_analytics_ckb": {
+		"message": "Use Google Analytics"
+	},
+	
+	"library_site_library_lbl": {
+		"message": "Library"
+	},
+	"library_site_return_btn": {
+		"message": "Go Back"
+	},
+	"library_site_search_btn": {
+		"message": "Search"
+	},
+	"library_site_empty_lbl": {
+		"message": "There is nothing here yet"
+	},
+	"library_site_search_input_lbl": {
+		"message": "Video Title"
+	},
+	"library_site_no_thumbnail_lbl": {
+		"message": "No Thumbnail"
+	},
+	"library_site_history_lbl": {
+		"message": "History"
+	},
+	"library_site_favorites_lbl": {
+		"message": "Favorites"
+	},
+	
+	"video_popup_msg_lbl": {
+		"message": "OpenVideo found a video!"
+	}, 
+	"video_popup_video_bar_lbl": {
+		"message": "Video {curr_vid} of {vid_count}"
+	}, 
+	
+	"video_player_err_msg": {
+		"message": "The video could not be loaded, either because your internet connection is too slow or because this video hoster is blocked in your country. Reloading the page, using a proxy (click on the OpenVideo icon) or a different video hoster might help. If nothing of this has worked you can tell me via Support on which hoster OpenVideo doesn't work and I'll look over it."
+	},
+	"video_player_err_msg_proxy": {
+		"message": "The video could not be loaded, either because your internet connection or the proxy you use is too slow or because this video hoster is blocked in the proxy's country. Reloading the page, using a different proxy (click the reload button in the OpenVideo popup menu) or disabling the proxy might help. If nothing of this has worked you can tell me via Support on which hoster OpenVideo doesn't work and I'll look over it."
+	},
+	"video_player_js_err_msg": {
+		"message": "To view this video please enable JavaScript, and consider upgrading to a web browser that <a href='http://videojs.com/html5-video-support/' target='_blank'>supports HTML5 video</a>"
+	},
+	"video_player_locale": {
+		"message": "en"
+	}
+}
