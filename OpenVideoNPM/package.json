@@ -1,0 +1,25 @@
+{
+  "author": "Dominik",
+  "name": "OpenVideoNPM",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generated with typescript.java",
+  "scripts": {
+    "debug": "webpack",
+    "export": "webpack && \"C:\\Program Files\\WinRAR\\Rar.exe\" a -x*.map -ep1 -r -idq -y OpenVideo.zip dist\\"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "0.0.77",
+    "@types/firefox-webext-browser": "^65.0.0",
+    "@types/video.js": "^7.2.5",
+    "@types/webpack": "^4.4.22",
+    "awesome-typescript-loader": "^5.2.1",
+    "circular-dependency-plugin": "^5.0.2",
+    "filemanager-webpack-plugin": "^2.0.5",
+    "source-map": "^0.7.3",
+    "typescript": "^3.2.2",
+    "webpack": "^4.28.4",
+    "webpack-cli": "^3.2.1"
+  }
+}

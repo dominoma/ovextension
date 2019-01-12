@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./tmp",
+    "declaration": false,
+   
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": false,
+    
+    "downlevelIteration": true,
+	
+	"baseUrl": "src/modules/"
+	
+    
+  },
+  "exclude": [
+      "node_modules"
+  ]
+}
