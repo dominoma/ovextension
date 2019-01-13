@@ -1,6 +1,7 @@
 const path = require('path');
 const FileManagerPlugin = require('filemanager-webpack-plugin');
-const CircularDependencyPlugin = require('circular-dependency-plugin')
+const CircularDependencyPlugin = require('circular-dependency-plugin');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 module.exports = {
     optimization: {
@@ -18,26 +19,27 @@ module.exports = {
         }]
     },
     entry: {
-        library: './src/page_scripts/library.ts',
-        options: './src/page_scripts/options.ts',
-        popupmenu: './src/page_scripts/popupmenu.ts',
-        videoplay: './src/page_scripts/videoplay.ts',
-        videopopup: './src/page_scripts/videopopup.ts',
-        videosearch: './src/page_scripts/videosearch.ts',
+        'pages/library/library': './src/page_scripts/library.ts',
+        'pages/options/options': './src/page_scripts/options.ts',
+        'pages/popupmenu/popupmenu': './src/page_scripts/popupmenu.ts',
+        'pages/videoplay/videoplay': './src/page_scripts/videoplay.ts',
+        'pages/videopopup/videopopup': './src/page_scripts/videopopup.ts',
+        'pages/videosearch/videosearch': './src/page_scripts/videosearch.ts',
 
-        bg_script: './src/background_scripts/bg_script.ts',
+        'background_scripts/bg_script': './src/background_scripts/bg_script.ts',
 
-        document_start: './src/content_scripts/document_start.ts',
-        document_idle: './src/content_scripts/document_idle.ts',
-        document_end: './src/content_scripts/document_end.ts',
-        top_window: './src/content_scripts/top_window.ts',
+        'content_scripts/document_start': './src/content_scripts/document_start.ts',
+        'content_scripts/document_idle': './src/content_scripts/document_idle.ts',
+        'content_scripts/document_end': './src/content_scripts/document_end.ts',
+        'content_scripts/top_window': './src/content_scripts/top_window.ts',
 
-        search_videos: './src/inject_scripts/search_videos.ts',
+        'inject_scripts/search_videos': './src/inject_scripts/search_videos.ts',
 
-        pac_firefox: './src/proxy_scripts/pac_firefox.ts'
-
-
-
+        'proxy_scripts/pac_firefox': './src/proxy_scripts/pac_firefox.ts'
+    },
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: '[name].js'
     },
     resolve: {
 
@@ -56,110 +58,16 @@ module.exports = {
 
 
     },
-    plugins: [new FileManagerPlugin({
-        onEnd: [{
-                move: [{
-                        source: './dist/library.js',
-                        destination: './dist/pages/library/library.js'
-                    }, {
-                        source: './dist/options.js',
-                        destination: './dist/pages/options/options.js'
-                    }, {
-                        source: './dist/popupmenu.js',
-                        destination: './dist/pages/popupmenu/popupmenu.js'
-                    }, {
-                        source: './dist/videoplay.js',
-                        destination: './dist/pages/videoplay/videoplay.js'
-                    }, {
-                        source: './dist/videopopup.js',
-                        destination: './dist/pages/videopopup/videopopup.js'
-                    }, {
-                        source: './dist/videosearch.js',
-                        destination: './dist/pages/videosearch/videosearch.js'
-                    },
-
-                    {
-                        source: './dist/bg_script.js',
-                        destination: './dist/background_scripts/bg_script.js'
-                    },
-
-                    {
-                        source: './dist/document_start.js',
-                        destination: './dist/content_scripts/document_start.js'
-                    }, {
-                        source: './dist/document_idle.js',
-                        destination: './dist/content_scripts/document_idle.js'
-                    }, {
-                        source: './dist/document_end.js',
-                        destination: './dist/content_scripts/document_end.js'
-                    }, {
-                        source: './dist/top_window.js',
-                        destination: './dist/content_scripts/top_window.js'
-                    },
-
-                    {
-                        source: './dist/search_videos.js',
-                        destination: './dist/inject_scripts/search_videos.js'
-                    },
-
-                    {
-                        source: './dist/pac_firefox.js',
-                        destination: './dist/proxy_scripts/pac_firefox.js'
-                    }
-                ]
-            },
-            {
-                move: [{
-                        source: './dist/library.js.map',
-                        destination: './dist/pages/library/library.js.map'
-                    }, {
-                        source: './dist/options.js.map',
-                        destination: './dist/pages/options/options.js.map'
-                    }, {
-                        source: './dist/popupmenu.js.map',
-                        destination: './dist/pages/popupmenu/popupmenu.js.map'
-                    }, {
-                        source: './dist/videoplay.js.map',
-                        destination: './dist/pages/videoplay/videoplay.js.map'
-                    }, {
-                        source: './dist/videopopup.js.map',
-                        destination: './dist/pages/videopopup/videopopup.js.map'
-                    }, {
-                        source: './dist/videosearch.js.map',
-                        destination: './dist/pages/videosearch/videosearch.js.map'
-                    },
-
-                    {
-                        source: './dist/bg_script.js.map',
-                        destination: './dist/background_scripts/bg_script.js.map'
-                    },
-
-                    {
-                        source: './dist/document_start.js.map',
-                        destination: './dist/content_scripts/document_start.js.map'
-                    }, {
-                        source: './dist/document_idle.js.map',
-                        destination: './dist/content_scripts/document_idle.js.map'
-                    }, {
-                        source: './dist/document_end.js.map',
-                        destination: './dist/content_scripts/document_end.js.map'
-                    }, {
-                        source: './dist/top_window.js.map',
-                        destination: './dist/content_scripts/top_window.js.map'
-                    },
-
-                    {
-                        source: './dist/search_videos.js.map',
-                        destination: './dist/inject_scripts/search_videos.js.map'
-                    },
-
-                    {
-                        source: './dist/pac_firefox.js.map',
-                        destination: './dist/proxy_scripts/pac_firefox.js.map'
-                    }
-                ]
-            }
-        ]
-    })]
+    plugins: [
+    	new CleanWebpackPlugin([
+    		'dist/*.map',
+    		'dist/*.js', 
+    		'dist/pages/**/*.js', 
+    		'dist/background_scripts/**/*.js',
+    		'dist/content_scripts/**/*.js',
+    		'dist/inject_scripts/**/*.js',
+    		'dist/proxy_scripts/**/*.js'
+    	])
+    ]
 
 }

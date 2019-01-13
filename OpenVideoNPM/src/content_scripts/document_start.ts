@@ -4,6 +4,6 @@ import * as TheatreMode from "Messages/theatremode";
 import * as RedirectScripts from "../RedirectScripts";
 Messages.setupMiddleware();
 RedirectScripts.install();
-ScriptBase.startScripts(ScriptBase.RunScopes.document_start).then(function(){
+ScriptBase.startScripts(ScriptBase.RunScopes.document_start).then(function() {
     TheatreMode.setupIframe();
 });

@@ -81,7 +81,7 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 10);
+/******/ 	return __webpack_require__(__webpack_require__.s = 12);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -412,13 +412,6 @@ function hashToObj(hashStr) {
     }
 }
 exports.hashToObj = hashToObj;
-function getAbsoluteUrl(url) {
-    let a = document.createElement('a');
-    a.href = url;
-    url = a.href;
-    return url;
-}
-exports.getAbsoluteUrl = getAbsoluteUrl;
 function unpackJS(source) {
     function getUnbase(base) {
         var ALPHABET = "";
@@ -539,23 +532,49 @@ function getRedirectedUrl(url) {
     });
 }
 exports.getRedirectedUrl = getRedirectedUrl;
-function objToURLParams(obj) {
+function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
-        str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        if (!isParamInURL(url, key)) {
+            console.log(url);
+            str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        }
     }
     return str.substr(1);
 }
-exports.objToURLParams = objToURLParams;
+function isParamInURL(url, param) {
+    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
+}
+exports.isParamInURL = isParamInURL;
 function addParamsToURL(url, obj) {
     if (url && obj) {
-        return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+        let query_str = objToURLParams(url, obj);
+        if (query_str) {
+            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        }
+        else {
+            return url;
+        }
     }
     else {
         return url;
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function addRefererToURL(url, referer) {
+    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+}
+exports.addRefererToURL = addRefererToURL;
+function getRefererFromURL(url) {
+    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
+    if (match) {
+        return atob(decodeURIComponent(match[1]));
+    }
+    else {
+        return null;
+    }
+}
+exports.getRefererFromURL = getRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;
@@ -751,6 +770,17 @@ exports.fireEvent = fireEvent;
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
+function getAbsoluteUrl(url) {
+    let a = document.createElement('a');
+    a.href = url;
+    url = a.href;
+    return url;
+}
+exports.getAbsoluteUrl = getAbsoluteUrl;
+function getSafeURL(url) {
+    return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
+}
+exports.getSafeURL = getSafeURL;
 function isReady() {
     return new Promise(function (resolve, reject) {
         if (document.readyState.match(/(loaded|complete)/)) {
@@ -961,13 +991,186 @@ exports.getMsg = getMsg;
 
 
 /***/ }),
-/* 8 */,
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(2);
+const Environment = __webpack_require__(4);
+const Analytics = __webpack_require__(5);
+const redirect_scripts_base_1 = __webpack_require__(9);
+function toTopWindow(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow", data: {} } });
+}
+exports.toTopWindow = toTopWindow;
+function toActiveTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab", data: {} } });
+}
+exports.toActiveTab = toActiveTab;
+function toTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTab", data: msg.query } });
+}
+exports.toTab = toTab;
+function openTab(url) {
+    return Messages.send({ bgdata: { func: "openTab", data: { url: url } } });
+}
+exports.openTab = openTab;
+function pauseAllVideos() {
+    return Messages.send({ bgdata: { func: "pauseAllVideos", data: {} } });
+}
+exports.pauseAllVideos = pauseAllVideos;
+function setIconPopup(url) {
+    return Messages.send({ bgdata: { func: "setIconPopup", data: { url: url } } });
+}
+exports.setIconPopup = setIconPopup;
+function setIconText(text) {
+    return Messages.send({ bgdata: { func: "setIconText", data: { text: text } } });
+}
+exports.setIconText = setIconText;
+function downloadFile(dl) {
+    return Messages.send({ bgdata: { func: "downloadFile", data: dl } });
+}
+exports.downloadFile = downloadFile;
+function analytics(data) {
+    return Messages.send({ bgdata: { func: "analytics", data: data } });
+}
+exports.analytics = analytics;
+function redirectHosts() {
+    return Messages.send({ bgdata: { func: "redirectHosts", data: {} } });
+}
+exports.redirectHosts = redirectHosts;
+function alert(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        Messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+    }
+    else {
+        window.alert(msg);
+    }
+}
+exports.alert = alert;
+function confirm(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        return Messages.send({ bgdata: { func: "confirm", data: { msg: msg } } }).then(function (response) {
+            return response.data;
+        });
+    }
+    else {
+        return Promise.resolve(window.confirm(msg));
+    }
+}
+exports.confirm = confirm;
+function prompt(data) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
+            return { aborted: response.data.aborted, text: response.data.text };
+        });
+    }
+    else {
+        let value = window.prompt(data.msg, data.fieldText);
+        return Promise.resolve({ aborted: !value, text: value });
+    }
+}
+exports.prompt = prompt;
+function sendMessage(tabid, msg) {
+    return new Promise(function (response, reject) {
+        chrome.tabs.sendMessage(tabid, {
+            func: msg.func,
+            data: msg.data,
+            state: Messages.State.BGToMdw,
+            sender: { url: location.href },
+        }, {
+            frameId: 0
+        }, function (resData) {
+            response(resData);
+        });
+    });
+}
+exports.sendMessage = sendMessage;
+function setup() {
+    Messages.setupBackground({
+        toTopWindow: function (msg, bgdata, sender, sendResponse) {
+            var tabid = sender.tab.id;
+            chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
+                sendResponse(resData.data);
+            });
+        },
+        toActiveTab: function (msg, bgdata, sender, sendResponse) {
+            var tabid = sender.tab.id;
+            chrome.tabs.query({ active: true }, function (tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
+                    if (resData) {
+                        sendResponse(resData.data);
+                    }
+                });
+            });
+        },
+        toTab: function (msg, bgdata, sender, sendResponse) {
+            var tabid = sender.tab.id;
+            chrome.tabs.query(bgdata, function (tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
+                    if (resData) {
+                        sendResponse(resData.data);
+                    }
+                });
+            });
+        },
+        openTab: function (msg, bgdata, sender, sendResponse) {
+            chrome.tabs.create({ url: bgdata.url });
+        },
+        pauseAllVideos: function (msg, bgdata, sender, sendResponse) {
+            chrome.tabs.sendMessage(sender.tab.id, { func: "pauseVideos" });
+        },
+        setIconPopup: function (msg, bgdata, sender, sendResponse) {
+            chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
+        },
+        setIconText: function (msg, bgdata, sender, sendResponse) {
+            chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
+        },
+        downloadFile: function (msg, bgdata, sender, sendResponse) {
+            chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
+        },
+        analytics: function (msg, bgdata, sender, sendResponse) {
+            if (bgdata["el"]) {
+                bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+            }
+            console.log(bgdata);
+            Analytics.postData(bgdata);
+        },
+        redirectHosts: function (msg, bgdata, sender, sendResponse) {
+            redirect_scripts_base_1.getRedirectHosts().then(function (redirectHosts) {
+                sendResponse({ redirectHosts: redirectHosts });
+            });
+        },
+        alert: function (msg, bgdata, sender, sendResponse) {
+            window.alert(bgdata.msg);
+        },
+        prompt: function (msg, bgdata, sender, sendResponse) {
+            var value = window.prompt(bgdata.msg, bgdata.fieldText);
+            if (value == null || value == "") {
+                sendResponse({ aborted: true, text: null });
+            }
+            else {
+                sendResponse({ aborted: false, text: value });
+            }
+        },
+        confirm: function (msg, bgdata, sender, sendResponse) {
+            sendResponse(window.confirm(bgdata.msg));
+        }
+    });
+}
+exports.setup = setup;
+
+
+/***/ }),
 /* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const VideoTypes = __webpack_require__(10);
 const Tools = __webpack_require__(3);
 const Analytics = __webpack_require__(5);
 const Environment = __webpack_require__(4);
@@ -1016,7 +1219,7 @@ function startScripts(scope) {
                                         runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
                                             videoData.origin = location.href;
                                             videoData.host = host.name;
-                                            location.href = Environment.getVidPlaySiteUrl(videoData);
+                                            location.href = Environment.getVidPlaySiteUrl(VideoTypes.makeURLsSave(videoData));
                                         }).catch(function (error) {
                                             document.documentElement.hidden = false;
                                             console.error(error);
@@ -1066,11 +1269,36 @@ exports.getRedirectHosts = getRedirectHosts;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Page = __webpack_require__(6);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
+
+
+/***/ }),
+/* 11 */,
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(6);
 const Languages = __webpack_require__(7);
 const Messages = __webpack_require__(2);
 const Environment = __webpack_require__(4);
-const Proxy = __webpack_require__(11);
-const Background = __webpack_require__(12);
+const Proxy = __webpack_require__(13);
+const Background = __webpack_require__(8);
 console.log("test");
 Page.isReady().then(function () {
     Messages.setupMiddleware();
@@ -1079,7 +1307,7 @@ Page.isReady().then(function () {
     document.getElementById('enableProxy').innerText = Languages.getMsg("popup_menu_proxy_btn_enable");
     document.getElementById('disableProxy').innerText = Languages.getMsg("popup_menu_proxy_btn_disable");
     document.getElementById('hostSuggest').innerText = Languages.getMsg("popup_menu_suggest_host_btn");
-    document.getElementById('movieSearch').innerText = Languages.getMsg("popup_menu_search_movie_btn");
+    document.getElementById('movieSearch').appendChild(document.createTextNode(Languages.getMsg("popup_menu_search_movie_btn")));
     document.getElementById('rate').innerHTML = Languages.getMsg("popup_menu_rating_btn");
     document.getElementById('support').innerText = Languages.getMsg("popup_menu_support_btn");
     document.getElementById('versionBox').innerText = Languages.getMsg("popup_menu_version_lbl");
@@ -1164,7 +1392,7 @@ Page.isReady().then(function () {
 
 
 /***/ }),
-/* 11 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1375,165 +1603,6 @@ function addHostsToList(hosts) {
     }
 }
 exports.addHostsToList = addHostsToList;
-
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Analytics = __webpack_require__(5);
-const redirect_scripts_base_1 = __webpack_require__(9);
-function toTopWindow(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow", data: {} } });
-}
-exports.toTopWindow = toTopWindow;
-function toActiveTab(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab", data: {} } });
-}
-exports.toActiveTab = toActiveTab;
-function toTab(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTab", data: msg.query } });
-}
-exports.toTab = toTab;
-function openTab(url) {
-    return Messages.send({ bgdata: { func: "openTab", data: { url: url } } });
-}
-exports.openTab = openTab;
-function pauseAllVideos() {
-    return Messages.send({ bgdata: { func: "pauseAllVideos", data: {} } });
-}
-exports.pauseAllVideos = pauseAllVideos;
-function setIconPopup(url) {
-    return Messages.send({ bgdata: { func: "setIconPopup", data: { url: url } } });
-}
-exports.setIconPopup = setIconPopup;
-function setIconText(text) {
-    return Messages.send({ bgdata: { func: "setIconText", data: { text: text } } });
-}
-exports.setIconText = setIconText;
-function downloadFile(dl) {
-    return Messages.send({ bgdata: { func: "downloadFile", data: dl } });
-}
-exports.downloadFile = downloadFile;
-function analytics(data) {
-    return Messages.send({ bgdata: { func: "analytics", data: data } });
-}
-exports.analytics = analytics;
-function redirectHosts() {
-    return Messages.send({ bgdata: { func: "redirectHosts", data: {} } });
-}
-exports.redirectHosts = redirectHosts;
-function alert(msg) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        Messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
-    }
-    else {
-        window.alert(msg);
-    }
-}
-exports.alert = alert;
-function prompt(data) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
-            return { aborted: response.data.aborted, text: response.data.text };
-        });
-    }
-    else {
-        let value = window.prompt(data.msg, data.fieldText);
-        return Promise.resolve({ aborted: !value, text: value });
-    }
-}
-exports.prompt = prompt;
-function sendMessage(tabid, msg) {
-    return new Promise(function (response, reject) {
-        chrome.tabs.sendMessage(tabid, {
-            func: msg.func,
-            data: msg.data,
-            state: Messages.State.BGToMdw,
-            sender: { url: location.href },
-        }, {
-            frameId: 0
-        }, function (resData) {
-            response(resData);
-        });
-    });
-}
-exports.sendMessage = sendMessage;
-function setup() {
-    Messages.setupBackground({
-        toTopWindow: function (msg, bgdata, sender, sendResponse) {
-            var tabid = sender.tab.id;
-            chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
-                sendResponse(resData.data);
-            });
-        },
-        toActiveTab: function (msg, bgdata, sender, sendResponse) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query({ active: true }, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
-                    if (resData) {
-                        sendResponse(resData.data);
-                    }
-                });
-            });
-        },
-        toTab: function (msg, bgdata, sender, sendResponse) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query(bgdata, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                    if (resData) {
-                        sendResponse(resData.data);
-                    }
-                });
-            });
-        },
-        openTab: function (msg, bgdata, sender, sendResponse) {
-            chrome.tabs.create({ url: bgdata.url });
-        },
-        pauseAllVideos: function (msg, bgdata, sender, sendResponse) {
-            chrome.tabs.sendMessage(sender.tab.id, { func: "pauseVideos" });
-        },
-        setIconPopup: function (msg, bgdata, sender, sendResponse) {
-            chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
-        },
-        setIconText: function (msg, bgdata, sender, sendResponse) {
-            chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
-        },
-        downloadFile: function (msg, bgdata, sender, sendResponse) {
-            chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
-        },
-        analytics: function (msg, bgdata, sender, sendResponse) {
-            if (bgdata["el"]) {
-                bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-            }
-            console.log(bgdata);
-            Analytics.postData(bgdata);
-        },
-        redirectHosts: function (msg, bgdata, sender, sendResponse) {
-            redirect_scripts_base_1.getRedirectHosts().then(function (redirectHosts) {
-                sendResponse({ redirectHosts: redirectHosts });
-            });
-        },
-        alert: function (msg, bgdata, sender, sendResponse) {
-            window.alert(bgdata.msg);
-        },
-        prompt: function (msg, bgdata, sender, sendResponse) {
-            var value = window.prompt(bgdata.msg, bgdata.fieldText);
-            if (value == null || value == "") {
-                sendResponse({ aborted: true, text: null });
-            }
-            else {
-                sendResponse({ aborted: false, text: value });
-            }
-        }
-    });
-}
-exports.setup = setup;
 
 
 /***/ })

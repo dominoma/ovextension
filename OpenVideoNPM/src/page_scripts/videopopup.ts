@@ -12,10 +12,10 @@ interface PopupData {
     videos: VideoTypes.VideoData[];
     autoplay: boolean;
 }
-function LoadVideo(popupData : PopupData, index : number) {
+function LoadVideo(popupData: PopupData, index: number) {
     var videoData = popupData.videos[index];
     currentVideoHost = videoData.origin;
-    if(!OVPlayer.getPlayer()) {
+    if (!OVPlayer.getPlayer()) {
         OVPlayer.initPlayer('openVideo', { autoplay: popupData.autoplay }, videoData);
         (OVPlayer.getPlayer().el() as HTMLDivElement).style.paddingTop = "unset";
     }
@@ -23,32 +23,32 @@ function LoadVideo(popupData : PopupData, index : number) {
         OVPlayer.getPlayer().autoplay(!!popupData.autoplay);
         OVPlayer.getPlayer().setVideoData(videoData);
     }
-    document.getElementById("currentVideo").innerText = Languages.getMsg("video_popup_video_bar_lbl", { "curr_vid": (index+1).toString(), "vid_count": popupData.videos.length.toString() })
+    document.getElementById("currentVideo").innerText = Languages.getMsg("video_popup_video_bar_lbl", { "curr_vid": (index + 1).toString(), "vid_count": popupData.videos.length.toString() })
 }
 Page.isReady().then(function() {
-    
+
     document.getElementById("title").innerText = Languages.getMsg("video_popup_msg_lbl");
     document.getElementById("js_err_msg").innerText = Languages.getMsg("video_player_js_err_msg");
-    
+
     var Hash = Page.getUrlObj() as PopupData;
     var currVideo = 0;
-    LoadVideo(Hash,currVideo);
-    
+    LoadVideo(Hash, currVideo);
+
     window.onhashchange = function() {
         Hash = Page.getUrlObj();
-        document.getElementById("currentVideo").innerText = "Video "+(currVideo+1)+" of "+Hash.videos.length;
+        document.getElementById("currentVideo").innerText = "Video " + (currVideo + 1) + " of " + Hash.videos.length;
     }
-    document.getElementById("prevVideo").onclick = function(){
-        if(currVideo-1 >=0){
+    document.getElementById("prevVideo").onclick = function() {
+        if (currVideo - 1 >= 0) {
             currVideo--;
-            LoadVideo(Hash,currVideo);
+            LoadVideo(Hash, currVideo);
             OVPlayer.getPlayer().play();
         }
     }
-    document.getElementById("nextVideo").onclick = function(){
-        if(currVideo+1 < Hash.videos.length){
+    document.getElementById("nextVideo").onclick = function() {
+        if (currVideo + 1 < Hash.videos.length) {
             currVideo++;
-            LoadVideo(Hash,currVideo);
+            LoadVideo(Hash, currVideo);
             OVPlayer.getPlayer().play();
         }
     }

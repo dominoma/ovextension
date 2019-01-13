@@ -1,10 +1,10 @@
 export abstract class ComboBoxEntry<T> {
-    private el_ : HTMLElement;
-    private textNode_ : Text;
-    private data_ : T;
-    private comboBox_ : ComboBox<T>;
+    private el_: HTMLElement;
+    private textNode_: Text;
+    private data_: T;
+    private comboBox_: ComboBox<T>;
 
-    constructor(comboBox : ComboBox<T>) {
+    constructor(comboBox: ComboBox<T>) {
         this.comboBox_ = comboBox;
         this.el_ = document.createElement("div");
         this.textNode_ = document.createTextNode("");
@@ -19,13 +19,13 @@ export abstract class ComboBoxEntry<T> {
     get text() {
         return this.textNode_.data;
     }
-    set text(newText : string) {
+    set text(newText: string) {
         this.textNode_.data = newText;
     }
     get data() {
         return this.data_;
     }
-    set data(data : T) {
+    set data(data: T) {
         this.data_ = data;
         this.repaint();
     }
@@ -38,48 +38,48 @@ export abstract class ComboBoxEntry<T> {
     get el() {
         return this.el_;
     }
-    abstract repaint() : void;
-    
+    abstract repaint(): void;
+
     remove() {
         this.comboBox_.removeItem(this.index);
         this.onRemoved();
     }
-    
+
     onRemoved() {
-        
+
     }
     onSelected() {
-        
+
     }
 }
 export abstract class ComboBox<T> {
-    
-    private items_ : ComboBoxEntry<T>[] = [];
-    private el_ : HTMLElement;
-    private dropdown_ : HTMLElement;
-    private display_ : ComboBoxEntry<T>;
-    private selected_ : ComboBoxEntry<T> = null;
-    private defaultData_ : T;
 
-    constructor(id : string, defaultData : T) {
+    private items_: ComboBoxEntry<T>[] = [];
+    private el_: HTMLElement;
+    private dropdown_: HTMLElement;
+    private display_: ComboBoxEntry<T>;
+    private selected_: ComboBoxEntry<T> = null;
+    private defaultData_: T;
+
+    constructor(id: string, defaultData: T) {
         this.defaultData_ = defaultData;
         let el = document.createElement("div");
         el.id = id;
         el.className = "dropdown";
-       
+
         this.dropdown_ = document.createElement("div");
         this.dropdown_.className = "dropdown-content";
-        
+
         this.display_ = this.createEntry(defaultData);
         this.display_.el.classList.add("display");
-        
+
         el.appendChild(this.display_.el);
         el.appendChild(this.dropdown_);
         this.el_ = el;
     }
 
-    protected abstract createEntry(data : T) : ComboBoxEntry<T>;
-    
+    protected abstract createEntry(data: T): ComboBoxEntry<T>;
+
     get el() {
         return this.el_;
     }
@@ -87,14 +87,14 @@ export abstract class ComboBox<T> {
         return this.items_;
     }
     get entries() {
-        return this.items_.map(function(el){
+        return this.items_.map(function(el) {
             return el.data;
         });
     }
-    set entries(entries : T[]) {
+    set entries(entries: T[]) {
         let this_ = this;
         this.clear();
-        entries.forEach(function(el){ this_.addItem(el); });
+        entries.forEach(function(el) { this_.addItem(el); });
     }
     get selected() {
         return this.selected_;
@@ -105,21 +105,21 @@ export abstract class ComboBox<T> {
     get defaultData() {
         return this.defaultData_;
     }
-    select(index : number) {
+    select(index: number) {
         this.selected_ = this.items_[index] || null;
-        if(this.selected_) {
+        if (this.selected_) {
             this.display_.data = this.selected_.data;
         }
         else {
             this.display_.data = this.defaultData_;
         }
     }
-    addItem(entry : T) {
+    addItem(entry: T) {
         let item = this.createEntry(entry);
         this.dropdown_.appendChild(item.el);
         this.items_.push(item);
-        let this_= this;
-        item.el.addEventListener("click", function(){
+        let this_ = this;
+        item.el.addEventListener("click", function() {
             this_.display_.data = item.data;
             this_.selected_ = item;
             this_.onSelected();
@@ -127,17 +127,17 @@ export abstract class ComboBox<T> {
         });
         return item;
     }
-    insertItem(entry : T, index : number) {
-        if(index < 0) {
+    insertItem(entry: T, index: number) {
+        if (index < 0) {
             index = 0;
         }
-        if(index >= this.dropdown_.children.length) {
+        if (index >= this.dropdown_.children.length) {
             return this.addItem(entry);
         }
         else {
             let item = this.createEntry(entry);
-            let this_= this;
-            item.el.addEventListener("click", function(){
+            let this_ = this;
+            item.el.addEventListener("click", function() {
                 this_.display_.data = item.data;
                 this_.selected_ = item;
                 this_.onSelected();
@@ -148,24 +148,24 @@ export abstract class ComboBox<T> {
             return item;
         }
     }
-    removeItem(index : number) {
+    removeItem(index: number) {
         let item = this.items_[index];
         item.el.remove();
         this.items_.splice(index, 1);
         return item.data;
     }
     clear() {
-        for(let item of this.items_) {
+        for (let item of this.items_) {
             item.el.remove();
         }
         this.selected_ = null;
         this.display_.data = this.defaultData_;
         this.items_ = [];
     }
-    
+
     onSelected() {
-        
+
     }
-    
-    
+
+
 }

@@ -15,7 +15,7 @@ import * as Background from "Messages/background";
 
 import videojs_raw from "video.js";
 
-declare var videojs : typeof videojs_raw;
+declare var videojs: typeof videojs_raw;
 
 export interface FavButton extends videojs_raw.Button {
     isFavorite: (value?: boolean, dontSet?: boolean) => boolean;
@@ -50,10 +50,10 @@ export function createDownloadButton(url: string, fileName?: string, type?: stri
     return button;
 }
 export function register() {
-   
+
     let Button = videojs.getComponent("button");
     let favButton = (videojs as any).extend(Button, {
-        constructor: function(player : any, options : any) {
+        constructor: function(player: any, options: any) {
             Button.call(this, player, options);
             this.addClass('vjs-favbutton-disabled');
         },
@@ -76,7 +76,7 @@ export function register() {
             }
             var _this = this;
             if (!dontSet) {
-                Storage.local.get("OpenVideoFavorites").then(function(favorites : VideoTypes.HistoryEntry[]) {
+                Storage.local.get("OpenVideoFavorites").then(function(favorites: VideoTypes.HistoryEntry[]) {
                     if (!favorites) {
                         favorites = [];
                     }
@@ -95,7 +95,7 @@ export function register() {
         },
         updateDesign: function() {
             var _this = this;
-            Storage.local.get("OpenVideoFavorites").then(function(favorites : VideoTypes.HistoryEntry[]) {
+            Storage.local.get("OpenVideoFavorites").then(function(favorites: VideoTypes.HistoryEntry[]) {
                 if (favorites) {
                     _this.setFavorite(favorites.findIndex(function(arrElem) {
                         return arrElem.origin == (_this.player_ as OVPlayer.Player).getVideoData().origin;
@@ -104,9 +104,9 @@ export function register() {
             });
         }
     });
-    
+
     let theaterButton = (videojs as any).extend(Button, {
-        constructor: function(player : any, options : any) {
+        constructor: function(player: any, options: any) {
             Button.call(this, player, options);
             this.addClass('vjs-theaterbutton-disabled');
             this.theaterMode = false;
@@ -130,13 +130,13 @@ export function register() {
             }
             TheatreMode.setTheatreMode(this.theaterMode);
         }
-    
+
     });
-    
-    
-    
+
+
+
     let patreonButton = (videojs as any).extend(Button, {
-        constructor: function(player : any, options : any) {
+        constructor: function(player: any, options: any) {
             Button.call(this, player, options);
             this.addClass('vjs-patreonbutton');
             this.controlText('Become a Patron');
@@ -146,10 +146,10 @@ export function register() {
             Background.openTab("https://www.patreon.com/bePatron?u=13995915");
         }
     });
-    
-    
+
+
     let downloadButton = (videojs as any).extend(Button, {
-        constructor: function(player : any, options : any) {
+        constructor: function(player: any, options: any) {
             Button.call(this, player, options);
             this.addClass('vjs-download-button-control');
         },
@@ -170,10 +170,10 @@ export function register() {
             }
         }
     });
-    
-   
-    
-    
+
+
+
+
     let MenuItem = videojs.getComponent("MenuItem");
     let AddTracksFromFile = (videojs as any).extend(MenuItem, {
         constructor: function(player: videojs_raw.Player, options: any) {
@@ -206,7 +206,7 @@ export function register() {
             srtSelector.click();
         }
     });
-    
+
     let AddTracksFromURL = (videojs as any).extend(MenuItem, {
         constructor: function(player: any, options: any) {
             MenuItem.call(this, player, { label: "load VTT/SRT from URL" });
@@ -231,25 +231,25 @@ export function register() {
                             Background.alert("Invaid subtitle file");
                         }
                     });
-    
-    
+
+
                 }
-    
+
             });
-    
+
         }
     });
-   
+
     let resolutionMenuItem = videojs.getComponent("ResolutionMenuItem");
     let oldCreateElrs = resolutionMenuItem.prototype.createEl;
     resolutionMenuItem.prototype.createEl = function() {
-        
+
         let el = oldCreateElrs.apply(this, arguments as any);
-        function getSrcElem(src : VideoTypes.VideoSource, videoTitle : string) {
-            return createDownloadButton(src.src, "["+src.label+"]"+videoTitle+"."+src.type.substr(src.type.indexOf("/")+1), src.type);
+        function getSrcElem(src: VideoTypes.VideoSource, videoTitle: string) {
+            return createDownloadButton(src.src, "[" + src.label + "]" + videoTitle + "." + src.type.substr(src.type.indexOf("/") + 1), src.type);
         }
         let videoTitle = (this.player_ as OVPlayer.Player).getVideoData().title;
-        if((this.options_ as any).src[0].dlsrc) {
+        if ((this.options_ as any).src[0].dlsrc) {
             el.appendChild(getSrcElem((this.options_ as any).src[0].dlsrc, videoTitle));
         }
         else {
@@ -257,20 +257,20 @@ export function register() {
         }
         return el;
     }
-    
+
     let subsCapsMenuItem = videojs.getComponent("SubsCapsMenuItem");
     let oldCreateEl = subsCapsMenuItem.prototype.createEl;
     subsCapsMenuItem.prototype.createEl = function() {
         let track = (this.options_ as any).track as TextTrack;
         let el = oldCreateEl.apply(this, arguments as any);
-        if(track.language != "AddedFromUser") {
+        if (track.language != "AddedFromUser") {
             let videoData = (this.player_ as OVPlayer.Player).getVideoData();
             let rawTrack = videoData.tracks.find(function(rawtrack) {
                 return track.label == rawtrack.label;
             });
-            if(rawTrack) {
-                el.appendChild(createDownloadButton(rawTrack.src, "["+rawTrack.label+"]"+videoData.title+".vtt", "text/vtt"));
-                
+            if (rawTrack) {
+                el.appendChild(createDownloadButton(rawTrack.src, "[" + rawTrack.label + "]" + videoData.title + ".vtt", "text/vtt"));
+
             }
             return el;
         }
@@ -279,13 +279,13 @@ export function register() {
     let oldCreateItems = subsCapsButton.prototype.createItems;
     subsCapsButton.prototype.createItems = function() {
         let items = oldCreateItems.apply(this, arguments) as Array<any>;
-        items.splice(2,0,new (videojs.getComponent("AddTracksFromFile"))(this.player_, {}));
-        items.splice(3,0,new (videojs.getComponent("AddTracksFromURL"))(this.player_, {}));
+        items.splice(2, 0, new (videojs.getComponent("AddTracksFromFile"))(this.player_, {}));
+        items.splice(3, 0, new (videojs.getComponent("AddTracksFromURL"))(this.player_, {}));
         return items;
     };
-   
-    
-    
+
+
+
     videojs.registerComponent('FavButton', favButton);
     videojs.registerComponent('TheaterButton', theaterButton);
     videojs.registerComponent('PatreonButton', patreonButton);

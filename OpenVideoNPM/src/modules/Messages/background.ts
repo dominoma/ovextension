@@ -2,9 +2,9 @@
 import * as Messages from "OV/messages";
 import * as Environment from "OV/environment";
 import * as Analytics from "OV/analytics";
-import {StringMap} from "OV/types";
+import { StringMap } from "OV/types";
 
-import {getRedirectHosts} from "redirect_scripts_base";
+import { getRedirectHosts } from "redirect_scripts_base";
 
 
 interface OpenTab {
@@ -63,15 +63,25 @@ export function redirectHosts() {
     return Messages.send({ bgdata: { func: "redirectHosts", data: {} } });
 }
 export function alert(msg: string) {
-    if(Environment.browser() == Environment.Browsers.Chrome) {
+    if (Environment.browser() == Environment.Browsers.Chrome) {
         Messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
     }
     else {
         window.alert(msg);
     }
 }
+export function confirm(msg: string) {
+    if (Environment.browser() == Environment.Browsers.Chrome) {
+        return Messages.send({ bgdata: { func: "confirm", data: { msg: msg } } }).then(function(response) {
+            return response.data as boolean;
+        });
+    }
+    else {
+        return Promise.resolve(window.confirm(msg));
+    }
+}
 export function prompt(data: Promt) {
-    if(Environment.browser() == Environment.Browsers.Chrome) {
+    if (Environment.browser() == Environment.Browsers.Chrome) {
         return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function(response) {
             return { aborted: response.data.aborted, text: response.data.text };
         });
@@ -142,7 +152,7 @@ export function setup() {
             chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
         },
         analytics: function(msg, bgdata: StringMap, sender, sendResponse) {
-            if(bgdata["el"]) {
+            if (bgdata["el"]) {
                 bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
             }
             console.log(bgdata)
@@ -164,6 +174,9 @@ export function setup() {
             } else {
                 sendResponse({ aborted: false, text: value });
             }
+        },
+        confirm: function(msg, bgdata: Alert, sender, sendResponse) {
+            sendResponse(window.confirm(bgdata.msg));
         }
     });
 }

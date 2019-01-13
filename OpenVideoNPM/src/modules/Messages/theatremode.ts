@@ -38,94 +38,94 @@ export function getActiveFrame() {
     }
     else {
         throw Error("No IFrame in theatre mode!");
-        }
     }
-    export function isFrameActive() {
-        if (activeEntry && checkCleanup(activeEntry.entry)) {
-            activeEntry = null;
-        }
-        return activeEntry != null;
+}
+export function isFrameActive() {
+    if (activeEntry && checkCleanup(activeEntry.entry)) {
+        activeEntry = null;
     }
-   
-    export function getEntry(frameid: string) {
-        for (let i = 0; i < iframes.length; i++) {
-            if (checkCleanup(iframes[i])) {
-                iframes.splice(i, 1);
-                i--;
-            }
-            else if (iframes[i].iframe.name === frameid) {
-                return iframes[i];
-            }
-        }
-        return null;
-    }
-    export function registerIFrame(iframe: HTMLIFrameElement) {
-        
-        function matchesSelector(selector : string, element : HTMLElement) {
-            var all = document.querySelectorAll(selector);
-            for (var i = 0; i < all.length; i++) {
-              if (all[i] === element) {
-                return true;
-              }
-            }
-            return false;
-        }
+    return activeEntry != null;
+}
 
-        let shadow = document.createElement("ovshadow");
-    
-    Page.lookupCSS({}, function(obj){
-        if(obj.cssRule.selectorText.indexOf(" iframe") != -1) {
-            if(matchesSelector(obj.cssRule.selectorText, iframe)) {
-                if(obj.cssRule.style.width != "") {
-                    obj.cssRule.style.setProperty("width",  obj.cssRule.style.getPropertyValue("width"), "");
-                    obj.cssRule.style.setProperty("height",  obj.cssRule.style.getPropertyValue("height"), "");
+export function getEntry(frameid: string) {
+    for (let i = 0; i < iframes.length; i++) {
+        if (checkCleanup(iframes[i])) {
+            iframes.splice(i, 1);
+            i--;
+        }
+        else if (iframes[i].iframe.name === frameid) {
+            return iframes[i];
+        }
+    }
+    return null;
+}
+export function registerIFrame(iframe: HTMLIFrameElement) {
+
+    function matchesSelector(selector: string, element: HTMLElement) {
+        var all = document.querySelectorAll(selector);
+        for (var i = 0; i < all.length; i++) {
+            if (all[i] === element) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    let shadow = document.createElement("ovshadow");
+
+    Page.lookupCSS({}, function(obj) {
+        if (obj.cssRule.selectorText.indexOf(" iframe") != -1) {
+            if (matchesSelector(obj.cssRule.selectorText, iframe)) {
+                if (obj.cssRule.style.width != "") {
+                    obj.cssRule.style.setProperty("width", obj.cssRule.style.getPropertyValue("width"), "");
+                    obj.cssRule.style.setProperty("height", obj.cssRule.style.getPropertyValue("height"), "");
                 }
             }
         }
     });
 
-    
-    if(iframe.hasAttribute("allow")) {
+
+    if (iframe.hasAttribute("allow")) {
         iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;"));//fullscreen *;
     }
     iframe.allowFullscreen = true;
     let observer = new MutationObserver(function(mutations) {
-        if(isFrameActive() && getActiveFrame().iframe == iframe) {
+        if (isFrameActive() && getActiveFrame().iframe == iframe) {
             let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
             let newtop = Math.floor((window.innerHeight - iframe.clientHeight) / 2).toString() + "px";
-            if(iframe.style.left != newleft) {
+            if (iframe.style.left != newleft) {
                 iframe.style.setProperty("left", newleft);
                 iframe.style.setProperty("top", newtop);
             }
         }
-        
+
     });
     observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });
 
     shadow.className = "ov-theaterMode";
-    shadow.addEventListener("click", function(e : MouseEvent){
+    shadow.addEventListener("click", function(e: MouseEvent) {
         e.stopPropagation();
         e.preventDefault();
     });
-    iframe.addEventListener("click", function(e : MouseEvent){
+    iframe.addEventListener("click", function(e: MouseEvent) {
         e.stopPropagation();
         e.preventDefault();
     });
     iframe.parentNode.appendChild(shadow);
 
     iframes.push({ shadow: shadow, iframe: iframe, observer: observer });
-    return iframes[iframes.length-1];
+    return iframes[iframes.length - 1];
 
 }
 export function nameIFrames() {
-    function nameIFrame(iframe : HTMLIFrameElement) {
-        if(!iframe.hasAttribute("name")) {
+    function nameIFrame(iframe: HTMLIFrameElement) {
+        if (!iframe.hasAttribute("name")) {
             iframe.name = Tools.generateHash();
-            if(iframe.width) {
+            if (iframe.width) {
                 iframe.style.width = iframe.width;
                 iframe.removeAttribute("width");
             }
-            if(iframe.height) {
+            if (iframe.height) {
                 iframe.style.height = iframe.height;
                 iframe.removeAttribute("height");
             }
@@ -135,20 +135,20 @@ export function nameIFrames() {
             parent.insertBefore(iframe, sibling);
         }
     }
-    Page.isReady().then(function(){
+    Page.isReady().then(function() {
         for (let iframe of document.getElementsByTagName("iframe")) {
             nameIFrame(iframe);
         }
     });
-    Page.onNodeInserted(document, function(tgt){
+    Page.onNodeInserted(document, function(tgt) {
         let target = tgt as HTMLIFrameElement;
-        if(target.getElementsByTagName) {
+        if (target.getElementsByTagName) {
             let iframes = target.getElementsByTagName("iframe");
-            
-            if(target.nodeName.toLowerCase() === "iframe") {
+
+            if (target.nodeName.toLowerCase() === "iframe") {
                 nameIFrame(target);
             }
-            for(let iframe of iframes) {
+            for (let iframe of iframes) {
                 nameIFrame(iframe);
             }
         }
@@ -199,11 +199,11 @@ function setWrapperStyle(entry: IFrameEntry, width: number): void {
 function getIFrameByID(frameid: string): HTMLIFrameElement {
 
     let iframe = document.getElementsByName(frameid)[0] as HTMLIFrameElement;
-    if(iframe) {
+    if (iframe) {
         return iframe;
     }
     else {
-        throw Error("Could not find iframe with id '"+frameid+"'!");
+        throw Error("Could not find iframe with id '" + frameid + "'!");
     }
 }
 export interface SetupIFrame {

@@ -46,7 +46,7 @@
   
   "web_accessible_resources": [
   	"pages/videoplay/videoplay.html",
-  	"pages/vieopopup/vieopopup.html",
+  	"pages/videopopup/videopopup.html",
   	"pages/library/library.html",
   	"inject_scripts/search_videos.js"
   ],

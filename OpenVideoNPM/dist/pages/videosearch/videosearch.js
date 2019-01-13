@@ -81,7 +81,7 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 20);
+/******/ 	return __webpack_require__(__webpack_require__.s = 21);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -412,13 +412,6 @@ function hashToObj(hashStr) {
     }
 }
 exports.hashToObj = hashToObj;
-function getAbsoluteUrl(url) {
-    let a = document.createElement('a');
-    a.href = url;
-    url = a.href;
-    return url;
-}
-exports.getAbsoluteUrl = getAbsoluteUrl;
 function unpackJS(source) {
     function getUnbase(base) {
         var ALPHABET = "";
@@ -539,23 +532,49 @@ function getRedirectedUrl(url) {
     });
 }
 exports.getRedirectedUrl = getRedirectedUrl;
-function objToURLParams(obj) {
+function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
-        str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        if (!isParamInURL(url, key)) {
+            console.log(url);
+            str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        }
     }
     return str.substr(1);
 }
-exports.objToURLParams = objToURLParams;
+function isParamInURL(url, param) {
+    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
+}
+exports.isParamInURL = isParamInURL;
 function addParamsToURL(url, obj) {
     if (url && obj) {
-        return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+        let query_str = objToURLParams(url, obj);
+        if (query_str) {
+            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        }
+        else {
+            return url;
+        }
     }
     else {
         return url;
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function addRefererToURL(url, referer) {
+    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+}
+exports.addRefererToURL = addRefererToURL;
+function getRefererFromURL(url) {
+    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
+    if (match) {
+        return atob(decodeURIComponent(match[1]));
+    }
+    else {
+        return null;
+    }
+}
+exports.getRefererFromURL = getRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;
@@ -751,6 +770,17 @@ exports.fireEvent = fireEvent;
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
+function getAbsoluteUrl(url) {
+    let a = document.createElement('a');
+    a.href = url;
+    url = a.href;
+    return url;
+}
+exports.getAbsoluteUrl = getAbsoluteUrl;
+function getSafeURL(url) {
+    return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
+}
+exports.getSafeURL = getSafeURL;
 function isReady() {
     return new Promise(function (resolve, reject) {
         if (document.readyState.match(/(loaded|complete)/)) {
@@ -955,7 +985,8 @@ exports.wrapType = wrapType;
 /* 17 */,
 /* 18 */,
 /* 19 */,
-/* 20 */
+/* 20 */,
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -966,7 +997,7 @@ const Messages = __webpack_require__(2);
 const Storage = __webpack_require__(1);
 const Tools = __webpack_require__(3);
 const Analytics = __webpack_require__(5);
-const combobox_1 = __webpack_require__(21);
+const combobox_1 = __webpack_require__(22);
 Messages.setupMiddleware();
 function getWebsiteIcon(host) {
     return Tools.createRequest({ url: host }).then(function (xhr) {
@@ -1203,7 +1234,7 @@ Page.isReady().then(function () {
 
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

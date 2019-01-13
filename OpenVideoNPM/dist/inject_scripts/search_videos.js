@@ -81,7 +81,7 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 28);
+/******/ 	return __webpack_require__(__webpack_require__.s = 29);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -412,13 +412,6 @@ function hashToObj(hashStr) {
     }
 }
 exports.hashToObj = hashToObj;
-function getAbsoluteUrl(url) {
-    let a = document.createElement('a');
-    a.href = url;
-    url = a.href;
-    return url;
-}
-exports.getAbsoluteUrl = getAbsoluteUrl;
 function unpackJS(source) {
     function getUnbase(base) {
         var ALPHABET = "";
@@ -539,23 +532,49 @@ function getRedirectedUrl(url) {
     });
 }
 exports.getRedirectedUrl = getRedirectedUrl;
-function objToURLParams(obj) {
+function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
-        str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        if (!isParamInURL(url, key)) {
+            console.log(url);
+            str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        }
     }
     return str.substr(1);
 }
-exports.objToURLParams = objToURLParams;
+function isParamInURL(url, param) {
+    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
+}
+exports.isParamInURL = isParamInURL;
 function addParamsToURL(url, obj) {
     if (url && obj) {
-        return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+        let query_str = objToURLParams(url, obj);
+        if (query_str) {
+            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        }
+        else {
+            return url;
+        }
     }
     else {
         return url;
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function addRefererToURL(url, referer) {
+    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+}
+exports.addRefererToURL = addRefererToURL;
+function getRefererFromURL(url) {
+    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
+    if (match) {
+        return atob(decodeURIComponent(match[1]));
+    }
+    else {
+        return null;
+    }
+}
+exports.getRefererFromURL = getRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;
@@ -751,6 +770,17 @@ exports.fireEvent = fireEvent;
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
+function getAbsoluteUrl(url) {
+    let a = document.createElement('a');
+    a.href = url;
+    url = a.href;
+    return url;
+}
+exports.getAbsoluteUrl = getAbsoluteUrl;
+function getSafeURL(url) {
+    return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
+}
+exports.getSafeURL = getSafeURL;
 function isReady() {
     return new Promise(function (resolve, reject) {
         if (document.readyState.match(/(loaded|complete)/)) {
@@ -943,107 +973,7 @@ exports.wrapType = wrapType;
 
 /***/ }),
 /* 7 */,
-/* 8 */,
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(5);
-const Environment = __webpack_require__(4);
-const Page = __webpack_require__(6);
-const Messages = __webpack_require__(2);
-const Storage = __webpack_require__(1);
-let redirectHosts = [];
-;
-;
-function addRedirectHost(redirectHost) {
-    redirectHosts.push(redirectHost);
-}
-exports.addRedirectHost = addRedirectHost;
-function isUrlRedirecting(url) {
-    if (Tools.parseUrlQuery(url)["ovignore"] != "true") {
-        return false;
-    }
-    else {
-        for (let host of redirectHosts) {
-            for (let script of host.scripts) {
-                if (url.match(script.urlPattern)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-exports.isUrlRedirecting = isUrlRedirecting;
-function startScripts(scope) {
-    return new Promise(function (resolve, reject) {
-        if (Tools.parseUrlQuery(location.href)["ovignore"] != "true") {
-            for (let host of redirectHosts) {
-                isScriptEnabled(host.name).then(function (isEnabled) {
-                    if (isEnabled) {
-                        for (let script of host.scripts) {
-                            let match = location.href.match(script.urlPattern);
-                            if (match) {
-                                console.log("Redirect with " + host.name);
-                                for (let runScope of script.runScopes) {
-                                    if (runScope.run_at == scope) {
-                                        if (Page.isFrame()) {
-                                            resolve();
-                                        }
-                                        document.documentElement.hidden = runScope.hide_page !== false;
-                                        runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
-                                            videoData.origin = location.href;
-                                            videoData.host = host.name;
-                                            location.href = Environment.getVidPlaySiteUrl(videoData);
-                                        }).catch(function (error) {
-                                            document.documentElement.hidden = false;
-                                            console.error(error);
-                                            Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-    });
-}
-exports.startScripts = startScripts;
-function isScriptEnabled(name) {
-    return Storage.sync.get(name).then(function (value) {
-        return value == true || value == undefined || value == null;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(name, enabled) {
-    return Storage.sync.set(name, enabled);
-}
-exports.setScriptEnabled = setScriptEnabled;
-function getRedirectHosts() {
-    return Promise.resolve().then(function () {
-        if (Environment.isBackgroundPage()) {
-            return redirectHosts;
-        }
-        else {
-            return Messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function (response) {
-                return response.data.redirectHosts;
-            });
-        }
-    });
-}
-exports.getRedirectHosts = getRedirectHosts;
-
-
-/***/ }),
-/* 10 */,
-/* 11 */,
-/* 12 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1102,6 +1032,17 @@ function alert(msg) {
     }
 }
 exports.alert = alert;
+function confirm(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        return Messages.send({ bgdata: { func: "confirm", data: { msg: msg } } }).then(function (response) {
+            return response.data;
+        });
+    }
+    else {
+        return Promise.resolve(window.confirm(msg));
+    }
+}
+exports.confirm = confirm;
 function prompt(data) {
     if (Environment.browser() == "chrome" /* Chrome */) {
         return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
@@ -1195,6 +1136,9 @@ function setup() {
             else {
                 sendResponse({ aborted: false, text: value });
             }
+        },
+        confirm: function (msg, bgdata, sender, sendResponse) {
+            sendResponse(window.confirm(bgdata.msg));
         }
     });
 }
@@ -1202,13 +1146,138 @@ exports.setup = setup;
 
 
 /***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const VideoTypes = __webpack_require__(10);
+const Tools = __webpack_require__(3);
+const Analytics = __webpack_require__(5);
+const Environment = __webpack_require__(4);
+const Page = __webpack_require__(6);
+const Messages = __webpack_require__(2);
+const Storage = __webpack_require__(1);
+let redirectHosts = [];
+;
+;
+function addRedirectHost(redirectHost) {
+    redirectHosts.push(redirectHost);
+}
+exports.addRedirectHost = addRedirectHost;
+function isUrlRedirecting(url) {
+    if (Tools.parseUrlQuery(url)["ovignore"] != "true") {
+        return false;
+    }
+    else {
+        for (let host of redirectHosts) {
+            for (let script of host.scripts) {
+                if (url.match(script.urlPattern)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+exports.isUrlRedirecting = isUrlRedirecting;
+function startScripts(scope) {
+    return new Promise(function (resolve, reject) {
+        if (Tools.parseUrlQuery(location.href)["ovignore"] != "true") {
+            for (let host of redirectHosts) {
+                isScriptEnabled(host.name).then(function (isEnabled) {
+                    if (isEnabled) {
+                        for (let script of host.scripts) {
+                            let match = location.href.match(script.urlPattern);
+                            if (match) {
+                                console.log("Redirect with " + host.name);
+                                for (let runScope of script.runScopes) {
+                                    if (runScope.run_at == scope) {
+                                        if (Page.isFrame()) {
+                                            resolve();
+                                        }
+                                        document.documentElement.hidden = runScope.hide_page !== false;
+                                        runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
+                                            videoData.origin = location.href;
+                                            videoData.host = host.name;
+                                            location.href = Environment.getVidPlaySiteUrl(VideoTypes.makeURLsSave(videoData));
+                                        }).catch(function (error) {
+                                            document.documentElement.hidden = false;
+                                            console.error(error);
+                                            Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    });
+}
+exports.startScripts = startScripts;
+function isScriptEnabled(name) {
+    return Storage.sync.get(name).then(function (value) {
+        return value == true || value == undefined || value == null;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(name, enabled) {
+    return Storage.sync.set(name, enabled);
+}
+exports.setScriptEnabled = setScriptEnabled;
+function getRedirectHosts() {
+    return Promise.resolve().then(function () {
+        if (Environment.isBackgroundPage()) {
+            return redirectHosts;
+        }
+        else {
+            return Messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function (response) {
+                return response.data.redirectHosts;
+            });
+        }
+    });
+}
+exports.getRedirectHosts = getRedirectHosts;
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(6);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
+
+
+/***/ }),
+/* 11 */,
+/* 12 */,
 /* 13 */,
 /* 14 */,
 /* 15 */,
 /* 16 */,
 /* 17 */,
 /* 18 */,
-/* 19 */
+/* 19 */,
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1218,7 +1287,7 @@ const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
 const Environment = __webpack_require__(4);
 const Page = __webpack_require__(6);
-const Background = __webpack_require__(12);
+const Background = __webpack_require__(8);
 let videoArr = [];
 let newVideos = 0;
 function getPopupFrame() {
@@ -1321,7 +1390,6 @@ exports.setup = setup;
 
 
 /***/ }),
-/* 20 */,
 /* 21 */,
 /* 22 */,
 /* 23 */,
@@ -1329,22 +1397,18 @@ exports.setup = setup;
 /* 25 */,
 /* 26 */,
 /* 27 */,
-/* 28 */
+/* 28 */,
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
 const Page = __webpack_require__(6);
-const video_js_1 = __webpack_require__(29);
-const VideoPopup = __webpack_require__(19);
+const video_js_1 = __webpack_require__(30);
+const VideoPopup = __webpack_require__(20);
 var VideoSearch;
 (function (VideoSearch) {
-    function toSaveUrl(url) {
-        return Tools.getAbsoluteUrl(url);
-        //return x + (x.indexOf("?") == -1 ? "?" : "&") + "OVreferer="+encodeURIComponent(location.href)
-    }
     function getVJSPlayerSrces(player) {
         let hash;
         if (player.options_.sources && player.options_.sources.length > 0) {
@@ -1363,7 +1427,7 @@ var VideoSearch;
             hash = [{ src: player.src(), type: "video/mp4", label: "SD" }];
         }
         for (let elem of hash) {
-            elem.src = toSaveUrl(elem.src);
+            elem.src = Page.getSafeURL(elem.src);
             if (elem["data-res"]) {
                 elem.label = elem["data-res"];
             }
@@ -1380,7 +1444,7 @@ var VideoSearch;
             let textTrack = player.textTracks()[i];
             var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] };
             if (textTrack.options_ && textTrack.options_.src) {
-                track.src = Tools.getAbsoluteUrl(textTrack.options_.src);
+                track.src = Page.getSafeURL(textTrack.options_.src);
             }
             else if (textTrack.cues_.length != 0) {
                 for (let cue of textTrack.cues_) {
@@ -1434,7 +1498,7 @@ var VideoSearch;
     function getJWPlayerSrces(player) {
         var srces = player.getPlaylist()[0].sources;
         for (var src of srces) {
-            src.src = toSaveUrl(src.file);
+            src.src = Page.getSafeURL(src.file);
             if (src.type == "hls") {
                 src.type = "application/x-mpegURL";
             }
@@ -1447,7 +1511,7 @@ var VideoSearch;
     function getJWPlayerCaptions(player) {
         var tracks = player.getPlaylist()[0].tracks;
         for (var track of tracks) {
-            track.src = Tools.getAbsoluteUrl(track.file);
+            track.src = Page.getSafeURL(track.file);
         }
         return tracks;
     }
@@ -1459,7 +1523,7 @@ var VideoSearch;
     function getSrc(videoNode) {
         var srces = [];
         for (let source of videoNode.getElementsByTagName("source")) {
-            let hash = { src: toSaveUrl(source.src), type: source.type, label: "" };
+            let hash = { src: Page.getSafeURL(source.src), type: source.type, label: "" };
             if (source.hasAttribute("label")) {
                 hash.label = source.getAttribute("label");
             }
@@ -1475,7 +1539,7 @@ var VideoSearch;
         }
         ;
         if (srces.length == 0) {
-            VideoPopup.addVideoToPopup({ src: [{ src: toSaveUrl(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
+            VideoPopup.addVideoToPopup({ src: [{ src: Page.getSafeURL(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
         }
         else {
             VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
@@ -1547,7 +1611,7 @@ var VideoSearch;
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports) {
 
 

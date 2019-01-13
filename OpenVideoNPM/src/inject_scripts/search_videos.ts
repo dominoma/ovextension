@@ -6,10 +6,7 @@ import * as VideoTypes from "video_types";
 
 import * as VideoPopup from "Messages/videopopup";
 module VideoSearch {
-    function toSaveUrl(url : string) : string {
-        return Tools.getAbsoluteUrl(url);
-        //return x + (x.indexOf("?") == -1 ? "?" : "&") + "OVreferer="+encodeURIComponent(location.href)
-    }
+    
     function getVJSPlayerSrces(player : videojs.Player) {
         let hash : Array<VideoTypes.VideoSource>;
         if(player.options_.sources && player.options_.sources.length > 0) {
@@ -29,7 +26,7 @@ module VideoSearch {
         }
         
         for(let elem of hash) {
-            elem.src = toSaveUrl(elem.src);
+            elem.src = Page.getSafeURL(elem.src);
             if((elem as any)["data-res"]) {
                 elem.label = (elem as any)["data-res"];
             }
@@ -45,7 +42,7 @@ module VideoSearch {
             let textTrack = player.textTracks()[i] as any;
             var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] as VideoTypes.VTTCue[] };
             if(textTrack.options_ &&  textTrack.options_.src) {
-                track.src = Tools.getAbsoluteUrl(textTrack.options_.src);
+                track.src = Page.getSafeURL(textTrack.options_.src);
             }
             else if(textTrack.cues_.length != 0) {
                 for(let cue of textTrack.cues_) {
@@ -105,7 +102,7 @@ module VideoSearch {
     function getJWPlayerSrces(player : JWPlayer) {
         var srces = player.getPlaylist()[0].sources;
         for(var src of srces) {
-            src.src = toSaveUrl(src.file);
+            src.src = Page.getSafeURL(src.file);
             if(src.type == "hls") {
                 src.type = "application/x-mpegURL";
             }
@@ -118,7 +115,7 @@ module VideoSearch {
     function getJWPlayerCaptions(player : JWPlayer) {
         var tracks = player.getPlaylist()[0].tracks;
         for( var track of tracks) {
-            track.src = Tools.getAbsoluteUrl(track.file);
+            track.src = Page.getSafeURL(track.file);
         }
         return tracks;
     }
@@ -130,7 +127,7 @@ module VideoSearch {
     function getSrc(videoNode : HTMLVideoElement) {
         var srces : VideoTypes.VideoSource[] = [];
         for(let source of videoNode.getElementsByTagName("source")){
-            let hash : VideoTypes.VideoSource = {src: toSaveUrl(source.src), type: source.type, label: "" };
+            let hash: VideoTypes.VideoSource = { src: Page.getSafeURL(source.src), type: source.type, label: "" };
             if(source.hasAttribute("label")) {
                 hash.label = source.getAttribute("label");
             }
@@ -145,7 +142,7 @@ module VideoSearch {
             }
         };
         if(srces.length == 0) {
-            VideoPopup.addVideoToPopup({ src: [{src: toSaveUrl(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
+            VideoPopup.addVideoToPopup({ src: [{src: Page.getSafeURL(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
         }
         else {
             VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });

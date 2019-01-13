@@ -98,6 +98,7 @@ const Environment = __webpack_require__(4);
 const Languages = __webpack_require__(7);
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
+const Background = __webpack_require__(8);
 Messages.setupMiddleware();
 function createLibraryElem(href, heading, iconUrl, picUrl, canDelete, closeEvent) {
     var LibMovie = document.createElement("a");
@@ -113,7 +114,7 @@ function createLibraryElem(href, heading, iconUrl, picUrl, canDelete, closeEvent
     LibMovieIcon.appendChild(LibMovieIconImg);
     var LibMovieTitle = document.createElement("div");
     LibMovieTitle.className = "lib-movie-title";
-    LibMovieTitle.innerText = heading;
+    LibMovieTitle.innerHTML = heading;
     LibMovie.appendChild(LibMovieTitle);
     var LibMoviePic = document.createElement("div");
     LibMoviePic.className = "lib-movie-pic";
@@ -129,9 +130,9 @@ function createLibraryElem(href, heading, iconUrl, picUrl, canDelete, closeEvent
         var LibMovieX = document.createElement("div");
         LibMovieX.className = "lib-movie-x";
         LibMovieX.addEventListener("click", function (event) {
-            LibMovie.href = "javascript:void(0)";
             closeEvent(LibMovie);
             event.stopPropagation();
+            event.preventDefault();
         });
         LibMovie.appendChild(LibMovieX);
     }
@@ -146,13 +147,13 @@ function createVideoLink(videoData) {
             var itemIndex = VideoHashArr.findIndex(function (arrElem) {
                 return arrElem.origin == videoData.origin;
             });
-            if (itemIndex == -1) {
+            if (itemIndex != -1) {
                 VideoHashArr.splice(itemIndex, 1);
+                Storage.local.set(Page.getUrlObj().directory, VideoHashArr);
             }
             else {
                 throw Error("Something went wrong!");
             }
-            Storage.local.set(Page.getUrlObj().directory, VideoHashArr);
         });
         VideoLink.parentElement.removeChild(VideoLink);
     });
@@ -165,6 +166,14 @@ Page.isReady().then(function () {
     document.getElementById("searchButton").innerText = Languages.getMsg("library_site_search_btn");
     document.getElementById("empty_lbl").innerText = Languages.getMsg("library_site_empty_lbl");
     document.getElementById("searchText").placeholder = Languages.getMsg("library_site_search_input_lbl");
+    document.getElementById("clearBtn").addEventListener("click", function () {
+        Background.confirm("Are you sure you want to clear the video history?\n Your favorites won't be affected.").then(function (doDelete) {
+            if (doDelete) {
+                Storage.local.set("OpenVideoHistory", []);
+                location.reload();
+            }
+        });
+    });
     var Hash = Page.getUrlObj();
     var EmptyMsg = document.getElementById("empty");
     if (!Hash) {
@@ -173,7 +182,7 @@ Page.isReady().then(function () {
         EmptyMsg.style.display = "none";
         FolderContainer.appendChild(createFolder(Languages.getMsg("library_site_history_lbl"), "OpenVideoHistory"));
         FolderContainer.appendChild(createFolder(Languages.getMsg("library_site_favorites_lbl"), "OpenVideoFavorites"));
-        FolderContainer.appendChild(createLibraryElem(Environment.getVideoSearchUrl(), "Search Videos", "http://www.clker.com/cliparts/z/1/T/u/9/2/search-icon-hi.png", "http://www.clker.com/cliparts/z/1/T/u/9/2/search-icon-hi.png", false));
+        FolderContainer.appendChild(createLibraryElem(Environment.getVideoSearchUrl(), '<span style="font-weight: bold;color: gold;">NEW</span> Search Videos', "http://www.clker.com/cliparts/z/1/T/u/9/2/search-icon-hi.png", "http://www.clker.com/cliparts/z/1/T/u/9/2/search-icon-hi.png", false));
     }
     else {
         var VideoLinkContainer = document.getElementById("movies");
@@ -528,13 +537,6 @@ function hashToObj(hashStr) {
     }
 }
 exports.hashToObj = hashToObj;
-function getAbsoluteUrl(url) {
-    let a = document.createElement('a');
-    a.href = url;
-    url = a.href;
-    return url;
-}
-exports.getAbsoluteUrl = getAbsoluteUrl;
 function unpackJS(source) {
     function getUnbase(base) {
         var ALPHABET = "";
@@ -655,23 +657,49 @@ function getRedirectedUrl(url) {
     });
 }
 exports.getRedirectedUrl = getRedirectedUrl;
-function objToURLParams(obj) {
+function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
-        str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        if (!isParamInURL(url, key)) {
+            console.log(url);
+            str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        }
     }
     return str.substr(1);
 }
-exports.objToURLParams = objToURLParams;
+function isParamInURL(url, param) {
+    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
+}
+exports.isParamInURL = isParamInURL;
 function addParamsToURL(url, obj) {
     if (url && obj) {
-        return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + objToURLParams(obj);
+        let query_str = objToURLParams(url, obj);
+        if (query_str) {
+            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        }
+        else {
+            return url;
+        }
     }
     else {
         return url;
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function addRefererToURL(url, referer) {
+    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+}
+exports.addRefererToURL = addRefererToURL;
+function getRefererFromURL(url) {
+    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
+    if (match) {
+        return atob(decodeURIComponent(match[1]));
+    }
+    else {
+        return null;
+    }
+}
+exports.getRefererFromURL = getRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;
@@ -867,6 +895,17 @@ exports.fireEvent = fireEvent;
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
+function getAbsoluteUrl(url) {
+    let a = document.createElement('a');
+    a.href = url;
+    url = a.href;
+    return url;
+}
+exports.getAbsoluteUrl = getAbsoluteUrl;
+function getSafeURL(url) {
+    return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
+}
+exports.getSafeURL = getSafeURL;
 function isReady() {
     return new Promise(function (resolve, reject) {
         if (document.readyState.match(/(loaded|complete)/)) {
@@ -1074,6 +1113,301 @@ function getMsg(msgName, args) {
     return msg;
 }
 exports.getMsg = getMsg;
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(2);
+const Environment = __webpack_require__(4);
+const Analytics = __webpack_require__(5);
+const redirect_scripts_base_1 = __webpack_require__(9);
+function toTopWindow(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow", data: {} } });
+}
+exports.toTopWindow = toTopWindow;
+function toActiveTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab", data: {} } });
+}
+exports.toActiveTab = toActiveTab;
+function toTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTab", data: msg.query } });
+}
+exports.toTab = toTab;
+function openTab(url) {
+    return Messages.send({ bgdata: { func: "openTab", data: { url: url } } });
+}
+exports.openTab = openTab;
+function pauseAllVideos() {
+    return Messages.send({ bgdata: { func: "pauseAllVideos", data: {} } });
+}
+exports.pauseAllVideos = pauseAllVideos;
+function setIconPopup(url) {
+    return Messages.send({ bgdata: { func: "setIconPopup", data: { url: url } } });
+}
+exports.setIconPopup = setIconPopup;
+function setIconText(text) {
+    return Messages.send({ bgdata: { func: "setIconText", data: { text: text } } });
+}
+exports.setIconText = setIconText;
+function downloadFile(dl) {
+    return Messages.send({ bgdata: { func: "downloadFile", data: dl } });
+}
+exports.downloadFile = downloadFile;
+function analytics(data) {
+    return Messages.send({ bgdata: { func: "analytics", data: data } });
+}
+exports.analytics = analytics;
+function redirectHosts() {
+    return Messages.send({ bgdata: { func: "redirectHosts", data: {} } });
+}
+exports.redirectHosts = redirectHosts;
+function alert(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        Messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+    }
+    else {
+        window.alert(msg);
+    }
+}
+exports.alert = alert;
+function confirm(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        return Messages.send({ bgdata: { func: "confirm", data: { msg: msg } } }).then(function (response) {
+            return response.data;
+        });
+    }
+    else {
+        return Promise.resolve(window.confirm(msg));
+    }
+}
+exports.confirm = confirm;
+function prompt(data) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
+            return { aborted: response.data.aborted, text: response.data.text };
+        });
+    }
+    else {
+        let value = window.prompt(data.msg, data.fieldText);
+        return Promise.resolve({ aborted: !value, text: value });
+    }
+}
+exports.prompt = prompt;
+function sendMessage(tabid, msg) {
+    return new Promise(function (response, reject) {
+        chrome.tabs.sendMessage(tabid, {
+            func: msg.func,
+            data: msg.data,
+            state: Messages.State.BGToMdw,
+            sender: { url: location.href },
+        }, {
+            frameId: 0
+        }, function (resData) {
+            response(resData);
+        });
+    });
+}
+exports.sendMessage = sendMessage;
+function setup() {
+    Messages.setupBackground({
+        toTopWindow: function (msg, bgdata, sender, sendResponse) {
+            var tabid = sender.tab.id;
+            chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
+                sendResponse(resData.data);
+            });
+        },
+        toActiveTab: function (msg, bgdata, sender, sendResponse) {
+            var tabid = sender.tab.id;
+            chrome.tabs.query({ active: true }, function (tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
+                    if (resData) {
+                        sendResponse(resData.data);
+                    }
+                });
+            });
+        },
+        toTab: function (msg, bgdata, sender, sendResponse) {
+            var tabid = sender.tab.id;
+            chrome.tabs.query(bgdata, function (tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
+                    if (resData) {
+                        sendResponse(resData.data);
+                    }
+                });
+            });
+        },
+        openTab: function (msg, bgdata, sender, sendResponse) {
+            chrome.tabs.create({ url: bgdata.url });
+        },
+        pauseAllVideos: function (msg, bgdata, sender, sendResponse) {
+            chrome.tabs.sendMessage(sender.tab.id, { func: "pauseVideos" });
+        },
+        setIconPopup: function (msg, bgdata, sender, sendResponse) {
+            chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
+        },
+        setIconText: function (msg, bgdata, sender, sendResponse) {
+            chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
+        },
+        downloadFile: function (msg, bgdata, sender, sendResponse) {
+            chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
+        },
+        analytics: function (msg, bgdata, sender, sendResponse) {
+            if (bgdata["el"]) {
+                bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+            }
+            console.log(bgdata);
+            Analytics.postData(bgdata);
+        },
+        redirectHosts: function (msg, bgdata, sender, sendResponse) {
+            redirect_scripts_base_1.getRedirectHosts().then(function (redirectHosts) {
+                sendResponse({ redirectHosts: redirectHosts });
+            });
+        },
+        alert: function (msg, bgdata, sender, sendResponse) {
+            window.alert(bgdata.msg);
+        },
+        prompt: function (msg, bgdata, sender, sendResponse) {
+            var value = window.prompt(bgdata.msg, bgdata.fieldText);
+            if (value == null || value == "") {
+                sendResponse({ aborted: true, text: null });
+            }
+            else {
+                sendResponse({ aborted: false, text: value });
+            }
+        },
+        confirm: function (msg, bgdata, sender, sendResponse) {
+            sendResponse(window.confirm(bgdata.msg));
+        }
+    });
+}
+exports.setup = setup;
+
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const VideoTypes = __webpack_require__(10);
+const Tools = __webpack_require__(3);
+const Analytics = __webpack_require__(5);
+const Environment = __webpack_require__(4);
+const Page = __webpack_require__(6);
+const Messages = __webpack_require__(2);
+const Storage = __webpack_require__(1);
+let redirectHosts = [];
+;
+;
+function addRedirectHost(redirectHost) {
+    redirectHosts.push(redirectHost);
+}
+exports.addRedirectHost = addRedirectHost;
+function isUrlRedirecting(url) {
+    if (Tools.parseUrlQuery(url)["ovignore"] != "true") {
+        return false;
+    }
+    else {
+        for (let host of redirectHosts) {
+            for (let script of host.scripts) {
+                if (url.match(script.urlPattern)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+exports.isUrlRedirecting = isUrlRedirecting;
+function startScripts(scope) {
+    return new Promise(function (resolve, reject) {
+        if (Tools.parseUrlQuery(location.href)["ovignore"] != "true") {
+            for (let host of redirectHosts) {
+                isScriptEnabled(host.name).then(function (isEnabled) {
+                    if (isEnabled) {
+                        for (let script of host.scripts) {
+                            let match = location.href.match(script.urlPattern);
+                            if (match) {
+                                console.log("Redirect with " + host.name);
+                                for (let runScope of script.runScopes) {
+                                    if (runScope.run_at == scope) {
+                                        if (Page.isFrame()) {
+                                            resolve();
+                                        }
+                                        document.documentElement.hidden = runScope.hide_page !== false;
+                                        runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
+                                            videoData.origin = location.href;
+                                            videoData.host = host.name;
+                                            location.href = Environment.getVidPlaySiteUrl(VideoTypes.makeURLsSave(videoData));
+                                        }).catch(function (error) {
+                                            document.documentElement.hidden = false;
+                                            console.error(error);
+                                            Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    });
+}
+exports.startScripts = startScripts;
+function isScriptEnabled(name) {
+    return Storage.sync.get(name).then(function (value) {
+        return value == true || value == undefined || value == null;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(name, enabled) {
+    return Storage.sync.set(name, enabled);
+}
+exports.setScriptEnabled = setScriptEnabled;
+function getRedirectHosts() {
+    return Promise.resolve().then(function () {
+        if (Environment.isBackgroundPage()) {
+            return redirectHosts;
+        }
+        else {
+            return Messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function (response) {
+                return response.data.redirectHosts;
+            });
+        }
+    });
+}
+exports.getRedirectHosts = getRedirectHosts;
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(6);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
 
 
 /***/ })

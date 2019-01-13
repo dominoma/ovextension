@@ -16,34 +16,34 @@ import * as OVPlayerComponents from "./ov_player_components";
 
 import videojs_raw from "video.js";
 
-declare var videojs : typeof videojs_raw;
+declare var videojs: typeof videojs_raw;
 
 (window as any)["Worker"] = undefined;
 Messages.setupMiddleware();
 Page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {
-            return function(method : string, url : string) {
-                if(getPlayer() && getPlayer().currentType().match(/application\//i) && !url.match(/OVReferer/i)) {
-                    arguments[1] = url+(url.indexOf("?") == -1 ? "?" : "&")+"OVreferer="+encodeURIComponent(btoa(Page.getUrlObj().origin));
+            return function(method: string, url: string) {
+                if (getPlayer() && getPlayer().currentType().match(/application\//i)) {
+                    arguments[1] = Tools.addRefererToURL(url, Page.getUrlObj().origin);
                 }
                 target.open.apply(target, arguments as any);
             }
-        }   
+        }
     }
 });
 export interface Player extends videojs_raw.Player {
-    hotkeys?: (obj : Object) => void;
+    hotkeys?: (obj: Object) => void;
     getActiveVideoSource?: () => VideoTypes.VideoSource;
     getVideoData?: () => VideoTypes.VideoData;
     setVideoData?: (videoData: VideoTypes.VideoData) => void;
-    updateSrc?: (srces : Array<VideoTypes.VideoSource>) => void;
+    updateSrc?: (srces: Array<VideoTypes.VideoSource>) => void;
     saveToHistory?: () => void;
     loadFromHistory?: () => void;
 }
 
 
-let player : Player = null;
+let player: Player = null;
 export function parseSrt(dataAndEvents: string, oncue: (cue: VideoTypes.VTTCue) => void) {
 
     function trim(dataAndEvents: string) {
@@ -122,21 +122,21 @@ export function parseSrt(dataAndEvents: string, oncue: (cue: VideoTypes.VTTCue) 
         }
     }
 }
-export function addTextTrack(player : Player, rawTrack : VideoTypes.SubtitleSource) {
+export function addTextTrack(player: Player, rawTrack: VideoTypes.SubtitleSource) {
     Tools.createRequest({ url: rawTrack.src }).then(function(xhr) {
         var srcContent = xhr.responseText;
         //function (srcContent) {
         if (srcContent.indexOf("-->") !== -1) {
-            
+
             player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
             let track = player.textTracks()[player.textTracks().length - 1];
-            if(rawTrack.default) {
+            if (rawTrack.default) {
                 track.mode = "showing";
             }
             parseSrt(srcContent, function(cue) {
                 track.addCue(cue);
             });
-            
+
         } else {
             throw Error("Invaid subtitle file");
         }
@@ -145,13 +145,13 @@ export function addTextTrack(player : Player, rawTrack : VideoTypes.SubtitleSour
 export function getPlayer() {
     return player;
 }
-export function initPlayer(playerId : string, options: Object, videoData: VideoTypes.VideoData) : Player {
-    
+export function initPlayer(playerId: string, options: Object, videoData: VideoTypes.VideoData): Player {
+
     OVPlayerComponents.register();
     options = Tools.merge(options, {
         plugins: {
             videoJsResolutionSwitcher: {
-              dynamicLabel: true
+                dynamicLabel: true
             }
         },
         /*chromecast:{
@@ -160,24 +160,24 @@ export function initPlayer(playerId : string, options: Object, videoData: VideoT
         playbackRates: [0.5, 1, 2],
         language: Languages.getMsg("video_player_locale")
     });
-    player = videojs(playerId,options); 
+    player = videojs(playerId, options);
     player.hotkeys({
         volumeStep: 0.1,
         seekStep: 5,
         enableModifiersForNumbers: false
     });
-    
-    player.getActiveVideoSource = function() : VideoTypes.VideoSource { 
-        for(var src of videoData.src) {
-            if(player.src().indexOf(src.src) == 0) {
+
+    player.getActiveVideoSource = function(): VideoTypes.VideoSource {
+        for (var src of videoData.src) {
+            if (player.src().indexOf(src.src) == 0) {
                 return src;
             }
-        } 
+        }
         return null;
     }
-    
-    
-    player.on("ready", function(){
+
+
+    player.on("ready", function() {
         (player.el() as HTMLElement).style.width = "100%";
         (player.el() as HTMLElement).style.height = "100%";
         let ControlBar = player.getChild('controlBar');
@@ -187,98 +187,98 @@ export function initPlayer(playerId : string, options: Object, videoData: VideoT
         var FullscreenToggle = ControlBar.getChild('fullscreenToggle') as videojs_raw.FullscreenToggle;
         var CaptionsButton = ControlBar.getChild('SubsCapsButton') as videojs_raw.CaptionsButton;
         CaptionsButton.show();
-        player.on("ratechange", function(){
+        player.on("ratechange", function() {
             Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
         });
-        FullscreenToggle.on("click", function(){
+        FullscreenToggle.on("click", function() {
             let fullscreen = player.isFullscreen();
-            window.setTimeout(function(){
-                if(Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && player.isFullscreen()) {
+            window.setTimeout(function() {
+                if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && player.isFullscreen()) {
                     console.log("FULLSCREEN ERROR");
-                    Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '"+videoData.origin+"' Page: '<PAGE_URL>', Version: "+Environment.getManifest().version)
+                    Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version)
                 }
             }, 1000);
         });
         player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
         player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
         player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
-        Storage.sync.get("PlayerVolume").then(function(volume){
-            if(volume) {
+        Storage.sync.get("PlayerVolume").then(function(volume) {
+            if (volume) {
                 player.volume(volume);
             }
         });
-        player.on('volumechange', function(){
-            Storage.sync.set("PlayerVolume",player.volume());
+        player.on('volumechange', function() {
+            Storage.sync.set("PlayerVolume", player.volume());
         });
-        player.on('loadedmetadata',function() {
+        player.on('loadedmetadata', function() {
             player.loadFromHistory();
             FavButton.updateDesign();
         });
-        document.body.onmouseleave  = function() {
-            if(player.currentTime() != 0) {
+        document.body.onmouseleave = function() {
+            if (player.currentTime() != 0) {
                 player.saveToHistory();
             }
         };
     });
-    
-    player.setVideoData = function(videoData : VideoTypes.VideoData) {
-       
-        
+
+    player.setVideoData = function(videoData: VideoTypes.VideoData) {
+
+
         player.poster(Tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
         var srces = videoData.src;
-        
+
         var checkedSrces = [];
-        for(var src of srces) {
-            if(src.src != "") {
+        for (var src of srces) {
+            if (src.src != "") {
                 src.src = src.src + (src.src.indexOf("?") == -1 ? "?" : "&") + "isOV=true";
                 checkedSrces.push(src);
             }
         }
         srces = checkedSrces;
-        if(srces.length == 1) {
+        if (srces.length == 1) {
             player.src(srces[0]);
         }
         else {
             player.updateSrc(srces);
-        
-            
+
+
         }
-        for(let track of videoData.tracks) {
+        for (let track of videoData.tracks) {
             addTextTrack(player, track);
             //player.addRemoteTextTrack(<any>track, true);
         }
-        
+
     }
     player.getVideoData = function() {
         return videoData;
     }
     player.setVideoData(videoData);
-        
+
     //player.aspectRatio("0:0");
-    
-    player.saveToHistory = function(){
-        Storage.sync.get("disableHistory").then(function(disabled){
-            if(!disabled) {
-                Storage.local.get("OpenVideoHistory").then(function(history : Array<VideoTypes.HistoryEntry>){
-                    if(!history) {
+
+    player.saveToHistory = function() {
+        Storage.sync.get("disableHistory").then(function(disabled) {
+            if (!disabled) {
+                Storage.local.get("OpenVideoHistory").then(function(history: Array<VideoTypes.HistoryEntry>) {
+                    if (!history) {
                         history = [];
                     }
-                    var itemIndex = history.indexOf(history.find(function(arrElem : VideoTypes.HistoryEntry){
+                    var itemIndex = history.indexOf(history.find(function(arrElem: VideoTypes.HistoryEntry) {
                         return arrElem.origin == videoData.origin;
                     }));
-                    if(itemIndex != -1) {
-                        history.splice(itemIndex,1);
+                    if (itemIndex != -1) {
+                        history.splice(itemIndex, 1);
                     }
-                    var histHash : VideoTypes.HistoryEntry = {
-                            poster: videoData.poster,
-                            title: videoData.title,
-                            origin: videoData.origin,
-                            stoppedTime: player.currentTime()
+                    var histHash: VideoTypes.HistoryEntry = {
+                        poster: videoData.poster,
+                        title: videoData.title,
+                        origin: videoData.origin,
+                        stoppedTime: player.currentTime()
                     };
-                    
-                    
+
+
                     //player.getVideoFileHash(function(fileHash){
-                        //HistHash.fileHash = fileHash;
+                    //HistHash.fileHash = fileHash;
                     history.unshift(histHash);
                     Storage.local.set("OpenVideoHistory", history);
                     //});
@@ -286,21 +286,21 @@ export function initPlayer(playerId : string, options: Object, videoData: VideoT
             }
         });
     };
-    player.loadFromHistory = function(){
-        Storage.local.get("OpenVideoHistory").then(function(history : Array<VideoTypes.HistoryEntry>){
-            if(history){
+    player.loadFromHistory = function() {
+        Storage.local.get("OpenVideoHistory").then(function(history: Array<VideoTypes.HistoryEntry>) {
+            if (history) {
                 //player.getVideoFileHash(function(fileHash){
-                    var item = history.find(function(arrElem){
-                        return arrElem.origin == videoData.origin;
-                    });
-                    if(item) {
-                        player.currentTime(item.stoppedTime);
-                    }
+                var item = history.find(function(arrElem) {
+                    return arrElem.origin == videoData.origin;
+                });
+                if (item) {
+                    player.currentTime(item.stoppedTime);
+                }
                 //});
             }
         });
     };
-    
-    
+
+
     return player;
 }

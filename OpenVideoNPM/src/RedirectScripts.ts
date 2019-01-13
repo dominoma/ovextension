@@ -4,8 +4,8 @@ import * as Page from "OV/page";
 import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
-function suspectSubtitledVideo(details: ScriptBase.ScriptDetails, xhr : XMLHttpRequest) {
-    if(xhr.response.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
+function suspectSubtitledVideo(details: ScriptBase.ScriptDetails, xhr: XMLHttpRequest) {
+    if (xhr.response.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
         Analytics.fireEvent(details.hostname, "TracksFound", details.url)
     }
 }
@@ -25,8 +25,8 @@ export function install() {
                         tracks: VideoTypes.SubtitleSource[];
                         urls: string[];
                     }
-                    function checkResponse(xhr : XMLHttpRequest) {
-                        if(xhr.response.indexOf("To continue, please type the characters below") != -1) {
+                    function checkResponse(xhr: XMLHttpRequest) {
+                        if (xhr.response.indexOf("To continue, please type the characters below") != -1) {
                             location.href = Tools.addParamsToURL(location.href, { ovignore: "true" });
                         }
                     }
@@ -48,11 +48,11 @@ export function install() {
                             for (let url of urlsHTML) {
                                 urls.push(url.href);
                             }
-                            if(urls.length == 0) {
+                            if (urls.length == 0) {
                                 urls.push(details.url);
                             }
                             return { title: title, poster: poster, tracks: tracks, urls: urls };
-    
+
                         });
                     }
                     function getVideoSrc(url: string): Promise<VideoTypes.VideoSource> {
@@ -70,7 +70,7 @@ export function install() {
                     }
                     function getVideoSrces(info: VideoInfo): Promise<VideoTypes.VideoData> {
                         return Promise.all(info.urls.map(getVideoSrc)).then(function(videos) {
-                            videos[videos.length-1].default = true;
+                            videos[videos.length - 1].default = true;
                             return { src: videos, poster: info.poster, title: info.title, tracks: info.tracks } as VideoTypes.VideoData;
                         });
                     }
@@ -88,15 +88,15 @@ export function install() {
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
                 script: function(details): Promise<VideoTypes.VideoData> {
-                    if(details.url.indexOf("openload.co") == -1) {
+                    if (details.url.indexOf("openload.co") == -1) {
                         details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
                     }
-                    
+
                     if (details.url.indexOf("/f/") != -1) {
                         Analytics.fireEvent("OpenLoad over File", "Utils", details.url)
                         details.url = details.url.replace("/f/", "/embed/");
                     }
-    
+
                     function getStreamUrl(longString: string, varAtbytes: number, varAt_1x4bfb36: number): string {
                         let streamUrl = "";
                         let hexByteArr = [];
@@ -139,26 +139,26 @@ export function install() {
                             console.log(xhr.status, HTML)
                             throw Error("No Video");
                         }
-    
+
                         let thumbnailUrl = Tools.matchNull(HTML, /poster="([^"]*)"/);
                         let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
-    
+
                         let subtitleTags = HTML.match(/<track(.*)\/>/g) || [];
                         let subtitles = [];
                         for (let subtitleTag of subtitleTags) {
-                            let label = Tools.matchNull(subtitleTag,/label="([^"]*)"/);
+                            let label = Tools.matchNull(subtitleTag, /label="([^"]*)"/);
                             let src = Tools.matchNull(subtitleTag, /src="([^"]*)"/);
                             if (src) {
                                 subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
                             }
                         }
-    
+
                         let longString = HTML.match(/<p style=""[^>]*>([^<]*)<\/p>/)[1];
                         console.log(longString)
-    
+
                         let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)[1];
                         let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)[1];
-    
+
                         let keyResult1 = 0;
                         let keyResult2 = 0;
                         //console.log(longString, keyNum1, keyNum2);
@@ -167,22 +167,22 @@ export function install() {
                             let keyNum1_Sub = parseInt(keyNum1.match(/\)\-([^\+]*)\+/)[1]);
                             let keyNum1_Div = parseInt(keyNum1.match(/\/\(([^\-]*)\-/)[1]);
                             let keyNum1_Sub2 = parseInt(keyNum1.match(/\+0x4\-([^\)]*)\)/)[1]);
-    
+
                             keyResult1 = (keyNum1_Oct - keyNum1_Sub + 4 - keyNum1_Sub2) / (keyNum1_Div - 8);
-    
+
                             let keyNum2_Oct = parseInt(keyNum2.match(/\('([^']*)',/)[1], 8);
                             let keyNum2_Sub = parseInt(keyNum2.substr(keyNum2.indexOf(")-") + 2));
-    
+
                             keyResult2 = keyNum2_Oct - keyNum2_Sub;
                             console.log(keyNum1, keyNum2);
-    
+
                         }
                         catch (e) {
                             //console.error(e.stack);
                             throw Error("Key Numbers not parsed!");
                         }
                         return {
-    
+
                             src: [{
                                 type: "video/mp4",
                                 src: "https://"
@@ -194,10 +194,10 @@ export function install() {
                             poster: thumbnailUrl,
                             title: title,
                             tracks: subtitles
-    
+
                         } as VideoTypes.VideoData;
                     });
-    
+
                 }
             }]
         }]
@@ -210,7 +210,7 @@ export function install() {
                 run_at: ScriptBase.RunScopes.document_start,
                 script: function(details): Promise<VideoTypes.VideoData> {
                     details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock)\.[^\/,^\.]{2,}/, "fruitstreams.com").replace(/\/f\//, "/embed/");
-    
+
                     function resolveVideo(hashCode: string, intVal: number) {
                         let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
                         let retVal = '';
@@ -239,7 +239,7 @@ export function install() {
                         let funcParams = HTML.match(/src:d\('([^']*)',([^\)]*)/);
                         let funcStr = funcParams[1];
                         let funcInt = parseInt(funcParams[2]);
-    
+
                         let src = { type: "video/mp4", src: "https:" + resolveVideo(funcStr, funcInt), label: "SD" };
                         let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
                         let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
@@ -293,14 +293,14 @@ export function install() {
                         suspectSubtitledVideo(details, xhrs[0]);
                         let html = JSON.parse(xhrs[0].response).html;
                         let dlhtml = JSON.parse(xhrs[1].response).html;
-    
+
                         let rawRes = dlhtml.match(/href="([^"]*)" download="([^"]*)"[^>]*>([^<]*)</g);
                         let dlsrces: VideoTypes.DownloadSource[] = [];
                         for (let res of rawRes) {
                             let matches = res.match(/href="([^"]*)" download="([^"]*)"[^>]*>([^<]*)</);
                             dlsrces.push({ src: matches[1], filename: "[" + matches[3] + "]" + matches[2], type: "video/mp4" });
                         }
-    
+
                         let rawSrces = JSON.parse("[" + html.match(/.*sources = \[([^\]]*)/)[1] + "]");
                         let rawTracks = JSON.parse("[" + Tools.matchNull(html, /.*tracks = \[([^\]]*)/) + "]");
                         let title = Tools.matchNull(html, /title: '([^']*)'/);
@@ -313,9 +313,9 @@ export function install() {
                         for (let track of rawTracks) {
                             tracks.push({ src: track.file, label: track.label, default: track.default || false, kind: track.kind })
                         }
-    
+
                         return {
-    
+
                             src: srces,
                             tracks: tracks,
                             title: title,
@@ -376,13 +376,13 @@ export function install() {
                     return Tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                         suspectSubtitledVideo(details, xhr);
                         let HTML = xhr.response;
-                        if(HTML.indexOf("File was deleted") != -1) {
+                        if (HTML.indexOf("File was deleted") != -1) {
                             throw Error("No Video!");
                         }
                         let evalStr = HTML.match(/(eval\(function\(p,a,c,k,e,d\).*\.split\('\|'\)\)\))/)[1];
                         let code = Tools.unpackJS(evalStr);
                         let hash = JSON.parse(code.match(/player\.setup\((.*),"height"/)[1] + "}");
-                        
+
                         let src = hash.file;
                         let poster = hash.image;
                         return {
@@ -403,13 +403,13 @@ export function install() {
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
                 script: function(details): Promise<VideoTypes.VideoData> {
-                    
+
                     return Tools.createRequest({ url: details.url, hideRef: true }).then(function(xhr) {
                         suspectSubtitledVideo(details, xhr);
                         let HTML = xhr.response;
                         let videoURL = atob(HTML.match(/data-stream="([^"]*)"/)[1]);
                         let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-    
+
                         return {
                             src: [{ type: "video/mp4", src: videoURL, label: "SD" }],
                             title: title,
@@ -438,7 +438,7 @@ export function install() {
                             throw Error("No Video!");
                         }
                         let playerHashStr = "{" + HTML.match(/\.setup\(\{(.*)duration:/)[1] + "}";
-    
+
                         let sources = playerHashStr.match(/sources:(.*\}\]),/)[1];
                         sources = sources.replace(/file:/g, '"src":');
                         sources = sources.replace(/label:/g, '"label":');
@@ -451,7 +451,7 @@ export function install() {
                             poster: image,
                             tracks: []
                         };
-    
+
                     });
                 }
             }]
@@ -473,8 +473,8 @@ export function install() {
                         else {
                             Page.addAttributeListener(button, "class", function() {
                                 if (button.className == 'button gray blue') {
-                                    Tools.createRequest({ 
-                                        url: details.url, 
+                                    Tools.createRequest({
+                                        url: details.url,
                                         type: Tools.HTTPMethods.POST,
                                         protocol: "http://",
                                         formData: {
@@ -485,13 +485,13 @@ export function install() {
                                         suspectSubtitledVideo(details, xhr);
                                         let HTML = xhr.response;
                                         console.log(HTML);
-                                        
+
                                         let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
                                         let src = videoHashStr.match(/file: "([^"]*)"/)[1];
                                         let poster = Tools.matchNull(videoHashStr, /image: "([^"]*)"/);
                                         let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
                                         return {
-    
+
                                             src: [{
                                                 type: "video/mp4",
                                                 src: src,
@@ -501,7 +501,7 @@ export function install() {
                                             poster: poster,
                                             tracks: []
                                         };
-    
+
                                     }).then(resolve).catch(reject);
                                 }
                             });
@@ -520,7 +520,7 @@ export function install() {
                 script: function(details): Promise<VideoTypes.VideoData> {
                     return Promise.resolve(null).then(function() {
                         if (details.url.indexOf("embed") == -1) {
-    
+
                             return Tools.createRequest({ url: details.url }).then(function(xhr) {
                                 suspectSubtitledVideo(details, xhr);
                                 if (xhr.response.indexOf('class="video-main"') != -1) {
@@ -530,8 +530,8 @@ export function install() {
                                     throw Error("Not a Video!");
                                 }
                             });
-    
-    
+
+
                         }
                         else {
                             return details.url.substr(details.url.lastIndexOf("/") + 1);
@@ -544,7 +544,7 @@ export function install() {
                     }).then(function(xhrs) {
                         let videoJSON = JSON.parse(xhrs[0].response);
                         let videoDesc = JSON.parse(xhrs[1].response);
-    
+
                         let srces: VideoTypes.VideoSource[] = [];
                         for (let key in videoJSON.qualities) {
                             srces.push({ label: key, src: videoJSON.qualities[key], type: "video/mp4" });
@@ -552,15 +552,15 @@ export function install() {
                         srces = srces.reverse();
                         srces[0].default = true;
                         return {
-    
+
                             src: srces,
                             poster: videoJSON.poster,
                             tracks: videoJSON.subtitles,
                             title: videoDesc.video.title
-    
+
                         };
                     });
-    
+
                 }
             }]
         }]
@@ -591,7 +591,7 @@ export function install() {
                         let image = Tools.matchNull(videoHash, /image: "([^"]*)"/);
                         let src = videoHash.match(/sources: \[\{file: "([^"]*)"/)[1];
                         let title = Tools.matchNull(HTML, /<title>([<"]*)<\/title>/i);
-    
+
                         return {
                             src: [{ src: src, type: "application/x-mpegURL", label: "SD" }],
                             title: title,
@@ -622,7 +622,7 @@ export function install() {
                         let image = Tools.matchNull(HTML, /image:'([^']*)'/);
                         let src = HTML.match(/file: '([^']*)'/)[1];
                         let title = Tools.matchNull(HTML, /div class="dltitre">([^<]*)<\/div>/);
-    
+
                         return {
                             src: [{ src: src, type: "video/mp4", label: "SD" }],
                             title: title,
@@ -655,7 +655,7 @@ export function install() {
                             tracks: []
                         };
                     });
-    
+
                 }
             }]
         }]
@@ -676,7 +676,7 @@ export function install() {
                                 Tools.createRequest({ url: "https://flashx.co/counter.cgi" }),
                                 Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6" })
                             ]).then(function() {
-                                return details.match[3]  || details.match[4];
+                                return details.match[3] || details.match[4];
                             });
                         }
                     }).then(function(videoCode) {
@@ -684,13 +684,13 @@ export function install() {
                     }).then(function(xhr) {
                         suspectSubtitledVideo(details, xhr);
                         let HTML = xhr.responseText;
-    
+
                         if (xhr.status != 200 || HTML.indexOf("Sorry, file was deleted or the link is expired!") != -1) {
                             throw Error("No Video!");
                         }
-    
+
                         let srcHashStr = HTML.match(/updateSrc\(([^\)]*)\)/)[1];
-                        srcHashStr = srcHashStr.substr(0,srcHashStr.lastIndexOf(","))+"]";
+                        srcHashStr = srcHashStr.substr(0, srcHashStr.lastIndexOf(",")) + "]";
                         srcHashStr = srcHashStr.replace(/src:/g, '"src":');
                         srcHashStr = srcHashStr.replace(/label:/g, '"label":');
                         srcHashStr = srcHashStr.replace(/res:/g, '"res":');
@@ -699,7 +699,7 @@ export function install() {
                         console.log(srcHashStr)
                         let src = JSON.parse(srcHashStr);
                         let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
-    
+
                         return {
                             src: [{ src: src[0].src, type: src[0].type, label: "SD" }],
                             poster: poster,

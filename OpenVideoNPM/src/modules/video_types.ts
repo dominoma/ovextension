@@ -1,4 +1,8 @@
-export interface HistoryEntry { 
+import * as Page from "OV/page";
+
+
+
+export interface HistoryEntry {
     poster: string;
     title: string;
     origin: string;
@@ -13,8 +17,8 @@ export interface VideoSource {
     dlsrc?: DownloadSource
 }
 export interface DownloadSource {
-    src: string; 
-    type: string; 
+    src: string;
+    type: string;
     filename?: string;
 }
 export interface SubtitleSource {
@@ -39,4 +43,17 @@ export interface VideoData {
     src: Array<VideoSource>;
     origin?: string;
     host?: string;
+}
+export function makeURLsSave(videoData: VideoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
 }
