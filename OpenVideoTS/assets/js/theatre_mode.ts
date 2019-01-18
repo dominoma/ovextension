@@ -1,2 +1,0 @@
-TheatreMode.setup();
-OVMetadata.setup();

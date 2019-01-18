@@ -1,1 +1,0 @@
-OVMetadata.setup();

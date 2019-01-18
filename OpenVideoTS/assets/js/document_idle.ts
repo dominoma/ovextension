@@ -1,1 +1,0 @@
-ScriptBase.startScripts(ScriptBase.RunScopes.document_idle);
