@@ -15,7 +15,7 @@ export function getCID(): Promise<string> {
         return cid;
     });
 }
-export function postData(data: StringMap): Promise<XMLHttpRequest> {
+function postData(data: StringMap): Promise<XMLHttpRequest> {
     return Storage.sync.get("AnalyticsEnabled").then(function(value) {
         if (value || value == undefined) {
             return getCID().then(function(cid) {
@@ -30,7 +30,7 @@ export function postData(data: StringMap): Promise<XMLHttpRequest> {
         return Promise.reject(Error("Analytics is disabled!"));
     });
 }
-export function send(data: StringMap): Promise<{ success: boolean }> {
+function send(data: StringMap): Promise<{ success: boolean }> {
     if (Environment.isBackgroundPage()) {
         return postData(data).then(function() { return { success: true } });
     }

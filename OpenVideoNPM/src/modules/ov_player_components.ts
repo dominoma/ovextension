@@ -59,7 +59,8 @@ export function register() {
         },
         handleClick: function() {
             Analytics.fireEvent("Favorites", "PlayerEvent", "");
-            this.isFavorite(!this.isFavorite());
+            
+            this.setFavorite(!this.isFavorite());
         },
         isFavorite: function() {
             return !!this.isFavorite_;
@@ -239,50 +240,58 @@ export function register() {
 
         }
     });
-
-    let resolutionMenuItem = videojs.getComponent("ResolutionMenuItem");
-    let oldCreateElrs = resolutionMenuItem.prototype.createEl;
-    resolutionMenuItem.prototype.createEl = function() {
-
-        let el = oldCreateElrs.apply(this, arguments as any);
-        function getSrcElem(src: VideoTypes.VideoSource, videoTitle: string) {
-            return createDownloadButton(src.src, "[" + src.label + "]" + videoTitle + "." + src.type.substr(src.type.indexOf("/") + 1), src.type);
-        }
-        let videoTitle = (this.player_ as OVPlayer.Player).getVideoData().title;
-        if ((this.options_ as any).src[0].dlsrc) {
-            el.appendChild(getSrcElem((this.options_ as any).src[0].dlsrc, videoTitle));
-        }
-        else {
-            el.appendChild(getSrcElem((this.options_ as any).src[0], videoTitle));
-        }
-        return el;
+    function override<T extends Function>(obj: any, method: T, createOverride: (method: T) => T ) {
+        let name = method.name;
+        obj.prototype[name] = createOverride(obj.prototype[name]);
     }
+    let resolutionMenuItem = videojs.getComponent("ResolutionMenuItem");
+    override(resolutionMenuItem, resolutionMenuItem.prototype.createEl, function(method){
+        return function(this: videojs_raw.MenuItem, tagName?: string, properties?: any, attributes?: any) {
 
+            let el = method.call(this, tagName, properties, attributes);
+            function getSrcElem(src: VideoTypes.VideoSource, videoTitle: string) {
+                return createDownloadButton(src.src, "[" + src.label + "]" + videoTitle + "." + src.type.substr(src.type.indexOf("/") + 1), src.type);
+            }
+            let videoTitle = (this.player_ as OVPlayer.Player).getVideoData().title;
+            if ((this.options_ as any).src[0].dlsrc) {
+                el.appendChild(getSrcElem((this.options_ as any).src[0].dlsrc, videoTitle));
+            }
+            else {
+                el.appendChild(getSrcElem((this.options_ as any).src[0], videoTitle));
+            }
+            return el;
+        };
+    });
+    
     let subsCapsMenuItem = videojs.getComponent("SubsCapsMenuItem");
-    let oldCreateEl = subsCapsMenuItem.prototype.createEl;
-    subsCapsMenuItem.prototype.createEl = function() {
-        let track = (this.options_ as any).track as TextTrack;
-        let el = oldCreateEl.apply(this, arguments as any);
-        if (track.language != "AddedFromUser") {
-            let videoData = (this.player_ as OVPlayer.Player).getVideoData();
-            let rawTrack = videoData.tracks.find(function(rawtrack) {
-                return track.label == rawtrack.label;
-            });
-            if (rawTrack) {
-                el.appendChild(createDownloadButton(rawTrack.src, "[" + rawTrack.label + "]" + videoData.title + ".vtt", "text/vtt"));
+    override(subsCapsMenuItem, subsCapsMenuItem.prototype.createEl, function(method){
+        return function(this: videojs_raw.TextTrackMenuItem, tagName?: string, properties?: any, attributes?: any) {
+            let btn = this;
+            let track = (btn.options_ as any).track as TextTrack;
+            let el = method.call(this, tagName, properties, attributes);
+            if (track.language != "AddedFromUser") {
+                let videoData = (btn.player_ as OVPlayer.Player).getVideoData();
+                let rawTrack = videoData.tracks.find(function(rawtrack) {
+                    return track.label == rawtrack.label;
+                });
+                if (rawTrack) {
+                    el.appendChild(createDownloadButton(rawTrack.src, "[" + rawTrack.label + "]" + videoData.title + ".vtt", "text/vtt"));
 
+                }
             }
             return el;
         }
-    }
+    });
+    
     let subsCapsButton = videojs.getComponent("SubsCapsButton") as any;
-    let oldCreateItems = subsCapsButton.prototype.createItems;
-    subsCapsButton.prototype.createItems = function() {
-        let items = oldCreateItems.apply(this, arguments) as Array<any>;
-        items.splice(2, 0, new (videojs.getComponent("AddTracksFromFile"))(this.player_, {}));
-        items.splice(3, 0, new (videojs.getComponent("AddTracksFromURL"))(this.player_, {}));
-        return items;
-    };
+    override(subsCapsButton, subsCapsButton.prototype.createItems, function(method){
+        return function(this: videojs_raw.MenuButton) {
+            let items = method.call(this) as Array<any>;
+            items.splice(2, 0, new (videojs.getComponent("AddTracksFromFile"))(this.player_, {}));
+            items.splice(3, 0, new (videojs.getComponent("AddTracksFromURL"))(this.player_, {}));
+            return items;
+        }
+    });
 
 
 

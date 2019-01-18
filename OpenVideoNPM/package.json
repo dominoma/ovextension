@@ -6,7 +6,7 @@
   "description": "Generated with typescript.java",
   "scripts": {
     "debug": "webpack",
-    "export": "webpack && \"C:\\Program Files\\WinRAR\\Rar.exe\" a -x*.map -ep1 -r -idq -y OpenVideo.zip dist\\"
+    "export": "webpack && \"C:\\Program Files\\WinRAR\\winrar.exe\" a -x*.map -ep1 -r -idq -y -afzip OpenVideo.zip dist\\"
   },
   "license": "MIT",
   "devDependencies": {
@@ -22,5 +22,11 @@
     "typescript": "^3.2.2",
     "webpack": "^4.28.4",
     "webpack-cli": "^3.2.1"
+  },
+  "dependencies": {
+    "@types/react": "^16.7.18",
+    "@types/react-dom": "^16.0.11",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0"
   }
 }

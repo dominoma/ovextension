@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "jsx": "react",
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./tmp",
@@ -15,8 +16,5 @@
 	"baseUrl": "src/modules/"
 	
     
-  },
-  "exclude": [
-      "node_modules"
-  ]
+  }
 }

@@ -101,36 +101,51 @@ export function sendMessage(tabid: number, msg: { func: string; data: any; }) {
         } as Messages.Request, {
                 frameId: 0
             }, function(resData: Messages.Response) {
-                response(resData);
+                if(resData.error) {
+                    reject(resData.error);
+                }
+                else {
+                    response(resData);
+                }
             });
     });
 }
 
 export function setup() {
     Messages.setupBackground({
-        toTopWindow: function(msg, bgdata, sender, sendResponse) {
+        toTopWindow: function(msg, bgdata, sender, sendResponse, sendError) {
             var tabid = sender.tab.id;
             chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function(resData: Messages.Response) {
-
-                sendResponse(resData.data);
+                if(resData.error) {
+                    sendError(resData.error);
+                }
+                else {
+                    sendResponse(resData.data);
+                }
 
             });
         },
-        toActiveTab: function(msg, bgdata, sender, sendResponse) {
+        toActiveTab: function(msg, bgdata, sender, sendResponse, sendError) {
             var tabid = sender.tab.id;
             chrome.tabs.query({ active: true }, function(tabs) {
                 chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function(resData: Messages.Response) {
-                    if (resData) {
+                    if(resData.error) {
+                        sendError(resData.error);
+                    }
+                    else {
                         sendResponse(resData.data);
                     }
                 });
             });
         },
-        toTab: function(msg, bgdata, sender, sendResponse) {
+        toTab: function(msg, bgdata, sender, sendResponse, sendError) {
             var tabid = sender.tab.id;
             chrome.tabs.query(bgdata, function(tabs: chrome.tabs.Tab[]) {
                 chrome.tabs.sendMessage(tabs[0].id, msg, function(resData: Messages.Response) {
-                    if (resData) {
+                    if(resData.error) {
+                        sendError(resData.error);
+                    }
+                    else {
                         sendResponse(resData.data);
                     }
                 });
@@ -140,7 +155,7 @@ export function setup() {
             chrome.tabs.create({ url: bgdata.url });
         },
         pauseAllVideos: function(msg, bgdata, sender, sendResponse) {
-            chrome.tabs.sendMessage(sender.tab.id, { func: "pauseVideos" });
+            sendMessage(sender.tab.id, { func: "pauseVideos", data: null });
         },
         setIconPopup: function(msg, bgdata: SetIconPopup, sender, sendResponse) {
             chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
@@ -156,7 +171,7 @@ export function setup() {
                 bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
             }
             console.log(bgdata)
-            Analytics.postData(bgdata);
+            Analytics.fireEvent(bgdata["ec"], bgdata["ea"], bgdata["el"]);
         },
         redirectHosts: function(msg, bgdata, sender, sendResponse) {
             getRedirectHosts().then(function(redirectHosts) {

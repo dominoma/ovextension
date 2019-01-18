@@ -92,11 +92,13 @@ Page.isReady().then(function() {
             let this_ = this;
             return Storage.sync.get("VideoSearchWebsites").then(function(sites: Website[]) {
                 if (sites == null) {
-                    return resolveFavicons([
+                    let sites = resolveFavicons([
                         { name: "9Anime", host: "9anime.to" },
                         { name: "StreamCR", host: "scr.cr" },
                         { name: "KimCartoon", host: "kimcartoon.to" }
                     ]);
+                    Storage.sync.set("VideoSearchWebsites", sites);
+                    return sites;
 
                 }
                 else {
@@ -117,18 +119,35 @@ Page.isReady().then(function() {
         onSelected() {
             console.log(this.selected.data)
             if (this.selected.data.host == "$$AddSite") {
-                let value = prompt("Please enter name and host of the website seperated by a comma. (eg. 'YouTube,youtube.com')", "name,host");
-                if (value) {
-                    let this_ = this;
-                    let args = value.split(",").map((e) => { return e.trim() });
-                    Analytics.fireEvent(args[0], "VideoSearchSiteAdded", args[1]);
+                let name = prompt("Please enter the name of the website you want to add. (eg. YouTube)", "");
+                if (name) {
+                    let host = prompt("Please enter the url of the website you want to add. (eg. youtube.com)", "");
+                    if(host) {
+                        let hostmatch = host.match(/(https?:\/\/)?([^:\/]*\.[a-zA-Z]{2,})/i);
+                        if(hostmatch) {
+                            host = hostmatch[2];
+                            Analytics.fireEvent(name, "VideoSearchSiteAdded", host);
+                            this.select(1);
+                            let this_ = this;
+                            getWebsiteIcon("https://" + host).then(function(favicon) {
+                                let newentry = { name: name, host: host, favicon: favicon };
+                                this_.addItem(newentry);
+                                this_.select(this_.items.length);
+                                this_.saveWebsites();
+                            });
+                        }
+                        else {
+                            this.select(1);
+                            alert("Your input ('"+host+"') is not a valid url!");
+                        }
+                       
+                    }
+                    else {
+                        this.select(1);
+                    }
+                    
 
-                    getWebsiteIcon("https://" + args[1]).then(function(favicon) {
-                        let newentry = { name: args[0], host: args[1], favicon: favicon };
-                        this_.addItem(newentry);
-                        this_.select(this_.items.length);
-                        this_.saveWebsites();
-                    });
+                    
                 }
                 else {
                     this.select(1);

@@ -255,7 +255,6 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
     player.setVideoData(videoData);
 
     //player.aspectRatio("0:0");
-
     player.saveToHistory = function() {
         Storage.sync.get("disableHistory").then(function(disabled) {
             if (!disabled) {
@@ -273,7 +272,7 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
                         poster: videoData.poster,
                         title: videoData.title,
                         origin: videoData.origin,
-                        stoppedTime: player.currentTime()
+                        stoppedTime: player.currentTime() == player.duration() ? 0 : player.currentTime()
                     };
 
 

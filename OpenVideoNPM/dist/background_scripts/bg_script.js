@@ -207,25 +207,42 @@ function addListener(functions) {
         document.addEventListener('ovmessage', function (ev) {
             let event = ev;
             var details = event.detail;
-            if (lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
+            if (details && lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
+                let sendMsg = function (data, error) {
+                    let dtl = {
+                        hash: details.hash,
+                        data: {
+                            data: data,
+                            state: State.EvToMdwRsp,
+                            call: details.data,
+                            sender: { url: location.href }
+                        }
+                    };
+                    if (error) {
+                        dtl.data.error = error;
+                        console.error(error);
+                    }
+                    ;
+                    var event = new CustomEvent('ovmessage', {
+                        detail: dtl
+                    });
+                    sendMsg = function (data, error) { };
+                    document.dispatchEvent(event);
+                };
                 try {
                     var result = lnfunctions[details.data.func](details.data, function (data) {
-                        var event = new CustomEvent('ovmessage', {
-                            detail: {
-                                hash: details.hash,
-                                data: {
-                                    data: data,
-                                    state: State.EvToMdwRsp,
-                                    call: details.data,
-                                    sender: { url: location.href }
-                                }
-                            }
-                        });
-                        document.dispatchEvent(event);
+                        sendMsg(data);
+                    }, function (error) {
+                        sendMsg(null, error);
                     });
                 }
                 catch (e) {
-                    throw { error: e, sender: details.data.sender };
+                    if (e instanceof Error) {
+                        sendMsg(null, e);
+                    }
+                    else {
+                        sendMsg(null, new Error(e));
+                    }
                 }
                 if (result && result.blocked) {
                     blockedFuncs.push(details.data.func);
@@ -242,7 +259,15 @@ function send(obj) {
         sender: { url: location.href },
         bgdata: obj.bgdata,
         state: State.EvToMdw
-    }, true);
+    }, true).then(function (response) {
+        if (response.error) {
+            console.error(response.error);
+            throw response.error;
+        }
+        else {
+            return response;
+        }
+    });
 }
 exports.send = send;
 function eventPingPong(data, beforeBG) {
@@ -252,7 +277,7 @@ function eventPingPong(data, beforeBG) {
         let one = function (ev) {
             let event = ev;
             var details = event.detail;
-            if (details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
+            if (details && details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
                 document.removeEventListener('ovmessage', one);
                 resolve(details.data);
             }
@@ -281,7 +306,7 @@ function setupMiddleware() {
         document.addEventListener('ovmessage', function (ev) {
             let event = ev;
             var details = event.detail;
-            if (details.data.state === State.EvToMdw) {
+            if (details && details.data.state === State.EvToMdw) {
                 details.data.state = State.MdwToBG;
                 if (details.data.bgdata) {
                     chrome.runtime.sendMessage(details.data, function (resData) {
@@ -350,9 +375,30 @@ function setupBackground(functions) {
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
             if (msg.state === State.MdwToBG) {
                 if (bgfunctions[msg.bgdata.func]) {
-                    bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function (response) {
-                        sendResponse({ data: response, state: State.BGToMdwRsp, call: msg, sender: sender });
-                    });
+                    let sendMsg = function (data, error) {
+                        let resp = { data: data, state: State.BGToMdwRsp, call: msg, sender: sender };
+                        if (error) {
+                            console.error(error);
+                            resp.error = error;
+                        }
+                        sendMsg = function (data, error) { };
+                        sendResponse(resp);
+                    };
+                    try {
+                        bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function (response) {
+                            sendMsg(response);
+                        }, function (error) {
+                            sendMsg(null, error);
+                        });
+                    }
+                    catch (e) {
+                        if (e instanceof Error) {
+                            sendMsg(null, e);
+                        }
+                        else {
+                            sendMsg(null, new Error(e));
+                        }
+                    }
                     return true;
                 }
             }
@@ -745,7 +791,6 @@ function postData(data) {
         return Promise.reject(Error("Analytics is disabled!"));
     });
 }
-exports.postData = postData;
 function send(data) {
     if (Environment.isBackgroundPage()) {
         return postData(data).then(function () { return { success: true }; });
@@ -754,7 +799,6 @@ function send(data) {
         return Messages.send({ bgdata: { func: "analytics", data: data } }).then(function () { return { success: true }; });
     }
 }
-exports.send = send;
 function fireEvent(category, action, label) {
     send({ t: "event", ec: category, ea: action, el: label });
 }
@@ -1065,34 +1109,50 @@ function sendMessage(tabid, msg) {
         }, {
             frameId: 0
         }, function (resData) {
-            response(resData);
+            if (resData.error) {
+                reject(resData.error);
+            }
+            else {
+                response(resData);
+            }
         });
     });
 }
 exports.sendMessage = sendMessage;
 function setup() {
     Messages.setupBackground({
-        toTopWindow: function (msg, bgdata, sender, sendResponse) {
+        toTopWindow: function (msg, bgdata, sender, sendResponse, sendError) {
             var tabid = sender.tab.id;
             chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
-                sendResponse(resData.data);
+                if (resData.error) {
+                    sendError(resData.error);
+                }
+                else {
+                    sendResponse(resData.data);
+                }
             });
         },
-        toActiveTab: function (msg, bgdata, sender, sendResponse) {
+        toActiveTab: function (msg, bgdata, sender, sendResponse, sendError) {
             var tabid = sender.tab.id;
             chrome.tabs.query({ active: true }, function (tabs) {
                 chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
-                    if (resData) {
+                    if (resData.error) {
+                        sendError(resData.error);
+                    }
+                    else {
                         sendResponse(resData.data);
                     }
                 });
             });
         },
-        toTab: function (msg, bgdata, sender, sendResponse) {
+        toTab: function (msg, bgdata, sender, sendResponse, sendError) {
             var tabid = sender.tab.id;
             chrome.tabs.query(bgdata, function (tabs) {
                 chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                    if (resData) {
+                    if (resData.error) {
+                        sendError(resData.error);
+                    }
+                    else {
                         sendResponse(resData.data);
                     }
                 });
@@ -1102,7 +1162,7 @@ function setup() {
             chrome.tabs.create({ url: bgdata.url });
         },
         pauseAllVideos: function (msg, bgdata, sender, sendResponse) {
-            chrome.tabs.sendMessage(sender.tab.id, { func: "pauseVideos" });
+            sendMessage(sender.tab.id, { func: "pauseVideos", data: null });
         },
         setIconPopup: function (msg, bgdata, sender, sendResponse) {
             chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
@@ -1118,7 +1178,7 @@ function setup() {
                 bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
             }
             console.log(bgdata);
-            Analytics.postData(bgdata);
+            Analytics.fireEvent(bgdata["ec"], bgdata["ea"], bgdata["el"]);
         },
         redirectHosts: function (msg, bgdata, sender, sendResponse) {
             redirect_scripts_base_1.getRedirectHosts().then(function (redirectHosts) {
@@ -1597,7 +1657,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function (details) {
         removeHeader(details.requestHeaders, "Referer");
         console.log(details.requestHeaders);
         return { requestHeaders: details.requestHeaders };
-        //returnHash.redirectUrl = redirectUrl.replace(/[\?&]isOV=[^\?&]*/g, "");
     }
     return null;
 }, {

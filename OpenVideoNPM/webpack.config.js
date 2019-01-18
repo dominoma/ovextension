@@ -53,13 +53,16 @@ module.exports = {
         extensions: [
             '.ts',
             '.js',
-            '.d.ts'
+            '.d.ts',
+            '.tsx',
+            '.json'
         ]
 
 
     },
     plugins: [
     	new CleanWebpackPlugin([
+    		'OpenVideo.zip',
     		'dist/*.map',
     		'dist/*.js', 
     		'dist/pages/**/*.js', 

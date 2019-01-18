@@ -119,7 +119,23 @@ export function registerIFrame(iframe: HTMLIFrameElement) {
 }
 export function nameIFrames() {
     function nameIFrame(iframe: HTMLIFrameElement) {
-        if (!iframe.hasAttribute("name")) {
+        function checkBounds(iframe: HTMLIFrameElement) {
+            
+            
+            if(iframe.offsetLeft < 0 || iframe.offsetTop < 0) {
+                
+                return false;
+            }
+            else if((iframe.offsetWidth / window.innerWidth)*100 < 30 || (iframe.offsetHeight / window.innerHeight)*100 < 30) {
+                
+                return false;
+            } 
+            else {
+                return true;
+            }
+        }
+        if (!iframe.hasAttribute("name") && checkBounds(iframe)) {
+            console.log(iframe);
             iframe.name = Tools.generateHash();
             if (iframe.width) {
                 iframe.style.width = iframe.width;
@@ -141,6 +157,7 @@ export function nameIFrames() {
         }
     });
     Page.onNodeInserted(document, function(tgt) {
+       
         let target = tgt as HTMLIFrameElement;
         if (target.getElementsByTagName) {
             let iframes = target.getElementsByTagName("iframe");
@@ -152,6 +169,7 @@ export function nameIFrames() {
                 nameIFrame(iframe);
             }
         }
+        
     });
 }
 export function activateEntry(entry: IFrameEntry) {

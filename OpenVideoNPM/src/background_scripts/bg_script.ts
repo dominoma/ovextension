@@ -103,7 +103,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
         removeHeader(details.requestHeaders, "Referer");
         console.log(details.requestHeaders)
         return { requestHeaders: details.requestHeaders }
-        //returnHash.redirectUrl = redirectUrl.replace(/[\?&]isOV=[^\?&]*/g, "");
+       
     }
     return null;
 
