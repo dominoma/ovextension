@@ -10,8 +10,6 @@ import * as Messages from "./OV/messages";
 import * as Storage from "./OV/storage";
 import * as Languages from "./OV/languages";
 
-import * as TheatreMode from "./Messages/theatremode";
-
 import * as OVPlayerComponents from "./ov_player_components";
 
 import videojs_raw from "video.js";
@@ -122,10 +120,8 @@ export function parseSrt(dataAndEvents: string, oncue: (cue: VideoTypes.VTTCue) 
         }
     }
 }
-export function addTextTrack(player: Player, rawTrack: VideoTypes.SubtitleSource) {
-    Tools.createRequest({ url: rawTrack.src }).then(function(xhr) {
-        var srcContent = xhr.responseText;
-        //function (srcContent) {
+export async function addTextTrack(player: Player, rawTrack: VideoTypes.SubtitleSource) {
+    function convertToTrack(srcContent : string) {
         if (srcContent.indexOf("-->") !== -1) {
 
             player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
@@ -140,7 +136,15 @@ export function addTextTrack(player: Player, rawTrack: VideoTypes.SubtitleSource
         } else {
             throw Error("Invaid subtitle file");
         }
-    });
+    }
+    try {
+        let xhr = await Tools.createRequest({ url: rawTrack.src });
+        convertToTrack(xhr.responseText);
+    }
+    catch(e) {
+        let xhr = await Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
+        convertToTrack(xhr.responseText);
+    }
 }
 export function getPlayer() {
     return player;
@@ -191,7 +195,6 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
             Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
         });
         FullscreenToggle.on("click", function() {
-            let fullscreen = player.isFullscreen();
             window.setTimeout(function() {
                 if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && player.isFullscreen()) {
                     console.log("FULLSCREEN ERROR");

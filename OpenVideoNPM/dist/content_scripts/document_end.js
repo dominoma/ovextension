@@ -415,6 +415,14 @@ exports.setupBackground = setupBackground;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 function generateHash() {
     var ts = Math.round(+new Date() / 1000.0);
@@ -561,7 +569,8 @@ function parseUrlQuery(url) {
 }
 exports.parseUrlQuery = parseUrlQuery;
 function getUrlFileName(url) {
-    return createRequest({ url: url, type: "HEAD" /* HEAD */ }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
         var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
         if (filename && filename != "") {
             return filename;
@@ -573,7 +582,8 @@ function getUrlFileName(url) {
 }
 exports.getUrlFileName = getUrlFileName;
 function getRedirectedUrl(url) {
-    return createRequest({ url: url, type: "HEAD" /* HEAD */ }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
         return xhr.responseURL;
     });
 }
@@ -607,20 +617,41 @@ function addParamsToURL(url, obj) {
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function removeParamsFromURL(url, params) {
+    for (let param of params) {
+        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
+    }
+    return url;
+}
+exports.removeParamsFromURL = removeParamsFromURL;
+function getParamFromURL(url, param) {
+    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
+    if (match) {
+        return match[1];
+    }
+    else {
+        return null;
+    }
+}
+exports.getParamFromURL = getParamFromURL;
 function addRefererToURL(url, referer) {
     return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
 }
 exports.addRefererToURL = addRefererToURL;
 function getRefererFromURL(url) {
-    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
-    if (match) {
-        return atob(decodeURIComponent(match[1]));
+    var param = getParamFromURL(url, "OVReferer");
+    if (param) {
+        return atob(decodeURIComponent(param));
     }
     else {
         return null;
     }
 }
 exports.getRefererFromURL = getRefererFromURL;
+function removeRefererFromURL(url) {
+    return removeParamsFromURL(url, ["OVReferer"]);
+}
+exports.removeRefererFromURL = removeRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;
@@ -1411,10 +1442,6 @@ function registerIFrame(iframe) {
             }
         }
     });
-    if (iframe.hasAttribute("allow")) {
-        iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;")); //fullscreen *;
-    }
-    iframe.allowFullscreen = true;
     let observer = new MutationObserver(function (mutations) {
         if (isFrameActive() && getActiveFrame().iframe == iframe) {
             let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
@@ -1453,7 +1480,7 @@ function nameIFrames() {
                 return true;
             }
         }
-        if (!iframe.hasAttribute("name") && checkBounds(iframe)) {
+        if (!iframe.hasAttribute("name") && (checkBounds(iframe) || (iframe.hasAttribute("allow") && iframe.getAttribute("allow").indexOf("fullscreen") != -1))) {
             console.log(iframe);
             iframe.name = Tools.generateHash();
             if (iframe.width) {
@@ -1464,6 +1491,10 @@ function nameIFrames() {
                 iframe.style.height = iframe.height;
                 iframe.removeAttribute("height");
             }
+            if (iframe.hasAttribute("allow")) {
+                iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;")); //fullscreen *;
+            }
+            iframe.allowFullscreen = true;
             let sibling = iframe.nextElementSibling;
             let parent = iframe.parentElement;
             iframe.remove();
@@ -1585,6 +1616,14 @@ exports.setup = setup;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const ScriptBase = __webpack_require__(9);
 const Analytics = __webpack_require__(5);
@@ -1595,6 +1634,18 @@ function suspectSubtitledVideo(details, xhr) {
         Analytics.fireEvent(details.hostname, "TracksFound", details.url);
     }
 }
+function getTracksFromHTML(html) {
+    let subtitleTags = html.match(/<track(.*)\/>/g) || [];
+    let subtitles = [];
+    for (let subtitleTag of subtitleTags) {
+        let label = Tools.matchNull(subtitleTag, /label="([^"]*)"/);
+        let src = Tools.matchNull(subtitleTag, /src="([^"]*)"/);
+        if (src) {
+            subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
+        }
+    }
+    return subtitles;
+}
 function install() {
     ScriptBase.addRedirectHost({
         name: "RapidVideo",
@@ -1603,58 +1654,63 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            details.url = details.url.replace(/(\/?\?v=|\/v\/)/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");
-                            let parser = new DOMParser();
-                            function checkResponse(xhr) {
-                                if (xhr.response.indexOf("To continue, please type the characters below") != -1) {
-                                    location.href = Tools.addParamsToURL(location.href, { ovignore: "true" });
+                            return __awaiter(this, void 0, void 0, function* () {
+                                details.url = details.url.replace(/(\/?\?v=|\/v\/)/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");
+                                let parser = new DOMParser();
+                                function checkResponse(xhr) {
+                                    if (xhr.response.indexOf("To continue, please type the characters below") != -1) {
+                                        location.href = Tools.addParamsToURL(location.href, { ovignore: "true" });
+                                    }
                                 }
-                            }
-                            function getVideoInfo() {
-                                return Tools.createRequest({ url: details.url, referer: details.url }).then(function (xhr) {
-                                    suspectSubtitledVideo(details, xhr);
-                                    checkResponse(xhr);
-                                    let html = parser.parseFromString(xhr.response, "text/html");
-                                    let title = html.title;
-                                    let videoTag = html.getElementsByTagName("video")[0];
-                                    let poster = videoTag.poster;
-                                    let tracksHTML = videoTag.getElementsByTagName("track");
-                                    let tracks = [];
-                                    for (let track of tracksHTML) {
-                                        tracks.push({ src: track.src, label: track.label, kind: track.kind, default: track.default });
-                                    }
-                                    let urlsHTML = html.querySelectorAll('a[href*="https://www.rapidvideo.com/e/"]');
-                                    let urls = [];
-                                    for (let url of urlsHTML) {
-                                        urls.push(url.href);
-                                    }
-                                    if (urls.length == 0) {
-                                        urls.push(details.url);
-                                    }
-                                    return { title: title, poster: poster, tracks: tracks, urls: urls };
-                                });
-                            }
-                            function getVideoSrc(url) {
-                                return Tools.createRequest({ url: url, referer: details.url }).then(function (xhr) {
-                                    checkResponse(xhr);
-                                    let html = parser.parseFromString(xhr.response, "text/html");
-                                    let source = html.getElementsByTagName("source")[0];
-                                    return {
-                                        src: source.src,
-                                        label: source.title,
-                                        type: source.type,
-                                        res: parseInt(source.dataset.res)
-                                    };
-                                });
-                            }
-                            function getVideoSrces(info) {
-                                return Promise.all(info.urls.map(getVideoSrc)).then(function (videos) {
-                                    videos[videos.length - 1].default = true;
-                                    return { src: videos, poster: info.poster, title: info.title, tracks: info.tracks };
-                                });
-                            }
-                            return getVideoInfo().then(function (info) {
-                                return getVideoSrces(info);
+                                function getVideoInfo() {
+                                    return __awaiter(this, void 0, void 0, function* () {
+                                        let xhr = yield Tools.createRequest({ url: details.url, referer: details.url });
+                                        suspectSubtitledVideo(details, xhr);
+                                        checkResponse(xhr);
+                                        let html = parser.parseFromString(xhr.response, "text/html");
+                                        let title = html.title;
+                                        let videoTag = html.getElementsByTagName("video")[0];
+                                        let poster = videoTag.poster;
+                                        let tracksHTML = videoTag.getElementsByTagName("track");
+                                        let tracks = [];
+                                        for (let track of tracksHTML) {
+                                            tracks.push({ src: track.src, label: track.label, kind: track.kind, default: track.default });
+                                        }
+                                        let urlsHTML = html.querySelectorAll('a[href*="https://www.rapidvideo.com/e/"]');
+                                        let urls = [];
+                                        for (let url of urlsHTML) {
+                                            urls.push(url.href);
+                                        }
+                                        if (urls.length == 0) {
+                                            urls.push(details.url);
+                                        }
+                                        return { title: title, poster: poster, tracks: tracks, urls: urls };
+                                    });
+                                }
+                                function getVideoSrc(url) {
+                                    return __awaiter(this, void 0, void 0, function* () {
+                                        let xhr = yield Tools.createRequest({ url: url, referer: details.url });
+                                        checkResponse(xhr);
+                                        let html = parser.parseFromString(xhr.response, "text/html");
+                                        let source = html.getElementsByTagName("source")[0];
+                                        return {
+                                            src: source.src,
+                                            label: source.title,
+                                            type: source.type,
+                                            res: parseInt(source.dataset.res)
+                                        };
+                                    });
+                                }
+                                function getVideoSrces(info) {
+                                    return __awaiter(this, void 0, void 0, function* () {
+                                        let videos = yield Promise.all(info.urls.map(getVideoSrc));
+                                        videos[videos.length - 1].default = true;
+                                        return { src: videos, poster: info.poster, title: info.title, tracks: info.tracks };
+                                    });
+                                }
+                                let info = yield getVideoInfo();
+                                let srces = yield getVideoSrces(info);
+                                return srces;
                             });
                         }
                     }]
@@ -1667,48 +1723,49 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            if (details.url.indexOf("openload.co") == -1) {
-                                details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
-                            }
-                            if (details.url.indexOf("/f/") != -1) {
-                                Analytics.fireEvent("OpenLoad over File", "Utils", details.url);
-                                details.url = details.url.replace("/f/", "/embed/");
-                            }
-                            function getStreamUrl(longString, varAtbytes, varAt_1x4bfb36) {
-                                let streamUrl = "";
-                                let hexByteArr = [];
-                                for (let i = 0; i < 9 * 8; i += 8) {
-                                    hexByteArr.push(parseInt(longString.substring(i, i + 8), 16));
+                            return __awaiter(this, void 0, void 0, function* () {
+                                if (details.url.indexOf("openload.co") == -1) {
+                                    details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
                                 }
-                                longString = longString.substring(9 * 8);
-                                let iterator = 0;
-                                for (let arrIterator = 0; iterator < longString.length; arrIterator++) {
-                                    let maxHex = 64;
-                                    let value = 0;
-                                    let currHex = 255;
-                                    for (let byteIterator = 0; currHex >= maxHex; byteIterator += 6) {
-                                        if (iterator + 1 >= longString.length) {
-                                            maxHex = 0x8F;
-                                        }
-                                        currHex = parseInt(longString.substring(iterator, iterator + 2), 16);
-                                        value += (currHex & 63) << byteIterator;
-                                        iterator += 2;
-                                    }
-                                    let bytes = value ^ hexByteArr[arrIterator % 9] ^ varAtbytes ^ varAt_1x4bfb36;
-                                    let usedBytes = maxHex * 2 + 127;
-                                    for (let i = 0; i < 4; i++) {
-                                        let urlChar = String.fromCharCode(((bytes & usedBytes) >> 8 * i) - 1);
-                                        if (urlChar != "$") {
-                                            streamUrl += urlChar;
-                                        }
-                                        usedBytes = usedBytes << 8;
-                                    }
+                                if (details.url.indexOf("/f/") != -1) {
+                                    Analytics.fireEvent("OpenLoad over File", "Utils", details.url);
+                                    details.url = details.url.replace("/f/", "/embed/");
                                 }
-                                //console.log(streamUrl)    
-                                return streamUrl;
-                            }
-                            console.log(details.url);
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                                function getStreamUrl(longString, varAtbytes, varAt_1x4bfb36) {
+                                    let streamUrl = "";
+                                    let hexByteArr = [];
+                                    for (let i = 0; i < 9 * 8; i += 8) {
+                                        hexByteArr.push(parseInt(longString.substring(i, i + 8), 16));
+                                    }
+                                    longString = longString.substring(9 * 8);
+                                    let iterator = 0;
+                                    for (let arrIterator = 0; iterator < longString.length; arrIterator++) {
+                                        let maxHex = 64;
+                                        let value = 0;
+                                        let currHex = 255;
+                                        for (let byteIterator = 0; currHex >= maxHex; byteIterator += 6) {
+                                            if (iterator + 1 >= longString.length) {
+                                                maxHex = 0x8F;
+                                            }
+                                            currHex = parseInt(longString.substring(iterator, iterator + 2), 16);
+                                            value += (currHex & 63) << byteIterator;
+                                            iterator += 2;
+                                        }
+                                        let bytes = value ^ hexByteArr[arrIterator % 9] ^ varAtbytes ^ varAt_1x4bfb36;
+                                        let usedBytes = maxHex * 2 + 127;
+                                        for (let i = 0; i < 4; i++) {
+                                            let urlChar = String.fromCharCode(((bytes & usedBytes) >> 8 * i) - 1);
+                                            if (urlChar != "$") {
+                                                streamUrl += urlChar;
+                                            }
+                                            usedBytes = usedBytes << 8;
+                                        }
+                                    }
+                                    //console.log(streamUrl)
+                                    return streamUrl;
+                                }
+                                console.log(details.url);
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.responseText;
                                 console.log(xhr.responseURL);
@@ -1718,15 +1775,7 @@ function install() {
                                 }
                                 let thumbnailUrl = Tools.matchNull(HTML, /poster="([^"]*)"/);
                                 let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
-                                let subtitleTags = HTML.match(/<track(.*)\/>/g) || [];
-                                let subtitles = [];
-                                for (let subtitleTag of subtitleTags) {
-                                    let label = Tools.matchNull(subtitleTag, /label="([^"]*)"/);
-                                    let src = Tools.matchNull(subtitleTag, /src="([^"]*)"/);
-                                    if (src) {
-                                        subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
-                                    }
-                                }
+                                let subtitles = getTracksFromHTML(HTML);
                                 let longString = HTML.match(/<p style=""[^>]*>([^<]*)<\/p>/)[1];
                                 console.log(longString);
                                 let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)[1];
@@ -1774,27 +1823,28 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock)\.[^\/,^\.]{2,}/, "fruitstreams.com").replace(/\/f\//, "/embed/");
-                            function resolveVideo(hashCode, intVal) {
-                                let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
-                                let retVal = '';
-                                hashCode = hashCode.replace(/[^A-Za-z0-9\+\/\=]/g, '');
-                                for (let hashIndex = 0; hashIndex < hashCode.length; hashIndex += 4) {
-                                    let hashCharCode_0 = chars.indexOf(hashCode.charAt(hashIndex));
-                                    let hashCharCode_1 = chars.indexOf(hashCode.charAt(hashIndex + 1));
-                                    let hashCharCode_2 = chars.indexOf(hashCode.charAt(hashIndex + 2));
-                                    let hashCharCode_3 = chars.indexOf(hashCode.charAt(hashIndex + 3));
-                                    retVal = retVal + String.fromCharCode(((hashCharCode_0 << 0x2) | (hashCharCode_1 >> 0x4)) ^ intVal);
-                                    if (hashCharCode_2 != 0x40) {
-                                        retVal = retVal + String.fromCharCode(((hashCharCode_1 & 0xf) << 0x4) | (hashCharCode_2 >> 0x2));
+                            return __awaiter(this, void 0, void 0, function* () {
+                                details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock)\.[^\/,^\.]{2,}/, "fruitstreams.com").replace(/\/f\//, "/embed/");
+                                function resolveVideo(hashCode, intVal) {
+                                    let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
+                                    let retVal = '';
+                                    hashCode = hashCode.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+                                    for (let hashIndex = 0; hashIndex < hashCode.length; hashIndex += 4) {
+                                        let hashCharCode_0 = chars.indexOf(hashCode.charAt(hashIndex));
+                                        let hashCharCode_1 = chars.indexOf(hashCode.charAt(hashIndex + 1));
+                                        let hashCharCode_2 = chars.indexOf(hashCode.charAt(hashIndex + 2));
+                                        let hashCharCode_3 = chars.indexOf(hashCode.charAt(hashIndex + 3));
+                                        retVal = retVal + String.fromCharCode(((hashCharCode_0 << 0x2) | (hashCharCode_1 >> 0x4)) ^ intVal);
+                                        if (hashCharCode_2 != 0x40) {
+                                            retVal = retVal + String.fromCharCode(((hashCharCode_1 & 0xf) << 0x4) | (hashCharCode_2 >> 0x2));
+                                        }
+                                        if (hashCharCode_3 != 0x40) {
+                                            retVal = retVal + String.fromCharCode(((hashCharCode_2 & 0x3) << 0x6) | hashCharCode_3);
+                                        }
                                     }
-                                    if (hashCharCode_3 != 0x40) {
-                                        retVal = retVal + String.fromCharCode(((hashCharCode_2 & 0x3) << 0x6) | hashCharCode_3);
-                                    }
+                                    return retVal;
                                 }
-                                return retVal;
-                            }
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.responseText;
                                 if (xhr.status != 200 || HTML.indexOf("We are unable to find the video you're looking for.") != -1) {
@@ -1806,7 +1856,8 @@ function install() {
                                 let src = { type: "video/mp4", src: "https:" + resolveVideo(funcStr, funcInt), label: "SD" };
                                 let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
                                 let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
-                                return { src: [src], poster: poster, title: title, tracks: [] };
+                                let subtitles = getTracksFromHTML(HTML);
+                                return { src: [src], poster: poster, title: title, tracks: subtitles };
                             });
                         }
                     }]
@@ -1819,24 +1870,25 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            return new Promise(function (resolve, reject) {
-                                Page.isReady().then(function () {
-                                    let HTML = document.documentElement.innerHTML;
-                                    let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-                                    let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)[1]);
-                                    let srces = [];
-                                    for (let src of rawsrces) {
-                                        srces.push({ src: src.file, type: "application/x-mpegURL", label: "SD" });
-                                    }
-                                    ;
-                                    let poster = Tools.matchNull(HTML, /image: '([^']*)'/);
-                                    resolve({
-                                        src: srces,
-                                        poster: poster,
-                                        title: title,
-                                        tracks: []
-                                    });
-                                });
+                            return __awaiter(this, void 0, void 0, function* () {
+                                yield Page.isReady();
+                                let HTML = document.documentElement.innerHTML;
+                                let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+                                let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)[1]);
+                                let srces = [];
+                                for (let src of rawsrces) {
+                                    srces.push({ src: src.file, type: "application/x-mpegURL", label: "SD" });
+                                }
+                                ;
+                                let poster = Tools.matchNull(HTML, /image: '([^']*)'/);
+                                let trackFile = Tools.getParamFromURL(details.url, "sub.file");
+                                let trackLabel = Tools.getParamFromURL(details.url, "sub.label") || "English";
+                                return {
+                                    src: srces,
+                                    poster: poster,
+                                    title: title,
+                                    tracks: trackFile ? [{ src: decodeURIComponent(decodeURIComponent(trackFile)), label: trackLabel, kind: "Captions", default: true }] : []
+                                };
                             });
                         }
                     }]
@@ -1849,11 +1901,12 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            let embedID = details.match[3];
-                            return Promise.all([
-                                Tools.createRequest({ url: "https://vidcloud.co/player", data: { fid: embedID } }),
-                                Tools.createRequest({ url: "https://vidcloud.co/download", type: "POST" /* POST */, data: { file_id: embedID } })
-                            ]).then(function (xhrs) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                let embedID = details.match[3];
+                                let xhrs = yield Promise.all([
+                                    Tools.createRequest({ url: "https://vidcloud.co/player", data: { fid: embedID } }),
+                                    Tools.createRequest({ url: "https://vidcloud.co/download", type: "POST" /* POST */, data: { file_id: embedID } })
+                                ]);
                                 suspectSubtitledVideo(details, xhrs[0]);
                                 let html = JSON.parse(xhrs[0].response).html;
                                 let dlhtml = JSON.parse(xhrs[1].response).html;
@@ -1893,7 +1946,8 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.response;
                                 if (details.url.indexOf("/embed") == -1) {
@@ -1932,8 +1986,8 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            console.log("W");
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.response;
                                 if (HTML.indexOf("File was deleted") != -1) {
@@ -1962,7 +2016,8 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.response;
                                 let videoURL = atob(HTML.match(/data-stream="([^"]*)"/)[1]);
@@ -1985,10 +2040,11 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            if (details.url.indexOf("embed-") == -1 && details.url.indexOf(".html") != -1) {
-                                details.url = details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
-                            }
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                if (details.url.indexOf("embed-") == -1 && details.url.indexOf(".html") != -1) {
+                                    details.url = details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
+                                }
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.responseText;
                                 if (xhr.status != 200 || HTML.indexOf("File Does not Exist, or Has Been Removed") != -1) {
@@ -2020,44 +2076,47 @@ function install() {
                         run_at: "document_idle" /* document_idle */,
                         hide_page: false,
                         script: function (details) {
-                            return new Promise(function (resolve, reject) {
-                                let button = document.getElementsByName('imhuman')[0];
-                                if (button == undefined) {
-                                    reject(Error("No Video!"));
-                                }
-                                else {
-                                    Page.addAttributeListener(button, "class", function () {
-                                        if (button.className == 'button gray blue') {
-                                            Tools.createRequest({
-                                                url: details.url,
-                                                type: "POST" /* POST */,
-                                                protocol: "http://",
-                                                formData: {
-                                                    op: "download1",
-                                                    id: details.match[2].match(/([^\/]*)(\/.*)?/)[1]
+                            return __awaiter(this, void 0, void 0, function* () {
+                                return new Promise(function (resolve, reject) {
+                                    let button = document.getElementsByName('imhuman')[0];
+                                    if (button == undefined) {
+                                        reject(Error("No Video!"));
+                                    }
+                                    else {
+                                        Page.addAttributeListener(button, "class", function () {
+                                            return __awaiter(this, void 0, void 0, function* () {
+                                                if (button.className == 'button gray blue') {
+                                                    let xhr = yield Tools.createRequest({
+                                                        url: details.url,
+                                                        type: "POST" /* POST */,
+                                                        protocol: "http://",
+                                                        formData: {
+                                                            op: "download1",
+                                                            id: details.match[2].match(/([^\/]*)(\/.*)?/)[1]
+                                                        }
+                                                    });
+                                                    suspectSubtitledVideo(details, xhr);
+                                                    let HTML = xhr.response;
+                                                    console.log(HTML);
+                                                    let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
+                                                    let src = videoHashStr.match(/file: "([^"]*)"/)[1];
+                                                    let poster = Tools.matchNull(videoHashStr, /image: "([^"]*)"/);
+                                                    let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+                                                    return {
+                                                        src: [{
+                                                                type: "video/mp4",
+                                                                src: src,
+                                                                label: "SD"
+                                                            }],
+                                                        title: title,
+                                                        poster: poster,
+                                                        tracks: []
+                                                    };
                                                 }
-                                            }).then(function (xhr) {
-                                                suspectSubtitledVideo(details, xhr);
-                                                let HTML = xhr.response;
-                                                console.log(HTML);
-                                                let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
-                                                let src = videoHashStr.match(/file: "([^"]*)"/)[1];
-                                                let poster = Tools.matchNull(videoHashStr, /image: "([^"]*)"/);
-                                                let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-                                                return {
-                                                    src: [{
-                                                            type: "video/mp4",
-                                                            src: src,
-                                                            label: "SD"
-                                                        }],
-                                                    title: title,
-                                                    poster: poster,
-                                                    tracks: []
-                                                };
-                                            }).then(resolve).catch(reject);
-                                        }
-                                    });
-                                }
+                                            });
+                                        });
+                                    }
+                                });
                             });
                         }
                     }]
@@ -2070,27 +2129,29 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            return Promise.resolve(null).then(function () {
-                                if (details.url.indexOf("embed") == -1) {
-                                    return Tools.createRequest({ url: details.url }).then(function (xhr) {
-                                        suspectSubtitledVideo(details, xhr);
-                                        if (xhr.response.indexOf('class="video-main"') != -1) {
-                                            return details.url.substr(details.url.lastIndexOf("/"));
+                            return __awaiter(this, void 0, void 0, function* () {
+                                function getVideoCode() {
+                                    return __awaiter(this, void 0, void 0, function* () {
+                                        if (details.url.indexOf("embed") == -1) {
+                                            let xhr = yield Tools.createRequest({ url: details.url });
+                                            suspectSubtitledVideo(details, xhr);
+                                            if (xhr.response.indexOf('class="video-main"') != -1) {
+                                                return details.url.substr(details.url.lastIndexOf("/"));
+                                            }
+                                            else {
+                                                throw Error("Not a Video!");
+                                            }
                                         }
                                         else {
-                                            throw Error("Not a Video!");
+                                            return details.url.substr(details.url.lastIndexOf("/") + 1);
                                         }
                                     });
                                 }
-                                else {
-                                    return details.url.substr(details.url.lastIndexOf("/") + 1);
-                                }
-                            }).then(function (videoCode) {
-                                return Promise.all([
+                                let videoCode = yield getVideoCode();
+                                let xhrs = yield Promise.all([
                                     Tools.createRequest({ url: "https://vev.io/api/serve/video/" + videoCode, type: "POST" /* POST */ }),
                                     Tools.createRequest({ url: "https://vev.io/api/serve/video/" + videoCode })
                                 ]);
-                            }).then(function (xhrs) {
                                 let videoJSON = JSON.parse(xhrs[0].response);
                                 let videoDesc = JSON.parse(xhrs[1].response);
                                 let srces = [];
@@ -2117,16 +2178,17 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            if (details.url.indexOf("embed-") != -1) {
-                                if (details.url.indexOf("-") == details.url.lastIndexOf("-")) {
-                                    details.url = details.url.replace("embed-", "");
+                            return __awaiter(this, void 0, void 0, function* () {
+                                if (details.url.indexOf("embed-") != -1) {
+                                    if (details.url.indexOf("-") == details.url.lastIndexOf("-")) {
+                                        details.url = details.url.replace("embed-", "");
+                                    }
+                                    else {
+                                        details.url = "https://www.vidzi.tv/" + details.url.match(/embed\-([^\-]*)\-/)[1];
+                                    }
+                                    console.log(details.url);
                                 }
-                                else {
-                                    details.url = "https://www.vidzi.tv/" + details.url.match(/embed\-([^\-]*)\-/)[1];
-                                }
-                                console.log(details.url);
-                            }
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.responseText;
                                 if (xhr.status != 200 || HTML.indexOf("file was deleted") != -1 || HTML.indexOf("yt-uix-form-textarea share-embed-code") == -1) {
@@ -2154,10 +2216,11 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            if (details.url.indexOf("sn-") != -1) {
-                                details.url = "https://www.speedvid.net/" + details.url.match(/sn\-([^\-]*)\-/i)[1];
-                            }
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                if (details.url.indexOf("sn-") != -1) {
+                                    details.url = "https://www.speedvid.net/" + details.url.match(/sn\-([^\-]*)\-/i)[1];
+                                }
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.responseText;
                                 if (xhr.status != 200 || HTML.indexOf("<Title>Watch </Title>") == -1) {
@@ -2184,7 +2247,8 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            return Tools.createRequest({ url: details.url, hideRef: true }).then(function (xhr) {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                let xhr = yield Tools.createRequest({ url: details.url, hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.response;
                                 console.log(HTML);
@@ -2209,21 +2273,23 @@ function install() {
                 runScopes: [{
                         run_at: "document_start" /* document_start */,
                         script: function (details) {
-                            return Promise.resolve().then(function () {
-                                if (details.match[5]) {
-                                    return details.match[5];
-                                }
-                                else {
-                                    return Promise.all([
-                                        Tools.createRequest({ url: "https://flashx.co/counter.cgi" }),
-                                        Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6" })
-                                    ]).then(function () {
-                                        return details.match[3] || details.match[4];
+                            return __awaiter(this, void 0, void 0, function* () {
+                                function getVideoCode() {
+                                    return __awaiter(this, void 0, void 0, function* () {
+                                        if (details.match[5]) {
+                                            return details.match[5];
+                                        }
+                                        else {
+                                            yield Promise.all([
+                                                Tools.createRequest({ url: "https://flashx.co/counter.cgi" }),
+                                                Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6" })
+                                            ]);
+                                            return details.match[3] || details.match[4];
+                                        }
                                     });
                                 }
-                            }).then(function (videoCode) {
-                                return Tools.createRequest({ url: "https://flashx.co/playvideo-" + videoCode + ".html?playvid", hideRef: true });
-                            }).then(function (xhr) {
+                                let videoCode = yield getVideoCode();
+                                let xhr = yield Tools.createRequest({ url: "https://flashx.co/playvideo-" + videoCode + ".html?playvid", hideRef: true });
                                 suspectSubtitledVideo(details, xhr);
                                 let HTML = xhr.responseText;
                                 if (xhr.status != 200 || HTML.indexOf("Sorry, file was deleted or the link is expired!") != -1) {

@@ -57,17 +57,13 @@ function pauseAllVideos() {
     Background.pauseAllVideos();
 }
 var firstpopup = true;
-interface AddVideoToPopup {
-    videoData: VideoTypes.VideoData;
-}
-export function isPopupVisible(): Promise<boolean> {
+export async function isPopupVisible(): Promise<boolean> {
     if (Page.isFrame()) {
-        return Background.toTopWindow({ data: {}, func: "isPopupVisible" }).then(function(response) {
-            return response.data.visible;
-        });
+        let response = await Background.toTopWindow({ data: {}, func: "isPopupVisible" });
+        return response.data.visible;
     }
     else {
-        return Promise.resolve(_isPopupVisible());
+        return _isPopupVisible();
     }
 }
 export function openPopup() {
@@ -101,7 +97,7 @@ export function setup() {
             setUnviewedVideos(newVideos);
         },
         addVideoToPopup: function(request, sendResponse) {
-            _addVideoToPopup(request.data.videoData);
+            _addVideoToPopup(VideoTypes.makeURLsSave(request.data.videoData));
         }
     });
 }

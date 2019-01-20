@@ -67,7 +67,7 @@ chrome.webRequest.onHeadersReceived.addListener(function(details) {
     return null;
 },
     {
-        urls: ["<all_urls>"]
+        urls: ["*://*/*OVReferer=*", "*://*/*isOV*"]
     },
     ['blocking', 'responseHeaders']
 );
@@ -94,8 +94,11 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
     if (referer) {
 
         setHeader(details.requestHeaders, "Referer", referer);
+        setHeader(details.requestHeaders, "Origin", "https://"+Tools.parseUrl(referer).host);
+        let newURL = Tools.removeRefererFromURL(details.url);
+        console.log(newURL);
         return { requestHeaders: details.requestHeaders }
-        //setHeader(requestHeaders, "Origin", "https://"+OV.tools.parseUrl(referer).host);
+
     }
     else if (details.url.match(/[\?&]isOV=true/i)) {
         console.log(details.requestHeaders, details.url)
@@ -103,14 +106,14 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
         removeHeader(details.requestHeaders, "Referer");
         console.log(details.requestHeaders)
         return { requestHeaders: details.requestHeaders }
-       
+
     }
     return null;
 
 
 },
     {
-        urls: ["<all_urls>"]
+        urls: ["*://*/*OVReferer=*", "*://*/*isOV*"]
     },
-    ['blocking', 'requestHeaders']
+    ['blocking', 'requestHeaders'] //extraHeaders when chrome 72
 );

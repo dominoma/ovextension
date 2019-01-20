@@ -147,22 +147,19 @@ export function parseUrlQuery(url: string): StringMap {
     }
     return query_string;
 }
-export function getUrlFileName(url: string): Promise<string> {
-    return createRequest({ url: url, type: HTTPMethods.HEAD }).then(function(xhr) {
-        var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
-        if (filename && filename != "") {
-            return filename;
-        }
-        else {
-            return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1).replace(/[&\?].*/, ""));
-        }
-    });
+export async function getUrlFileName(url: string): Promise<string> {
+    let xhr = await createRequest({ url: url, type: HTTPMethods.HEAD });
+    var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
+    if (filename && filename != "") {
+        return filename;
+    }
+    else {
+        return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1).replace(/[&\?].*/, ""));
+    }
 }
-export function getRedirectedUrl(url: string): Promise<String> {
-    return createRequest({ url: url, type: HTTPMethods.HEAD }).then(function(xhr) {
-        return xhr.responseURL;
-    });
-
+export async function getRedirectedUrl(url: string): Promise<String> {
+    let xhr = await createRequest({ url: url, type: HTTPMethods.HEAD });
+    return xhr.responseURL;
 }
 function objToURLParams(url: string, obj: StringMap): string {
     var str = "";
@@ -191,17 +188,35 @@ export function addParamsToURL(url: string, obj: StringMap): string {
         return url;
     }
 }
-export function addRefererToURL(url: string, referer: string) {
-    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+export function removeParamsFromURL(url: string, params: String[]) {
+    for(let param of params) {
+        url = url.replace(new RegExp("[\\?&]"+param+"=[^\\?&]*", "i"), "");
+    }
+    return url;
 }
-export function getRefererFromURL(url: string) {
-    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
-    if (match) {
-        return atob(decodeURIComponent(match[1]));
+export function getParamFromURL(url: string, param: string) {
+    var match = url.match(new RegExp("[\\?&]"+param+"=([^\\?&]*)","i"));
+    if(match) {
+        return match[1];
     }
     else {
         return null;
     }
+}
+export function addRefererToURL(url: string, referer: string) {
+    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+}
+export function getRefererFromURL(url: string) {
+    var param = getParamFromURL(url, "OVReferer");
+    if (param) {
+        return atob(decodeURIComponent(param));
+    }
+    else {
+        return null;
+    }
+}
+export function removeRefererFromURL(url: string) {
+    return removeParamsFromURL(url, ["OVReferer"]);
 }
 export const enum HTTPMethods {
     GET = "GET",

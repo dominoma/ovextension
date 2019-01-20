@@ -415,6 +415,14 @@ exports.setupBackground = setupBackground;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 function generateHash() {
     var ts = Math.round(+new Date() / 1000.0);
@@ -561,7 +569,8 @@ function parseUrlQuery(url) {
 }
 exports.parseUrlQuery = parseUrlQuery;
 function getUrlFileName(url) {
-    return createRequest({ url: url, type: "HEAD" /* HEAD */ }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
         var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
         if (filename && filename != "") {
             return filename;
@@ -573,7 +582,8 @@ function getUrlFileName(url) {
 }
 exports.getUrlFileName = getUrlFileName;
 function getRedirectedUrl(url) {
-    return createRequest({ url: url, type: "HEAD" /* HEAD */ }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
         return xhr.responseURL;
     });
 }
@@ -607,20 +617,41 @@ function addParamsToURL(url, obj) {
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function removeParamsFromURL(url, params) {
+    for (let param of params) {
+        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
+    }
+    return url;
+}
+exports.removeParamsFromURL = removeParamsFromURL;
+function getParamFromURL(url, param) {
+    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
+    if (match) {
+        return match[1];
+    }
+    else {
+        return null;
+    }
+}
+exports.getParamFromURL = getParamFromURL;
 function addRefererToURL(url, referer) {
     return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
 }
 exports.addRefererToURL = addRefererToURL;
 function getRefererFromURL(url) {
-    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
-    if (match) {
-        return atob(decodeURIComponent(match[1]));
+    var param = getParamFromURL(url, "OVReferer");
+    if (param) {
+        return atob(decodeURIComponent(param));
     }
     else {
         return null;
     }
 }
 exports.getRefererFromURL = getRefererFromURL;
+function removeRefererFromURL(url) {
+    return removeParamsFromURL(url, ["OVReferer"]);
+}
+exports.removeRefererFromURL = removeRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;

@@ -415,6 +415,14 @@ exports.setupBackground = setupBackground;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 function generateHash() {
     var ts = Math.round(+new Date() / 1000.0);
@@ -561,7 +569,8 @@ function parseUrlQuery(url) {
 }
 exports.parseUrlQuery = parseUrlQuery;
 function getUrlFileName(url) {
-    return createRequest({ url: url, type: "HEAD" /* HEAD */ }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
         var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
         if (filename && filename != "") {
             return filename;
@@ -573,7 +582,8 @@ function getUrlFileName(url) {
 }
 exports.getUrlFileName = getUrlFileName;
 function getRedirectedUrl(url) {
-    return createRequest({ url: url, type: "HEAD" /* HEAD */ }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
         return xhr.responseURL;
     });
 }
@@ -607,20 +617,41 @@ function addParamsToURL(url, obj) {
     }
 }
 exports.addParamsToURL = addParamsToURL;
+function removeParamsFromURL(url, params) {
+    for (let param of params) {
+        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
+    }
+    return url;
+}
+exports.removeParamsFromURL = removeParamsFromURL;
+function getParamFromURL(url, param) {
+    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
+    if (match) {
+        return match[1];
+    }
+    else {
+        return null;
+    }
+}
+exports.getParamFromURL = getParamFromURL;
 function addRefererToURL(url, referer) {
     return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
 }
 exports.addRefererToURL = addRefererToURL;
 function getRefererFromURL(url) {
-    var match = url.match(/[\?&]OVreferer=([^\?&]*)/i);
-    if (match) {
-        return atob(decodeURIComponent(match[1]));
+    var param = getParamFromURL(url, "OVReferer");
+    if (param) {
+        return atob(decodeURIComponent(param));
     }
     else {
         return null;
     }
 }
 exports.getRefererFromURL = getRefererFromURL;
+function removeRefererFromURL(url) {
+    return removeParamsFromURL(url, ["OVReferer"]);
+}
+exports.removeRefererFromURL = removeRefererFromURL;
 function createRequest(args) {
     return new Promise((resolve, reject) => {
         let xmlHttpObj = null;
@@ -1342,7 +1373,16 @@ exports.makeURLsSave = makeURLsSave;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const VideoTypes = __webpack_require__(10);
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
 const Environment = __webpack_require__(4);
@@ -1398,14 +1438,15 @@ function pauseAllVideos() {
 }
 var firstpopup = true;
 function isPopupVisible() {
-    if (Page.isFrame()) {
-        return Background.toTopWindow({ data: {}, func: "isPopupVisible" }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Page.isFrame()) {
+            let response = yield Background.toTopWindow({ data: {}, func: "isPopupVisible" });
             return response.data.visible;
-        });
-    }
-    else {
-        return Promise.resolve(_isPopupVisible());
-    }
+        }
+        else {
+            return _isPopupVisible();
+        }
+    });
 }
 exports.isPopupVisible = isPopupVisible;
 function openPopup() {
@@ -1442,7 +1483,7 @@ function setup() {
             setUnviewedVideos(newVideos);
         },
         addVideoToPopup: function (request, sendResponse) {
-            _addVideoToPopup(request.data.videoData);
+            _addVideoToPopup(VideoTypes.makeURLsSave(request.data.videoData));
         }
     });
 }
@@ -1467,207 +1508,200 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Page = __webpack_require__(6);
 const video_js_1 = __webpack_require__(30);
 const VideoPopup = __webpack_require__(20);
-var VideoSearch;
-(function (VideoSearch) {
-    function getVJSPlayerSrces(player) {
-        let hash;
-        if (player.options_.sources && player.options_.sources.length > 0) {
-            hash = player.options_.sources;
-        }
-        else if (player.getCache().sources) {
-            hash = player.getCache().sources;
-        }
-        else if (player.getCache().source) {
-            hash = player.getCache().source;
-        }
-        else if (player.getCache().src) {
-            hash = [player.getCache()];
-        }
-        else {
-            hash = [{ src: player.src(), type: "video/mp4", label: "SD" }];
-        }
-        for (let elem of hash) {
-            elem.src = Page.getSafeURL(elem.src);
-            if (elem["data-res"]) {
-                elem.label = elem["data-res"];
-            }
-            if (!elem.type) {
-                elem.type = "video/mp4";
-            }
-        }
-        ;
-        return hash;
+function getVJSPlayerSrces(player) {
+    let hash;
+    if (player.options_.sources && player.options_.sources.length > 0) {
+        hash = player.options_.sources;
     }
-    function getVJSPlayerCaptions(player) {
-        var tracks = [];
-        for (let i = 0; i < player.textTracks().length; i++) {
-            let textTrack = player.textTracks()[i];
-            var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] };
-            if (textTrack.options_ && textTrack.options_.src) {
-                track.src = Page.getSafeURL(textTrack.options_.src);
-            }
-            else if (textTrack.cues_.length != 0) {
-                for (let cue of textTrack.cues_) {
-                    track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
-                }
-                ;
-            }
-            else {
-                break;
-            }
-            if (typeof textTrack.kind == "function") {
-                track.kind = textTrack.kind();
-                track.language = textTrack.language();
-                track.label = textTrack.label();
-                if (textTrack.default) {
-                    track.default = textTrack.default();
-                }
-            }
-            else {
-                track.kind = textTrack.kind;
-                track.language = textTrack.language;
-                track.label = textTrack.label;
-                track.default = textTrack.default;
-            }
-            tracks.push(track);
-        }
-        ;
-        return tracks;
+    else if (player.getCache().sources) {
+        hash = player.getCache().sources;
     }
-    function getVideoJSPlayers() {
-        if (window['videojs'] != undefined) {
-            console.log("VIDEOJS FOUND");
-            return window['videojs'].players;
-        }
-        return null;
+    else if (player.getCache().source) {
+        hash = player.getCache().source;
     }
-    function getJWPlayers() {
-        if (window['jwplayer'] == undefined) {
-            return null;
-        }
-        console.log("JWPLAYER FOUND");
-        var arr = [];
-        for (var i = 0, player = window['jwplayer'](0); player.on; player = window['jwplayer'](++i)) {
-            arr.push(player);
-        }
-        return arr;
+    else if (player.getCache().src) {
+        hash = [player.getCache()];
     }
-    function isPlayerLibrary() {
-        return window['jwplayer'] != null || window['videojs'] != null;
+    else {
+        hash = [{ src: player.src(), type: "video/mp4", label: "SD" }];
     }
-    function getJWPlayerSrces(player) {
-        var srces = player.getPlaylist()[0].sources;
-        for (var src of srces) {
-            src.src = Page.getSafeURL(src.file);
-            if (src.type == "hls") {
-                src.type = "application/x-mpegURL";
-            }
-            else {
-                src.type = "video/" + src.type;
-            }
+    for (let elem of hash) {
+        if (elem["data-res"]) {
+            elem.label = elem["data-res"];
         }
-        return srces;
-    }
-    function getJWPlayerCaptions(player) {
-        var tracks = player.getPlaylist()[0].tracks;
-        for (var track of tracks) {
-            track.src = Page.getSafeURL(track.file);
+        if (!elem.type) {
+            elem.type = "video/mp4";
         }
-        return tracks;
-    }
-    function SetupVideo(videoNode) {
-        if (!videoNode.dataset.isRegistred) {
-            videoNode.dataset.isRegistred = "true";
-        }
-    }
-    function getSrc(videoNode) {
-        var srces = [];
-        for (let source of videoNode.getElementsByTagName("source")) {
-            let hash = { src: Page.getSafeURL(source.src), type: source.type, label: "" };
-            if (source.hasAttribute("label")) {
-                hash.label = source.getAttribute("label");
-            }
-            else if (source.dataset.res) {
-                hash.label = source.dataset.res;
-            }
-            if (source.hasAttribute("default")) {
-                srces.unshift(hash);
-            }
-            else {
-                srces.push(hash);
-            }
-        }
-        ;
-        if (srces.length == 0) {
-            VideoPopup.addVideoToPopup({ src: [{ src: Page.getSafeURL(videoNode.src), type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
-        }
-        else {
-            VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
-        }
-    }
-    console.log("OpenVideo Search is here!", location.href);
-    /*var videoArr = document.getElementsByTagName("video");
-    OV.tools.forEach(videoArr, function(videoNode){
-        SetupVideo(videoNode);
-    });*/
-    var videoJSPlayers = getVideoJSPlayers();
-    console.log(videoJSPlayers);
-    if (videoJSPlayers) {
-        function extractVJSVideoData(player) {
-            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-            player.on('loadstart', function () {
-                VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-            });
-        }
-        for (var player of videoJSPlayers) {
-            extractVJSVideoData(player);
-        }
-        if (video_js_1.default.hook) {
-            video_js_1.default.hook('setup', function (player) {
-                extractVJSVideoData(player);
-            });
-        }
-    }
-    var jwPlayers = getJWPlayers();
-    if (jwPlayers) {
-        for (let player of jwPlayers) {
-            VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-            player.on('meta', function () {
-                VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-            });
-        }
-    }
-    function setupPlainVideoListener(video) {
-        //video.play();
-        if (!isPlayerLibrary()) {
-            getSrc(video);
-            video.addEventListener('loadedmetadata', function () {
-                getSrc(video);
-            });
-        }
-        else {
-            var jwPlayers = getJWPlayers();
-            if (jwPlayers) {
-                for (let player of jwPlayers) {
-                    VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                    player.on('meta', function () {
-                        VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                    });
-                }
-            }
-        }
-    }
-    for (let videoNode of document.getElementsByTagName("video")) {
-        setupPlainVideoListener(videoNode);
     }
     ;
-    Page.onNodeInserted(document, function (tgt) {
-        let target = tgt;
-        if (target.tagName && target.tagName.toLowerCase() == "video") {
-            setupPlainVideoListener(target);
+    return hash;
+}
+function getVJSPlayerCaptions(player) {
+    var tracks = [];
+    for (let i = 0; i < player.textTracks().length; i++) {
+        let textTrack = player.textTracks()[i];
+        var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] };
+        if (textTrack.options_ && textTrack.options_.src) {
+            track.src = textTrack.options_.src;
         }
+        else if (textTrack.cues_.length != 0) {
+            for (let cue of textTrack.cues_) {
+                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
+            }
+            ;
+        }
+        else {
+            break;
+        }
+        if (typeof textTrack.kind == "function") {
+            track.kind = textTrack.kind();
+            track.language = textTrack.language();
+            track.label = textTrack.label();
+            if (textTrack.default) {
+                track.default = textTrack.default();
+            }
+        }
+        else {
+            track.kind = textTrack.kind;
+            track.language = textTrack.language;
+            track.label = textTrack.label;
+            track.default = textTrack.default;
+        }
+        tracks.push(track);
+    }
+    ;
+    return tracks;
+}
+function getVideoJSPlayers() {
+    if (window['videojs'] != undefined) {
+        console.log("VIDEOJS FOUND");
+        return window['videojs'].players;
+    }
+    return null;
+}
+function getJWPlayers() {
+    if (window['jwplayer'] == undefined) {
+        return null;
+    }
+    console.log("JWPLAYER FOUND");
+    var arr = [];
+    for (var i = 0, player = window['jwplayer'](0); player.on; player = window['jwplayer'](++i)) {
+        arr.push(player);
+    }
+    return arr;
+}
+function isPlayerLibrary() {
+    return window['jwplayer'] != null || window['videojs'] != null;
+}
+function getJWPlayerSrces(player) {
+    return player.getPlaylist()[0].sources.map(function (src) {
+        return {
+            src: src.file,
+            type: src.type == "hls" ? "application/x-mpegURL" : "video/" + src.type,
+            label: src.label || "SD"
+        };
     });
-})(VideoSearch || (VideoSearch = {}));
+}
+function getJWPlayerCaptions(player) {
+    return player.getPlaylist()[0].tracks.map(function (track) {
+        return {
+            src: track.file,
+            label: track.label,
+            kind: track.kind,
+            language: track.language,
+            default: track.default,
+            cues: track.cues
+        };
+    });
+}
+function getSrc(videoNode) {
+    var srces = [];
+    for (let source of videoNode.getElementsByTagName("source")) {
+        let hash = { src: source.src, type: source.type, label: "SD" };
+        if (source.hasAttribute("label")) {
+            hash.label = source.getAttribute("label");
+        }
+        else if (source.dataset.res) {
+            hash.label = source.dataset.res;
+        }
+        if (source.hasAttribute("default")) {
+            hash.default = true;
+            srces.unshift(hash);
+        }
+        else {
+            srces.push(hash);
+        }
+    }
+    ;
+    if (srces.length == 0) {
+        VideoPopup.addVideoToPopup({ src: [{ src: videoNode.src, type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
+    }
+    else {
+        VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
+    }
+}
+console.log("OpenVideo Search is here!", location.href);
+/*var videoArr = document.getElementsByTagName("video");
+OV.tools.forEach(videoArr, function(videoNode){
+    SetupVideo(videoNode);
+});*/
+var videoJSPlayers = getVideoJSPlayers();
+console.log(videoJSPlayers);
+if (videoJSPlayers) {
+    function extractVJSVideoData(player) {
+        VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
+        player.on('loadstart', function () {
+            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
+        });
+    }
+    for (var player of videoJSPlayers) {
+        extractVJSVideoData(player);
+    }
+    if (video_js_1.default.hook) {
+        video_js_1.default.hook('setup', function (player) {
+            extractVJSVideoData(player);
+        });
+    }
+}
+var jwPlayers = getJWPlayers();
+if (jwPlayers) {
+    for (let player of jwPlayers) {
+        VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+        player.on('meta', function () {
+            VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+        });
+    }
+}
+function setupPlainVideoListener(video) {
+    //video.play();
+    if (!isPlayerLibrary()) {
+        getSrc(video);
+        video.addEventListener('loadedmetadata', function () {
+            getSrc(video);
+        });
+    }
+    else {
+        var jwPlayers = getJWPlayers();
+        if (jwPlayers) {
+            for (let player of jwPlayers) {
+                VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+                player.on('meta', function () {
+                    VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
+                });
+            }
+        }
+    }
+}
+for (let videoNode of document.getElementsByTagName("video")) {
+    setupPlainVideoListener(videoNode);
+}
+;
+Page.onNodeInserted(document, function (tgt) {
+    let target = tgt;
+    if (target.tagName && target.tagName.toLowerCase() == "video") {
+        setupPlainVideoListener(target);
+    }
+});
 
 
 /***/ }),

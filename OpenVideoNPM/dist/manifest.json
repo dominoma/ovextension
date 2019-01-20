@@ -4,7 +4,7 @@
   "name": "OpenVideo FastStream",
   "short_name": "OpenVideo",
   "description": "__MSG_extDescr__",
-  "version": "1.11.4",
+  "version": "1.11.6",
   "content_security_policy": "script-src 'self'; object-src 'self';",
   "browser_action": {
     "default_icon": "assets/icons/logo256.png",
@@ -18,17 +18,17 @@
 	    "id": "OpenVideoFS@gmail.com"
 	  }
 	},
-   "icons": { 
-        "16":"assets/icons/logo16.png", 
-        "48":"assets/icons/logo48.png", 
-        "64":"assets/icons/logo64.png", 
+   "icons": {
+        "16":"assets/icons/logo16.png",
+        "48":"assets/icons/logo48.png",
+        "64":"assets/icons/logo64.png",
         "128":"assets/icons/logo128.png",
         "256":"assets/icons/logo256.png"
   },
   "default_locale": "en",
   "background": {
     "scripts": [
-    	
+
     	"background_scripts/bg_script.js"
     ]
   },
@@ -43,7 +43,7 @@
     "downloads",
     "proxy"
   ],
-  
+
   "web_accessible_resources": [
   	"pages/videoplay/videoplay.html",
   	"pages/videopopup/videopopup.html",
@@ -54,7 +54,7 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-    	
+
       	"content_scripts/document_start.js"
       ],
       "run_at": "document_start",
@@ -63,7 +63,7 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-      
+
       	"content_scripts/top_window.js"
       ],
       "css": [
@@ -74,7 +74,7 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-    	
+
       	"content_scripts/document_idle.js"
       ],
       "run_at": "document_idle",
@@ -83,7 +83,7 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-    	
+
       	"content_scripts/document_end.js"
       ],
       "run_at": "document_end",

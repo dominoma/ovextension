@@ -1,6 +1,5 @@
 
 import * as Messages from "OV/messages";
-import * as Environment from "OV/environment";
 import * as Storage from "OV/storage";
 import * as Page from "OV/page";
 import * as Tools from "OV/tools";
@@ -85,10 +84,7 @@ export function registerIFrame(iframe: HTMLIFrameElement) {
     });
 
 
-    if (iframe.hasAttribute("allow")) {
-        iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;"));//fullscreen *;
-    }
-    iframe.allowFullscreen = true;
+
     let observer = new MutationObserver(function(mutations) {
         if (isFrameActive() && getActiveFrame().iframe == iframe) {
             let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
@@ -120,21 +116,21 @@ export function registerIFrame(iframe: HTMLIFrameElement) {
 export function nameIFrames() {
     function nameIFrame(iframe: HTMLIFrameElement) {
         function checkBounds(iframe: HTMLIFrameElement) {
-            
-            
+
+
             if(iframe.offsetLeft < 0 || iframe.offsetTop < 0) {
-                
+
                 return false;
             }
             else if((iframe.offsetWidth / window.innerWidth)*100 < 30 || (iframe.offsetHeight / window.innerHeight)*100 < 30) {
-                
+
                 return false;
-            } 
+            }
             else {
                 return true;
             }
         }
-        if (!iframe.hasAttribute("name") && checkBounds(iframe)) {
+        if (!iframe.hasAttribute("name") && (checkBounds(iframe) || (iframe.hasAttribute("allow") && iframe.getAttribute("allow").indexOf("fullscreen") != -1))) {
             console.log(iframe);
             iframe.name = Tools.generateHash();
             if (iframe.width) {
@@ -145,6 +141,10 @@ export function nameIFrames() {
                 iframe.style.height = iframe.height;
                 iframe.removeAttribute("height");
             }
+            if (iframe.hasAttribute("allow")) {
+                iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;"));//fullscreen *;
+            }
+            iframe.allowFullscreen = true;
             let sibling = iframe.nextElementSibling;
             let parent = iframe.parentElement;
             iframe.remove();
@@ -157,7 +157,7 @@ export function nameIFrames() {
         }
     });
     Page.onNodeInserted(document, function(tgt) {
-       
+
         let target = tgt as HTMLIFrameElement;
         if (target.getElementsByTagName) {
             let iframes = target.getElementsByTagName("iframe");
@@ -169,7 +169,7 @@ export function nameIFrames() {
                 nameIFrame(iframe);
             }
         }
-        
+
     });
 }
 export function activateEntry(entry: IFrameEntry) {
