@@ -3,7 +3,6 @@ import * as VideoTypes from "./video_types";
 import * as Tools from "./OV/tools";
 import * as Analytics from "./OV/analytics";
 import * as Environment from "./OV/environment";
-import * as Page from "./OV/page";
 import * as Messages from "./OV/messages";
 import * as Storage from "./OV/storage";
 
@@ -15,7 +14,7 @@ export interface ScriptDetails {
     hostname: string;
     run_scope: RunScopes;
 }
-export type RedirectScript = (details: ScriptDetails) => Promise<VideoTypes.VideoData>;
+export type RedirectScript = (details: ScriptDetails) => Promise<VideoTypes.RawVideoData>;
 export const enum RunScopes {
     document_start = "document_start",
     document_idle = "document_idle",
@@ -36,7 +35,7 @@ export function addRedirectHost(redirectHost: RedirectHost): void {
     redirectHosts.push(redirectHost);
 }
 export function isUrlRedirecting(url: string) {
-    if (Tools.parseUrlQuery(url)["ovignore"] != "true") {
+    if (Tools.parseURL(url).query["ovignore"] != "true") {
         return false;
     }
     else {
@@ -50,64 +49,66 @@ export function isUrlRedirecting(url: string) {
         return false;
     }
 }
-export function startScripts(scope: RunScopes) {
-    return new Promise(function(resolve, reject) {
-        if (Tools.parseUrlQuery(location.href)["ovignore"] != "true") {
-            for (let host of redirectHosts) {
-                isScriptEnabled(host.name).then(function(isEnabled) {
-                    if (isEnabled) {
-                        for (let script of host.scripts) {
-                            let match = location.href.match(script.urlPattern);
-                            if (match) {
-                                console.log("Redirect with " + host.name)
-                                for (let runScope of script.runScopes) {
-                                    if (runScope.run_at == scope) {
-                                        if (Page.isFrame()) {
-
-                                            resolve();
-                                        }
-                                        document.documentElement.hidden = runScope.hide_page !== false;
-                                        runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function(videoData) {
-                                            videoData.origin = location.href;
-                                            videoData.host = host.name;
-                                            location.href = Environment.getVidPlaySiteUrl(VideoTypes.makeURLsSave(videoData));
-                                        }).catch(function(error: Error) {
-                                            document.documentElement.hidden = false;
-                                            console.error(error);
-                                            Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })))
-                                        });
-
-                                    }
+export async function startScripts(scope: RunScopes, onScriptExecute: () => Promise<void>, onScriptExecuted: (videoData : VideoTypes.VideoData) => Promise<void> ){
+    if (Tools.parseURL(location.href).query["ovignore"] != "true") {
+        for (let host of redirectHosts) {
+            let isEnabled = await isScriptEnabled(host.name);
+            if (isEnabled) {
+                for (let script of host.scripts) {
+                    let match = location.href.match(script.urlPattern);
+                    if (match) {
+                        console.log("Redirect with " + host.name)
+                        for (let runScope of script.runScopes) {
+                            if (runScope.run_at == scope) {
+                                document.documentElement.hidden = runScope.hide_page !== false;
+                                try {
+                                    await onScriptExecute();
+                                    console.log("script executed");
+                                    let rawVideoData = await runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
+                                    let videoData = Tools.merge(rawVideoData, {
+                                        origin: location.href,
+                                        host: host.name
+                                    });
+                                    videoData = VideoTypes.makeURLsSave(videoData);
+                                    await onScriptExecuted(videoData);
+                                    console.log("script executed", videoData);
+                                    location.href = Environment.getVidPlaySiteUrl(videoData);
                                 }
+                                catch(error) {
+                                    document.documentElement.hidden = false;
+                                    console.error(error);
+                                    Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })))
+                                };
                             }
                         }
                     }
-                });
+                }
             }
         }
-    });
-
+    }
 }
-export function isScriptEnabled(name: string): Promise<boolean> {
-    return Storage.sync.get(name).then(function(value) {
-
-        return value == true || value == undefined || value == null;
-    });
+export async function isScriptEnabled(name: string) {
+    let value = await Storage.sync.get(name);
+    return value == true || value == undefined || value == null;
 }
-export function setScriptEnabled(name: string, enabled: boolean): Promise<{ success: boolean }> {
+export async function setScriptEnabled(name: string, enabled: boolean) {
     return Storage.sync.set(name, enabled);
 }
-export function getRedirectHosts(): Promise<Array<RedirectHost>> {
-    return Promise.resolve().then(function() {
-        if (Environment.isBackgroundPage()) {
+export async function setupBG() {
+    Messages.setupBackground({
+        redirect_script_base_getRedirectHosts: async function() {
             return redirectHosts;
-        }
-        else {
-            return Messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function(response) {
-                return response.data.redirectHosts;
-            });
         }
     });
 }
-
-
+export async function getRedirectHosts() {
+    if(Environment.isBackgroundScript()) {
+        console.log(redirectHosts);
+        return redirectHosts;
+    }
+    else {
+        let response = await Messages.sendToBG({ func: "redirect_script_base_getRedirectHosts", data: {} });
+        console.log(response);
+        return response.data as Array<RedirectHost>;
+    }
+}

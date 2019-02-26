@@ -1,10 +1,8 @@
 import * as Storage from "OV/storage";
-import * as Analytics from "OV/analytics";
 import * as Page from "OV/page";
 import * as Languages from "OV/languages";
 import * as Messages from "OV/messages";
 import * as ScriptBase from "redirect_scripts_base";
-import * as VideoTypes from "video_types";
 Messages.setupMiddleware();
 function createSwitch(labelText: string, tableRow: HTMLTableRowElement, labelId?: string) {
 
@@ -32,12 +30,13 @@ function createSwitch(labelText: string, tableRow: HTMLTableRowElement, labelId?
     return switchInput;
 }
 Page.isReady().then(function() {
-    document.getElementById("options_site_redirect_options_lbl").innerText = Languages.getMsg("options_site_redirect_options_lbl");
-    document.getElementById("options_site_redirections_lbl").innerText = Languages.getMsg("options_site_redirections_lbl");
-    document.getElementById("options_site_other_options_lbl").innerText = Languages.getMsg("options_site_other_options_lbl");
+    document.getElementById("options_site_redirect_options_lbl")!.innerText = Languages.getMsg("options_site_redirect_options_lbl");
+    document.getElementById("options_site_redirections_lbl")!.innerText = Languages.getMsg("options_site_redirections_lbl");
+    document.getElementById("options_site_other_options_lbl")!.innerText = Languages.getMsg("options_site_other_options_lbl");
 
     var SwitchesTable: HTMLTableElement = document.getElementById("redirectSwitches") as HTMLTableElement;
     ScriptBase.getRedirectHosts().then(function(redirectHosts) {
+        console.log(redirectHosts);
         var row = 0;
         for (let host of redirectHosts) {
             ScriptBase.isScriptEnabled(host.name).then(function(enabled) {

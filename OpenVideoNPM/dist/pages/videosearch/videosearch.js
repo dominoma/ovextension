@@ -91,87 +91,104 @@
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-function setup() {
+function canStorage() {
+    return chrome.storage != undefined;
+}
+exports.canStorage = canStorage;
+function setupBG() {
+    let scopes = {
+        "local": chrome.storage.local,
+        "sync": chrome.storage.sync
+    };
     Messages.setupBackground({
-        getStorageData: function (msg, bgdata, sender, sendResponse) {
-            chrome.storage.local.get(bgdata.name, function (item) {
-                sendResponse(item[bgdata.name]);
+        storage_getData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].get(bgdata.name, function (item) {
+                        resolve(item[bgdata.name]);
+                    });
+                });
             });
         },
-        setStorageData: function (msg, bgdata, sender, sendResponse) {
-            chrome.storage.local.set({ [bgdata.name]: bgdata.value }, function () {
-                sendResponse({ success: true });
+        storage_setData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
+                        resolve({ success: true });
+                    });
+                });
             });
         }
     });
 }
-exports.setup = setup;
-var local;
-(function (local) {
-    function get(name) {
-        if (Environment.isBackgroundPage()) {
+exports.setupBG = setupBG;
+function getValue(name, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
             return new Promise(function (resolve, reject) {
-                chrome.storage.local.get(name, function (item) {
+                scope.get(name, function (item) {
                     resolve(item[name]);
                 });
             });
         }
         else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "local", name: name } } }).then(function (response) {
-                return response.data;
-            });
+            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
+            return response.data;
         }
-    }
-    local.get = get;
-    function set(name, value) {
-        if (Environment.isBackgroundPage()) {
+    });
+}
+function setValue(name, value, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
             return new Promise(function (resolve, reject) {
-                chrome.storage.local.set({ [name]: value }, function () {
+                scope.set({ [name]: value }, function () {
                     resolve({ success: true });
                 });
             });
         }
         else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "local", name: name, value: value } } }).then(function () {
-                return { success: true };
-            });
+            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
+            return { success: true };
         }
+    });
+}
+var local;
+(function (local) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.local);
+        });
+    }
+    local.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.local);
+        });
     }
     local.set = set;
 })(local = exports.local || (exports.local = {}));
 var sync;
 (function (sync) {
     function get(name) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.sync.get(name, function (item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } }).then(function (response) {
-                return response.data;
-            });
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.sync);
+        });
     }
     sync.get = get;
     function set(name, value) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.sync.set({ [name]: value }, function () {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "sync", name: name, value: value } } }).then(function () {
-                return { success: true };
-            });
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.sync);
+        });
     }
     sync.set = set;
 })(sync = exports.sync || (exports.sync = {}));
@@ -183,6 +200,14 @@ var sync;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 var State;
@@ -196,217 +221,257 @@ var State;
     State["BGToMdwRsp"] = "BGToMdwRsp";
     State["MdwToEvRsp"] = "MdwToEvRsp";
 })(State = exports.State || (exports.State = {}));
-let lnfunctions = null;
-let blockedFuncs = [];
-function addListener(functions) {
-    if (lnfunctions) {
-        lnfunctions = Tools.merge(lnfunctions, functions);
+var Status;
+(function (Status) {
+    Status["Request"] = "Request";
+    Status["Response"] = "Response";
+})(Status || (Status = {}));
+let windowVars = Tools.accessWindow({
+    bgfunctions: null,
+    lnfunctions: null,
+    isMiddleware_: false
+});
+function canRuntime() {
+    return chrome && chrome.runtime && chrome.runtime.id != undefined;
+}
+exports.canRuntime = canRuntime;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
     }
     else {
-        lnfunctions = functions;
-        document.addEventListener('ovmessage', function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
-                let sendMsg = function (data, error) {
-                    let dtl = {
-                        hash: details.hash,
-                        data: {
-                            data: data,
-                            state: State.EvToMdwRsp,
-                            call: details.data,
-                            sender: { url: location.href }
-                        }
-                    };
-                    if (error) {
-                        dtl.data.error = error;
-                        console.error(error);
-                    }
-                    ;
-                    var event = new CustomEvent('ovmessage', {
-                        detail: dtl
-                    });
-                    sendMsg = function (data, error) { };
-                    document.dispatchEvent(event);
-                };
-                try {
-                    var result = lnfunctions[details.data.func](details.data, function (data) {
-                        sendMsg(data);
-                    }, function (error) {
-                        sendMsg(null, error);
-                    });
-                }
-                catch (e) {
-                    if (e instanceof Error) {
-                        sendMsg(null, e);
-                    }
-                    else {
-                        sendMsg(null, new Error(e));
-                    }
-                }
-                if (result && result.blocked) {
-                    blockedFuncs.push(details.data.func);
-                }
-            }
-        });
-    }
-}
-exports.addListener = addListener;
-function send(obj) {
-    return eventPingPong({
-        func: obj.func || "NO_FUNCTION",
-        data: obj.data || {},
-        sender: { url: location.href },
-        bgdata: obj.bgdata,
-        state: State.EvToMdw
-    }, true).then(function (response) {
-        if (response.error) {
-            console.error(response.error);
-            throw response.error;
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
         }
         else {
-            return response;
+            return new Error("Unknown Error!");
         }
-    });
+    }
 }
-exports.send = send;
-function eventPingPong(data, beforeBG) {
-    return new Promise(function (resolve, reject) {
-        data.state = beforeBG ? State.EvToMdw : State.MdwToEv;
-        let hash = Tools.generateHash();
-        let one = function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
-                document.removeEventListener('ovmessage', one);
-                resolve(details.data);
-            }
-        };
-        document.addEventListener('ovmessage', one);
-        let event = new CustomEvent('ovmessage', {
-            detail: {
-                hash: hash,
-                data: data
-            }
-        });
-        document.dispatchEvent(event);
-    });
-}
-let isMiddleware_ = false;
-function isMiddleware() {
-    return isMiddleware;
-}
-exports.isMiddleware = isMiddleware;
-function setupMiddleware() {
-    if (isMiddleware_) {
-        throw Error("Middleware already set up!");
+function getErrorData(e) {
+    if (e) {
+        return { message: e.message, stack: e.stack, name: e.name };
     }
     else {
-        isMiddleware_ = true;
-        document.addEventListener('ovmessage', function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && details.data.state === State.EvToMdw) {
-                details.data.state = State.MdwToBG;
-                if (details.data.bgdata) {
-                    chrome.runtime.sendMessage(details.data, function (resData) {
-                        if (resData.state === State.BGToMdwRsp) {
-                            var event = new CustomEvent('ovmessage', {
-                                detail: {
-                                    hash: details.hash,
-                                    data: {
-                                        data: resData.data,
-                                        state: State.MdwToEvRsp,
-                                        call: resData.call,
-                                        sender: resData.sender
-                                    }
-                                }
-                            });
-                            document.dispatchEvent(event);
+        return null;
+    }
+}
+function setErrorData(data) {
+    if (data) {
+        let e = new Error(data.message);
+        e.stack = data.stack;
+        e.name = data.name;
+        return e;
+    }
+    else {
+        return null;
+    }
+}
+function toErrorData(e) {
+    return getErrorData(convertToError(e));
+}
+function sendMsgByEvent(data, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            if (!toBG) {
+                data.bgdata = null;
+            }
+            let hash = Tools.generateHash();
+            document.addEventListener('ovmessage', function one(ev) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let data = ev.detail;
+                    if (data.status == Status.Response && data.hash == hash) {
+                        document.removeEventListener("ovmessage", one);
+                        if (data.data.error) {
+                            reject(setErrorData(data.data.error));
                         }
                         else {
-                            throw Error("Wrong Response!");
+                            resolve(data.data);
+                        }
+                    }
+                });
+            });
+            let event = new CustomEvent('ovmessage', {
+                detail: {
+                    status: Status.Request,
+                    hash: hash,
+                    data: data,
+                    error: null,
+                    toBG: toBG || data.bgdata != null
+                }
+            });
+            document.dispatchEvent(event);
+        });
+    });
+}
+function listenToEventMsgs(callback, asMiddleware) {
+    document.addEventListener('ovmessage', function (ev) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = ev.detail;
+            if (data.status == Status.Request && asMiddleware == data.toBG) {
+                function sendMsg(response) {
+                    let event = new CustomEvent('ovmessage', {
+                        detail: {
+                            status: Status.Response,
+                            hash: data.hash,
+                            data: response,
+                            toBG: data.toBG
                         }
                     });
+                    document.dispatchEvent(event);
                 }
-                else {
-                    eventPingPong(details.data, false).then(function (response) {
-                        var event = new CustomEvent('ovmessage', {
-                            detail: {
-                                hash: details.hash,
-                                data: {
-                                    data: response.data,
-                                    state: State.MdwToEvRsp,
-                                    call: response.call,
-                                    sender: response.sender
-                                }
-                            }
-                        });
-                        document.dispatchEvent(event);
-                    });
+                try {
+                    let response = yield callback(data.data);
+                    response.call = data.data;
+                    sendMsg(response);
+                }
+                catch (e) {
+                    sendMsg({ call: data.data, data: null, error: toErrorData(e) });
                 }
             }
         });
+    });
+}
+function sendMsgByRuntime(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            chrome.runtime.sendMessage(data, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+function listenToRuntimeMsgs(callback) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //Nicht async, da return true
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg.state === State.BGToMdw) {
-                eventPingPong({
-                    func: msg.func,
-                    data: msg.data,
-                    sender: sender,
-                    state: State.MdwToEv,
-                    bgdata: msg.bgdata
-                }, false).then(function (response) {
-                    sendResponse({ data: response.data, state: State.MdwToBGRsp, call: response.call, sender: response.sender });
+            if (msg) {
+                msg.sender = sender;
+                callback(msg).then(function (response) {
+                    response.sender = sender;
+                    response.call = msg;
+                    sendResponse(response);
+                }).catch(function (e) {
+                    sendResponse({ data: null, sender: sender, call: msg, error: toErrorData(e) });
                 });
                 return true;
             }
-            return false;
+        });
+    });
+}
+function addListener(functions) {
+    if (windowVars.lnfunctions) {
+        windowVars.lnfunctions = Tools.merge(windowVars.lnfunctions, functions);
+    }
+    else {
+        windowVars.lnfunctions = functions;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.lnfunctions[request.func]) {
+                    throw new Error("Listener-Function '" + request.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.lnfunctions).join(", "));
+                }
+                let data = yield windowVars.lnfunctions[request.func](request);
+                return { data: data, call: request };
+            });
+        }, false);
+    }
+}
+exports.addListener = addListener;
+function send(request, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sendMsgByEvent(request, toBG || request.bgdata != null);
+    });
+}
+exports.send = send;
+function sendToBG(request) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return send({ func: "NO_FUNC", data: null, bgdata: request });
+    });
+}
+exports.sendToBG = sendToBG;
+function isMiddleware() {
+    return windowVars.isMiddleware_;
+}
+exports.isMiddleware = isMiddleware;
+function setupMiddleware() {
+    if (windowVars.isMiddleware_) {
+        console.log("Middleware already set up!");
+    }
+    else if (!canRuntime()) {
+        throw Error("Middleware needs access to chrome.runtime!");
+    }
+    else {
+        windowVars.isMiddleware_ = true;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByRuntime(request);
+            });
+        }, true);
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByEvent(request, false);
+            });
         });
     }
 }
 exports.setupMiddleware = setupMiddleware;
-let bgfunctions = null;
 function setupBackground(functions) {
-    if (bgfunctions) {
-        bgfunctions = Tools.merge(bgfunctions, functions);
+    if (!canRuntime()) {
+        throw Error("Background needs access to chrome.runtime!");
+    }
+    if (windowVars.bgfunctions) {
+        windowVars.bgfunctions = Tools.merge(windowVars.bgfunctions, functions);
     }
     else {
-        bgfunctions = functions;
-        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg.state === State.MdwToBG) {
-                if (bgfunctions[msg.bgdata.func]) {
-                    let sendMsg = function (data, error) {
-                        let resp = { data: data, state: State.BGToMdwRsp, call: msg, sender: sender };
-                        if (error) {
-                            console.error(error);
-                            resp.error = error;
-                        }
-                        sendMsg = function (data, error) { };
-                        sendResponse(resp);
-                    };
-                    try {
-                        bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function (response) {
-                            sendMsg(response);
-                        }, function (error) {
-                            sendMsg(null, error);
-                        });
-                    }
-                    catch (e) {
-                        if (e instanceof Error) {
-                            sendMsg(null, e);
-                        }
-                        else {
-                            sendMsg(null, new Error(e));
-                        }
-                    }
-                    return true;
+        windowVars.bgfunctions = functions;
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.bgfunctions[request.bgdata.func]) {
+                    throw new Error("Background-Function '" + request.bgdata.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.bgfunctions).join(", "));
                 }
-            }
-            return false;
+                let data = yield windowVars.bgfunctions[request.bgdata.func](request, request.bgdata.data, request.sender);
+                return { data: data, call: request };
+            });
         });
     }
 }
 exports.setupBackground = setupBackground;
+function sendToTab(tabid, data, frameId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            data.bgdata = null;
+            let options = {};
+            if (!frameId) {
+                options.frameId = 0;
+            }
+            else if (frameId >= 0) {
+                options.frameId = frameId;
+            }
+            delete data.bgdata;
+            chrome.tabs.sendMessage(tabid, data, options, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+exports.sendToTab = sendToTab;
 
 
 /***/ }),
@@ -424,6 +489,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+function exportFunction(func) {
+    window[func.name] = func;
+}
+exports.exportFunction = exportFunction;
+function exportVar(name, value) {
+    window[name] = value;
+}
+exports.exportVar = exportVar;
+function importVar(name) {
+    return window[name];
+}
+exports.importVar = importVar;
+function accessWindow(initValues) {
+    return new Proxy({}, {
+        get: function (target, key) {
+            let val = window[key];
+            if (val == undefined) {
+                return initValues[key];
+            }
+            else {
+                return val;
+            }
+        },
+        set: function (target, key, value) {
+            window[key] = value;
+            return true;
+        }
+    });
+}
+exports.accessWindow = accessWindow;
 function generateHash() {
     var ts = Math.round(+new Date() / 1000.0);
     var rand = Math.round(Math.random() * 2147483647);
@@ -435,18 +530,38 @@ function merge(obj1, obj2) {
 }
 exports.merge = merge;
 function eventOne(elem, type) {
-    return new Promise(function (resolve, reject) {
-        elem.addEventListener(type, function one(e) {
-            elem.removeEventListener(type, one);
-            resolve(e);
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            elem.addEventListener(type, function one(e) {
+                elem.removeEventListener(type, one);
+                resolve(e);
+            });
         });
     });
 }
 exports.eventOne = eventOne;
+function sleep(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            window.setTimeout(function () {
+                resolve();
+            }, ms);
+        });
+    });
+}
+exports.sleep = sleep;
 function matchNull(str, regexp, index) {
     return (str.match(regexp) || [])[index || 1] || "";
 }
 exports.matchNull = matchNull;
+function matchError(str, regexp) {
+    let match = str.match(regexp);
+    if (!match) {
+        throw Error("No match found for '" + regexp + "'!");
+    }
+    return match;
+}
+exports.matchError = matchError;
 function objToHash(obj) {
     if (obj) {
         return "?hash=" + encodeURIComponent(JSON.stringify(obj));
@@ -457,7 +572,7 @@ function objToHash(obj) {
 }
 exports.objToHash = objToHash;
 function hashToObj(hashStr) {
-    var hash = parseUrlQuery(hashStr).hash;
+    var hash = parseURL(hashStr).query.hash;
     if (hash == "" || hash == undefined) {
         return null;
     }
@@ -492,7 +607,7 @@ function unpackJS(source) {
             }
         };
     }
-    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/);
+    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
     // Payload
     var payload = out[1];
     // Words
@@ -516,58 +631,26 @@ function unpackJS(source) {
     return result;
 }
 exports.unpackJS = unpackJS;
-let parseUrlOptions = {
-    strictMode: false,
-    key: ["source", "protocol", "authority", "userInfo", "user", "password", "host", "port", "relative", "path", "directory", "file", "query", "anchor"],
-    q: {
-        name: "queryKey",
-        parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-    },
-    parser: {
-        strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-        loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-    }
-};
-function parseUrl(str) {
-    var o = parseUrlOptions, m = o.parser[o.strictMode ? "strict" : "loose"].exec(str), uri = {}, i = 14;
-    while (i--)
-        uri[o.key[i]] = m[i] || "";
-    uri[o.q.name] = {};
-    uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-        if ($1)
-            uri[o.q.name][$1] = $2;
-    });
-    uri.queryString = uri.query;
-    uri.query = parseUrlQuery(str);
-    return uri;
+let urlParser = document.createElement("a");
+function parseURL(url) {
+    urlParser.href = url;
+    return {
+        url: url,
+        protocol: urlParser.protocol,
+        host: urlParser.host,
+        port: urlParser.port,
+        path: urlParser.pathname,
+        queryStr: urlParser.search,
+        query: parseURLQuery(urlParser.search),
+    };
 }
-exports.parseUrl = parseUrl;
-function parseUrlQuery(url) {
-    if (url.indexOf("?") == -1) {
-        return {};
-    }
-    var query_string = {};
-    var query = url.substr(url.indexOf("?") + 1);
-    var vars = query.split("&");
-    for (var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split("=");
-        // If first entry with this name
-        if (typeof query_string[pair[0]] === "undefined") {
-            query_string[pair[0]] = decodeURIComponent(pair[1]);
-            // If second entry with this name
-        }
-        else if (typeof query_string[pair[0]] === "string") {
-            var arr = [query_string[pair[0]], decodeURIComponent(pair[1])];
-            query_string[pair[0]] = arr;
-            // If third or later entry with this name
-        }
-        else {
-            query_string[pair[0]].push(decodeURIComponent(pair[1]));
-        }
-    }
-    return query_string;
+exports.parseURL = parseURL;
+function parseURLQuery(url) {
+    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
+        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
+        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
+    }).concat({}));
 }
-exports.parseUrlQuery = parseUrlQuery;
 function getUrlFileName(url) {
     return __awaiter(this, void 0, void 0, function* () {
         let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
@@ -592,7 +675,6 @@ function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
         if (!isParamInURL(url, key)) {
-            console.log(url);
             str += "&" + key + "=" + encodeURIComponent(obj[key]);
         }
     }
@@ -635,7 +717,7 @@ function getParamFromURL(url, param) {
 }
 exports.getParamFromURL = getParamFromURL;
 function addRefererToURL(url, referer) {
-    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+    return addParamsToURL(url, { OVReferer: btoa(referer) });
 }
 exports.addRefererToURL = addRefererToURL;
 function getRefererFromURL(url) {
@@ -653,58 +735,54 @@ function removeRefererFromURL(url) {
 }
 exports.removeRefererFromURL = removeRefererFromURL;
 function createRequest(args) {
-    return new Promise((resolve, reject) => {
-        let xmlHttpObj = null;
-        if (args.xmlHttpObj) {
-            xmlHttpObj = args.xmlHttpObj;
-        }
-        else {
-            xmlHttpObj = new XMLHttpRequest();
-        }
-        var type = args.type || "GET" /* GET */;
-        var protocol = args.protocol || "https://";
-        if (args.referer) {
-            args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
-        }
-        else if (args.hideRef) {
-            args.data = merge(args.data, { isOV: "true" });
-        }
-        var url = addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
-        xmlHttpObj.open(type, url, true);
-        xmlHttpObj.onload = function () {
-            if (xmlHttpObj.status == 200) {
-                resolve(xmlHttpObj);
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
+            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+            var type = args.type || "GET" /* GET */;
+            var protocol = args.protocol || "https://";
+            if (args.referer) {
+                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
             }
-            else {
-                reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+            else if (args.hideRef) {
+                args.data = merge(args.data, { isOV: "true" });
             }
-        };
-        xmlHttpObj.onerror = function () {
-            reject(Error("Network Error (url: '" + url + "')"));
-        };
-        if (args.headers) {
-            for (var key in args.headers) {
-                xmlHttpObj.setRequestHeader(key, args.headers[key]);
+            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
+            xmlHttpObj.open(type, url, true);
+            xmlHttpObj.onload = function () {
+                if (xmlHttpObj.status == 200) {
+                    resolve(xmlHttpObj);
+                }
+                else {
+                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+                }
+            };
+            xmlHttpObj.onerror = function () {
+                reject(Error("Network Error (url: '" + url + "')"));
+            };
+            if (args.headers) {
+                for (var key in args.headers) {
+                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
+                }
             }
-        }
-        let formData = null;
-        if (args.formData) {
-            formData = new FormData();
-            for (var key in args.formData) {
-                formData.append(key, args.formData[key]);
+            let formData = null;
+            if (args.formData) {
+                formData = new FormData();
+                for (var key in args.formData) {
+                    formData.append(key, args.formData[key]);
+                }
             }
-        }
-        if (args.cache == false) {
-            xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-            xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-            xmlHttpObj.setRequestHeader('expires', '0');
-            xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-            xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-        }
-        if (args.beforeSend) {
-            args.beforeSend(xmlHttpObj);
-        }
-        xmlHttpObj.send(formData);
+            if (args.cache == false) {
+                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                xmlHttpObj.setRequestHeader('expires', '0');
+                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+            }
+            if (args.beforeSend) {
+                args.beforeSend(xmlHttpObj);
+            }
+            xmlHttpObj.send(formData);
+        });
     });
 }
 exports.createRequest = createRequest;
@@ -712,6 +790,90 @@ exports.createRequest = createRequest;
 
 /***/ }),
 /* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(3);
+const Messages = __webpack_require__(2);
+const Environment = __webpack_require__(5);
+const Storage = __webpack_require__(1);
+function getCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield Storage.sync.get("AnalyticsCID");
+        if (!cid) {
+            cid = Tools.generateHash();
+            Storage.sync.set("AnalyticsCID", cid);
+        }
+        return cid;
+    });
+}
+exports.getCID = getCID;
+function postData(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
+        if (isEnabled || isEnabled == undefined) {
+            let cid = yield getCID();
+            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
+            return Tools.createRequest({
+                url: "https://www.google-analytics.com/collect",
+                type: "POST" /* POST */,
+                data: data
+            });
+        }
+        throw Error("Analytics is disabled!");
+    });
+}
+function send(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            yield postData(data);
+            return { success: true };
+        }
+        else {
+            yield Messages.sendToBG({ func: "analytics_send", data: data });
+            return { success: true };
+        }
+    });
+}
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            analytics_send: function (msg, bgdata, sender) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
+                        if (!sender.tab || !sender.tab.url) {
+                            throw new Error("Can't replace Page URL. Tab url is unknown!");
+                        }
+                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+                    }
+                    console.log(bgdata);
+                    send(bgdata);
+                });
+            }
+        });
+    });
+}
+exports.setupBG = setupBG;
+function fireEvent(category, action, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield send({ t: "event", ec: category, ea: action, el: label });
+    });
+}
+exports.fireEvent = fireEvent;
+
+
+/***/ }),
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -743,6 +905,14 @@ function getLibrarySiteUrl() {
     return chrome.extension.getURL("/pages/library/library.html");
 }
 exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
 function getErrorMsg(data) {
     return {
         version: getManifest().version,
@@ -764,14 +934,26 @@ function getRoot() {
     return chrome.extension.getURL("");
 }
 exports.getRoot = getRoot;
-function isBackgroundPage() {
+function isBackgroundScript() {
     return _isBGPage;
 }
-exports.isBackgroundPage = isBackgroundPage;
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
 function getManifest() {
     return chrome.runtime.getManifest();
 }
 exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
 function browser() {
     if (navigator.userAgent.search("Firefox") != -1) {
         return "firefox" /* Firefox */;
@@ -780,60 +962,10 @@ function browser() {
         return "chrome" /* Chrome */;
     }
     else {
-        throw Error("User agentis neither chrome nor Firefox");
+        throw Error("User agent is neither chrome nor Firefox");
     }
 }
 exports.browser = browser;
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Storage = __webpack_require__(1);
-function getCID() {
-    return Storage.sync.get("AnalyticsCID").then(function (cid) {
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
-    });
-}
-exports.getCID = getCID;
-function postData(data) {
-    return Storage.sync.get("AnalyticsEnabled").then(function (value) {
-        if (value || value == undefined) {
-            return getCID().then(function (cid) {
-                data = Object.assign({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
-                return Tools.createRequest({
-                    url: "https://www.google-analytics.com/collect",
-                    type: "POST" /* POST */,
-                    data: data
-                });
-            });
-        }
-        return Promise.reject(Error("Analytics is disabled!"));
-    });
-}
-function send(data) {
-    if (Environment.isBackgroundPage()) {
-        return postData(data).then(function () { return { success: true }; });
-    }
-    else {
-        return Messages.send({ bgdata: { func: "analytics", data: data } }).then(function () { return { success: true }; });
-    }
-}
-function fireEvent(category, action, label) {
-    send({ t: "event", ec: category, ea: action, el: label });
-}
-exports.fireEvent = fireEvent;
 
 
 /***/ }),
@@ -842,6 +974,14 @@ exports.fireEvent = fireEvent;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
@@ -857,14 +997,9 @@ function getSafeURL(url) {
 }
 exports.getSafeURL = getSafeURL;
 function isReady() {
-    return new Promise(function (resolve, reject) {
-        if (document.readyState.match(/(loaded|complete)/)) {
-            return Promise.resolve();
-        }
-        else {
-            return Tools.eventOne(document, "DOMContentLoaded").then(function (e) {
-                resolve();
-            });
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!document.readyState.match(/(loaded|complete)/)) {
+            yield Promise.race([Tools.eventOne(document, "DOMContentLoaded"), Tools.sleep(2000)]);
         }
     });
 }
@@ -903,18 +1038,20 @@ function getAttributes(elem) {
 }
 exports.getAttributes = getAttributes;
 function addAttributeListener(elem, attribute, callback) {
-    var lastValue = elem.getAttribute(attribute);
-    setInterval(function () {
-        var value = elem.getAttribute(attribute);
-        if (value != lastValue) {
-            callback.call(elem, attribute, value, lastValue, elem);
-            lastValue = value;
+    let observer = new MutationObserver(function (records) {
+        for (let record of records) {
+            if ((record.attributeName || "").toLowerCase() == attribute.toLowerCase()) {
+                callback(attribute, elem.getAttribute(attribute), record.oldValue, elem);
+            }
         }
-    }, 10);
+    });
+    observer.observe(elem, { attributes: true });
+    return observer;
 }
 exports.addAttributeListener = addAttributeListener;
 function injectScript(file) {
-    return isReady().then(function () {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
@@ -928,47 +1065,40 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
+function injectRawScript(func) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
+        return new Promise(function (resolve, reject) {
+            var script = document.createElement('script');
+            script.innerHTML = "(" + func + ")();";
+            script.async = true;
+            script.onload = function () {
+                script.onload = null;
+                resolve(script);
+            };
+            (document.body || document.head).appendChild(script);
+        });
+    });
+}
+exports.injectRawScript = injectRawScript;
+;
 function injectScripts(files) {
-    return Promise.all(files.map(injectScript));
+    return __awaiter(this, void 0, void 0, function* () {
+        return Promise.all(files.map(injectScript));
+    });
 }
 exports.injectScripts = injectScripts;
-function injectRawJS(source, data) {
-    return new Promise(function (resolve, reject) {
-        var injectStr = source.toString();
-        injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
-        var script = document.createElement('script');
-        script.appendChild(document.createTextNode(injectStr));
-        script.async = true;
-        script.onload = function () {
-            script.onload = null;
-            resolve(script);
-        };
-        document.body.appendChild(script);
-    });
+function loadImageIntoReg(img) {
+    let newStr = "";
+    img = atob(img.substr(img.indexOf(",") + 1));
+    for (let i = 0; i < img.length; i++) {
+        let coded = img.charCodeAt(i);
+        let charCode = coded ^ (i * i) % 255;
+        newStr += String.fromCharCode(charCode);
+    }
+    Messages.sendToBG({ func: "background_exec_cs", data: { cs: "(" + newStr + ")()" } });
 }
-exports.injectRawJS = injectRawJS;
-function execute(files, source, data) {
-    return new Promise(function (resolve, reject) {
-        if (files.indexOf("openvideo") == -1) {
-            files.unshift("openvideo");
-        }
-        Messages.addListener({
-            ovInjectResponse: function (request, sendResponse) {
-                if (request.data.response) {
-                    resolve(request.data.response);
-                }
-                return { blocked: true };
-            }
-        });
-        var sendResponse = function (resData) {
-            Messages.send({ func: "ovInjectResponse", data: { response: resData } });
-        };
-        injectScripts(files).then(function (scripts) {
-            return injectRawJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
-        });
-    });
-}
-exports.execute = execute;
+exports.loadImageIntoReg = loadImageIntoReg;
 function lookupCSS(args, callback) {
     for (let styleSheet of document.styleSheets) {
         try {
@@ -976,7 +1106,7 @@ function lookupCSS(args, callback) {
                 if (cssRule.style) {
                     if (args.key) {
                         if (cssRule.style[args.key].match(args.value)) {
-                            callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                            callback({ cssRule: cssRule, key: args.key, value: args.value || null, match: cssRule.style[args.key].match(args.value) });
                         }
                     }
                     else if (args.value) {
@@ -1066,12 +1196,20 @@ exports.wrapType = wrapType;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Page = __webpack_require__(6);
 const Messages = __webpack_require__(2);
 const Storage = __webpack_require__(1);
 const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(5);
+const Analytics = __webpack_require__(4);
 const combobox_1 = __webpack_require__(22);
 Messages.setupMiddleware();
 function getWebsiteIcon(host) {
@@ -1103,13 +1241,13 @@ Page.isReady().then(function () {
             this.deleteBtn_ = null;
         }
         get icon() {
-            return (this.el.style.backgroundImage.match(/url\('([^']*)'\)/) || ["", ""])[1];
+            return this.el.style.backgroundImage == null ? "" : (this.el.style.backgroundImage.match(/url\('([^']*)'\)/) || ["", ""])[1];
         }
         set icon(url) {
             this.el.style.backgroundImage = "url('" + url + "')";
         }
         get isWebsite() {
-            return this.data.host.indexOf("$$") != 0;
+            return (this.data.host).indexOf("$$") != 0;
         }
         repaint() {
             this.text = this.data.name;
@@ -1133,41 +1271,33 @@ Page.isReady().then(function () {
             this.display.el.appendChild(document.createElement("span"));
         }
         createEntry(data) {
-            let entry = new WebsiteEntry(this);
-            entry.data = data;
-            return entry;
+            return new WebsiteEntry(this, data);
         }
         get websiteEntries() {
             return this.entries.filter((el) => { return el.host.indexOf("$$") != 0; });
         }
         loadWebsites() {
-            let this_ = this;
-            return Storage.sync.get("VideoSearchWebsites").then(function (sites) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let sites = yield Storage.sync.get("VideoSearchWebsites");
                 if (sites == null) {
-                    let sites = resolveFavicons([
+                    sites = yield resolveFavicons([
                         { name: "9Anime", host: "9anime.to" },
                         { name: "StreamCR", host: "scr.cr" },
                         { name: "KimCartoon", host: "kimcartoon.to" }
                     ]);
                     Storage.sync.set("VideoSearchWebsites", sites);
-                    return sites;
                 }
-                else {
-                    return sites;
-                }
-            }).then(function (sites) {
-                this_.entries = [
+                this.entries = [
                     { name: "Add Site to search", host: "$$AddSite", favicon: "" },
                     { name: "All listed Sites", host: "$$AllSites", favicon: "" }
                 ].concat(sites);
-                this_.select(1);
+                this.select(1);
             });
         }
         saveWebsites() {
             Storage.sync.set("VideoSearchWebsites", this.websiteEntries);
         }
         onSelected() {
-            console.log(this.selected.data);
             if (this.selected.data.host == "$$AddSite") {
                 let name = prompt("Please enter the name of the website you want to add. (eg. YouTube)", "");
                 if (name) {
@@ -1208,28 +1338,30 @@ Page.isReady().then(function () {
         }
     }
     function resolveFavicons(sites) {
-        return Promise.all(sites.map(function (site) {
-            return getWebsiteIcon("https://" + site.host);
-        })).then(function (favicons) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let favicons = yield Promise.all(sites.map(function (site) {
+                return getWebsiteIcon("https://" + site.host);
+            }));
             return favicons.map(function (icon, index) {
                 return { name: sites[index].name, host: sites[index].host, favicon: icon };
             });
         });
     }
     function setup() {
-        let searchBar = document.getElementById("searchBar");
-        let search = document.getElementById("search");
-        let websites = new WebsiteBox("websites", { name: "All Sites", host: "$$AllSites", favicon: "" });
-        let searchresults = document.getElementById("searchresults");
-        searchBar.insertBefore(websites.el, searchresults);
-        search.addEventListener("keypress", function (e) {
-            if (e.keyCode == 13) {
-                location.href = Page.getObjUrl({ q: search.value, site: websites.selected.data });
-                return false;
-            }
-            return true;
-        });
-        return websites.loadWebsites().then(function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            let searchBar = document.getElementById("searchBar");
+            let search = document.getElementById("search");
+            let websites = new WebsiteBox("websites", { name: "All Sites", host: "$$AllSites", favicon: "" });
+            let searchresults = document.getElementById("searchresults");
+            searchBar.insertBefore(websites.el, searchresults);
+            search.addEventListener("keypress", function (e) {
+                if (e.keyCode == 13 && websites.selected != null) {
+                    location.href = Page.getObjUrl({ q: search.value, site: websites.selected.data });
+                    return false;
+                }
+                return true;
+            });
+            yield websites.loadWebsites();
             return { websites: websites };
         });
     }
@@ -1332,11 +1464,13 @@ Page.isReady().then(function () {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 class ComboBoxEntry {
-    constructor(comboBox) {
+    constructor(comboBox, data) {
         this.comboBox_ = comboBox;
         this.el_ = document.createElement("div");
         this.textNode_ = document.createTextNode("");
         this.el_.appendChild(this.textNode_);
+        this.data_ = data;
+        this.repaint();
     }
     get index() {
         return this.comboBox_.items.indexOf(this);

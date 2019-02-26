@@ -8,15 +8,3 @@ Messages.setupMiddleware();
 TheatreMode.setup();
 Metadata.setup();
 VideoPopup.setup();
-ScriptBase.isScriptEnabled("All videos").then(function(value) {
-    if (value) {
-        Messages.addListener({
-            pauseVideos: function() {
-                for (let video of document.getElementsByTagName("video")) {
-                    video.pause();
-                };
-            }
-        })
-        Page.injectScript("search_videos");
-    }
-});

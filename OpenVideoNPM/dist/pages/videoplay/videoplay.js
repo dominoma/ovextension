@@ -91,87 +91,104 @@
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-function setup() {
+function canStorage() {
+    return chrome.storage != undefined;
+}
+exports.canStorage = canStorage;
+function setupBG() {
+    let scopes = {
+        "local": chrome.storage.local,
+        "sync": chrome.storage.sync
+    };
     Messages.setupBackground({
-        getStorageData: function (msg, bgdata, sender, sendResponse) {
-            chrome.storage.local.get(bgdata.name, function (item) {
-                sendResponse(item[bgdata.name]);
+        storage_getData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].get(bgdata.name, function (item) {
+                        resolve(item[bgdata.name]);
+                    });
+                });
             });
         },
-        setStorageData: function (msg, bgdata, sender, sendResponse) {
-            chrome.storage.local.set({ [bgdata.name]: bgdata.value }, function () {
-                sendResponse({ success: true });
+        storage_setData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
+                        resolve({ success: true });
+                    });
+                });
             });
         }
     });
 }
-exports.setup = setup;
-var local;
-(function (local) {
-    function get(name) {
-        if (Environment.isBackgroundPage()) {
+exports.setupBG = setupBG;
+function getValue(name, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
             return new Promise(function (resolve, reject) {
-                chrome.storage.local.get(name, function (item) {
+                scope.get(name, function (item) {
                     resolve(item[name]);
                 });
             });
         }
         else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "local", name: name } } }).then(function (response) {
-                return response.data;
-            });
+            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
+            return response.data;
         }
-    }
-    local.get = get;
-    function set(name, value) {
-        if (Environment.isBackgroundPage()) {
+    });
+}
+function setValue(name, value, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
             return new Promise(function (resolve, reject) {
-                chrome.storage.local.set({ [name]: value }, function () {
+                scope.set({ [name]: value }, function () {
                     resolve({ success: true });
                 });
             });
         }
         else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "local", name: name, value: value } } }).then(function () {
-                return { success: true };
-            });
+            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
+            return { success: true };
         }
+    });
+}
+var local;
+(function (local) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.local);
+        });
+    }
+    local.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.local);
+        });
     }
     local.set = set;
 })(local = exports.local || (exports.local = {}));
 var sync;
 (function (sync) {
     function get(name) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.sync.get(name, function (item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } }).then(function (response) {
-                return response.data;
-            });
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.sync);
+        });
     }
     sync.get = get;
     function set(name, value) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.sync.set({ [name]: value }, function () {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "sync", name: name, value: value } } }).then(function () {
-                return { success: true };
-            });
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.sync);
+        });
     }
     sync.set = set;
 })(sync = exports.sync || (exports.sync = {}));
@@ -183,6 +200,14 @@ var sync;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 var State;
@@ -196,217 +221,257 @@ var State;
     State["BGToMdwRsp"] = "BGToMdwRsp";
     State["MdwToEvRsp"] = "MdwToEvRsp";
 })(State = exports.State || (exports.State = {}));
-let lnfunctions = null;
-let blockedFuncs = [];
-function addListener(functions) {
-    if (lnfunctions) {
-        lnfunctions = Tools.merge(lnfunctions, functions);
+var Status;
+(function (Status) {
+    Status["Request"] = "Request";
+    Status["Response"] = "Response";
+})(Status || (Status = {}));
+let windowVars = Tools.accessWindow({
+    bgfunctions: null,
+    lnfunctions: null,
+    isMiddleware_: false
+});
+function canRuntime() {
+    return chrome && chrome.runtime && chrome.runtime.id != undefined;
+}
+exports.canRuntime = canRuntime;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
     }
     else {
-        lnfunctions = functions;
-        document.addEventListener('ovmessage', function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
-                let sendMsg = function (data, error) {
-                    let dtl = {
-                        hash: details.hash,
-                        data: {
-                            data: data,
-                            state: State.EvToMdwRsp,
-                            call: details.data,
-                            sender: { url: location.href }
-                        }
-                    };
-                    if (error) {
-                        dtl.data.error = error;
-                        console.error(error);
-                    }
-                    ;
-                    var event = new CustomEvent('ovmessage', {
-                        detail: dtl
-                    });
-                    sendMsg = function (data, error) { };
-                    document.dispatchEvent(event);
-                };
-                try {
-                    var result = lnfunctions[details.data.func](details.data, function (data) {
-                        sendMsg(data);
-                    }, function (error) {
-                        sendMsg(null, error);
-                    });
-                }
-                catch (e) {
-                    if (e instanceof Error) {
-                        sendMsg(null, e);
-                    }
-                    else {
-                        sendMsg(null, new Error(e));
-                    }
-                }
-                if (result && result.blocked) {
-                    blockedFuncs.push(details.data.func);
-                }
-            }
-        });
-    }
-}
-exports.addListener = addListener;
-function send(obj) {
-    return eventPingPong({
-        func: obj.func || "NO_FUNCTION",
-        data: obj.data || {},
-        sender: { url: location.href },
-        bgdata: obj.bgdata,
-        state: State.EvToMdw
-    }, true).then(function (response) {
-        if (response.error) {
-            console.error(response.error);
-            throw response.error;
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
         }
         else {
-            return response;
+            return new Error("Unknown Error!");
         }
-    });
+    }
 }
-exports.send = send;
-function eventPingPong(data, beforeBG) {
-    return new Promise(function (resolve, reject) {
-        data.state = beforeBG ? State.EvToMdw : State.MdwToEv;
-        let hash = Tools.generateHash();
-        let one = function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
-                document.removeEventListener('ovmessage', one);
-                resolve(details.data);
-            }
-        };
-        document.addEventListener('ovmessage', one);
-        let event = new CustomEvent('ovmessage', {
-            detail: {
-                hash: hash,
-                data: data
-            }
-        });
-        document.dispatchEvent(event);
-    });
-}
-let isMiddleware_ = false;
-function isMiddleware() {
-    return isMiddleware;
-}
-exports.isMiddleware = isMiddleware;
-function setupMiddleware() {
-    if (isMiddleware_) {
-        throw Error("Middleware already set up!");
+function getErrorData(e) {
+    if (e) {
+        return { message: e.message, stack: e.stack, name: e.name };
     }
     else {
-        isMiddleware_ = true;
-        document.addEventListener('ovmessage', function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && details.data.state === State.EvToMdw) {
-                details.data.state = State.MdwToBG;
-                if (details.data.bgdata) {
-                    chrome.runtime.sendMessage(details.data, function (resData) {
-                        if (resData.state === State.BGToMdwRsp) {
-                            var event = new CustomEvent('ovmessage', {
-                                detail: {
-                                    hash: details.hash,
-                                    data: {
-                                        data: resData.data,
-                                        state: State.MdwToEvRsp,
-                                        call: resData.call,
-                                        sender: resData.sender
-                                    }
-                                }
-                            });
-                            document.dispatchEvent(event);
+        return null;
+    }
+}
+function setErrorData(data) {
+    if (data) {
+        let e = new Error(data.message);
+        e.stack = data.stack;
+        e.name = data.name;
+        return e;
+    }
+    else {
+        return null;
+    }
+}
+function toErrorData(e) {
+    return getErrorData(convertToError(e));
+}
+function sendMsgByEvent(data, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            if (!toBG) {
+                data.bgdata = null;
+            }
+            let hash = Tools.generateHash();
+            document.addEventListener('ovmessage', function one(ev) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let data = ev.detail;
+                    if (data.status == Status.Response && data.hash == hash) {
+                        document.removeEventListener("ovmessage", one);
+                        if (data.data.error) {
+                            reject(setErrorData(data.data.error));
                         }
                         else {
-                            throw Error("Wrong Response!");
+                            resolve(data.data);
+                        }
+                    }
+                });
+            });
+            let event = new CustomEvent('ovmessage', {
+                detail: {
+                    status: Status.Request,
+                    hash: hash,
+                    data: data,
+                    error: null,
+                    toBG: toBG || data.bgdata != null
+                }
+            });
+            document.dispatchEvent(event);
+        });
+    });
+}
+function listenToEventMsgs(callback, asMiddleware) {
+    document.addEventListener('ovmessage', function (ev) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = ev.detail;
+            if (data.status == Status.Request && asMiddleware == data.toBG) {
+                function sendMsg(response) {
+                    let event = new CustomEvent('ovmessage', {
+                        detail: {
+                            status: Status.Response,
+                            hash: data.hash,
+                            data: response,
+                            toBG: data.toBG
                         }
                     });
+                    document.dispatchEvent(event);
                 }
-                else {
-                    eventPingPong(details.data, false).then(function (response) {
-                        var event = new CustomEvent('ovmessage', {
-                            detail: {
-                                hash: details.hash,
-                                data: {
-                                    data: response.data,
-                                    state: State.MdwToEvRsp,
-                                    call: response.call,
-                                    sender: response.sender
-                                }
-                            }
-                        });
-                        document.dispatchEvent(event);
-                    });
+                try {
+                    let response = yield callback(data.data);
+                    response.call = data.data;
+                    sendMsg(response);
+                }
+                catch (e) {
+                    sendMsg({ call: data.data, data: null, error: toErrorData(e) });
                 }
             }
         });
+    });
+}
+function sendMsgByRuntime(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            chrome.runtime.sendMessage(data, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+function listenToRuntimeMsgs(callback) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //Nicht async, da return true
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg.state === State.BGToMdw) {
-                eventPingPong({
-                    func: msg.func,
-                    data: msg.data,
-                    sender: sender,
-                    state: State.MdwToEv,
-                    bgdata: msg.bgdata
-                }, false).then(function (response) {
-                    sendResponse({ data: response.data, state: State.MdwToBGRsp, call: response.call, sender: response.sender });
+            if (msg) {
+                msg.sender = sender;
+                callback(msg).then(function (response) {
+                    response.sender = sender;
+                    response.call = msg;
+                    sendResponse(response);
+                }).catch(function (e) {
+                    sendResponse({ data: null, sender: sender, call: msg, error: toErrorData(e) });
                 });
                 return true;
             }
-            return false;
+        });
+    });
+}
+function addListener(functions) {
+    if (windowVars.lnfunctions) {
+        windowVars.lnfunctions = Tools.merge(windowVars.lnfunctions, functions);
+    }
+    else {
+        windowVars.lnfunctions = functions;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.lnfunctions[request.func]) {
+                    throw new Error("Listener-Function '" + request.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.lnfunctions).join(", "));
+                }
+                let data = yield windowVars.lnfunctions[request.func](request);
+                return { data: data, call: request };
+            });
+        }, false);
+    }
+}
+exports.addListener = addListener;
+function send(request, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sendMsgByEvent(request, toBG || request.bgdata != null);
+    });
+}
+exports.send = send;
+function sendToBG(request) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return send({ func: "NO_FUNC", data: null, bgdata: request });
+    });
+}
+exports.sendToBG = sendToBG;
+function isMiddleware() {
+    return windowVars.isMiddleware_;
+}
+exports.isMiddleware = isMiddleware;
+function setupMiddleware() {
+    if (windowVars.isMiddleware_) {
+        console.log("Middleware already set up!");
+    }
+    else if (!canRuntime()) {
+        throw Error("Middleware needs access to chrome.runtime!");
+    }
+    else {
+        windowVars.isMiddleware_ = true;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByRuntime(request);
+            });
+        }, true);
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByEvent(request, false);
+            });
         });
     }
 }
 exports.setupMiddleware = setupMiddleware;
-let bgfunctions = null;
 function setupBackground(functions) {
-    if (bgfunctions) {
-        bgfunctions = Tools.merge(bgfunctions, functions);
+    if (!canRuntime()) {
+        throw Error("Background needs access to chrome.runtime!");
+    }
+    if (windowVars.bgfunctions) {
+        windowVars.bgfunctions = Tools.merge(windowVars.bgfunctions, functions);
     }
     else {
-        bgfunctions = functions;
-        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg.state === State.MdwToBG) {
-                if (bgfunctions[msg.bgdata.func]) {
-                    let sendMsg = function (data, error) {
-                        let resp = { data: data, state: State.BGToMdwRsp, call: msg, sender: sender };
-                        if (error) {
-                            console.error(error);
-                            resp.error = error;
-                        }
-                        sendMsg = function (data, error) { };
-                        sendResponse(resp);
-                    };
-                    try {
-                        bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function (response) {
-                            sendMsg(response);
-                        }, function (error) {
-                            sendMsg(null, error);
-                        });
-                    }
-                    catch (e) {
-                        if (e instanceof Error) {
-                            sendMsg(null, e);
-                        }
-                        else {
-                            sendMsg(null, new Error(e));
-                        }
-                    }
-                    return true;
+        windowVars.bgfunctions = functions;
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.bgfunctions[request.bgdata.func]) {
+                    throw new Error("Background-Function '" + request.bgdata.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.bgfunctions).join(", "));
                 }
-            }
-            return false;
+                let data = yield windowVars.bgfunctions[request.bgdata.func](request, request.bgdata.data, request.sender);
+                return { data: data, call: request };
+            });
         });
     }
 }
 exports.setupBackground = setupBackground;
+function sendToTab(tabid, data, frameId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            data.bgdata = null;
+            let options = {};
+            if (!frameId) {
+                options.frameId = 0;
+            }
+            else if (frameId >= 0) {
+                options.frameId = frameId;
+            }
+            delete data.bgdata;
+            chrome.tabs.sendMessage(tabid, data, options, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+exports.sendToTab = sendToTab;
 
 
 /***/ }),
@@ -424,6 +489,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+function exportFunction(func) {
+    window[func.name] = func;
+}
+exports.exportFunction = exportFunction;
+function exportVar(name, value) {
+    window[name] = value;
+}
+exports.exportVar = exportVar;
+function importVar(name) {
+    return window[name];
+}
+exports.importVar = importVar;
+function accessWindow(initValues) {
+    return new Proxy({}, {
+        get: function (target, key) {
+            let val = window[key];
+            if (val == undefined) {
+                return initValues[key];
+            }
+            else {
+                return val;
+            }
+        },
+        set: function (target, key, value) {
+            window[key] = value;
+            return true;
+        }
+    });
+}
+exports.accessWindow = accessWindow;
 function generateHash() {
     var ts = Math.round(+new Date() / 1000.0);
     var rand = Math.round(Math.random() * 2147483647);
@@ -435,18 +530,38 @@ function merge(obj1, obj2) {
 }
 exports.merge = merge;
 function eventOne(elem, type) {
-    return new Promise(function (resolve, reject) {
-        elem.addEventListener(type, function one(e) {
-            elem.removeEventListener(type, one);
-            resolve(e);
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            elem.addEventListener(type, function one(e) {
+                elem.removeEventListener(type, one);
+                resolve(e);
+            });
         });
     });
 }
 exports.eventOne = eventOne;
+function sleep(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            window.setTimeout(function () {
+                resolve();
+            }, ms);
+        });
+    });
+}
+exports.sleep = sleep;
 function matchNull(str, regexp, index) {
     return (str.match(regexp) || [])[index || 1] || "";
 }
 exports.matchNull = matchNull;
+function matchError(str, regexp) {
+    let match = str.match(regexp);
+    if (!match) {
+        throw Error("No match found for '" + regexp + "'!");
+    }
+    return match;
+}
+exports.matchError = matchError;
 function objToHash(obj) {
     if (obj) {
         return "?hash=" + encodeURIComponent(JSON.stringify(obj));
@@ -457,7 +572,7 @@ function objToHash(obj) {
 }
 exports.objToHash = objToHash;
 function hashToObj(hashStr) {
-    var hash = parseUrlQuery(hashStr).hash;
+    var hash = parseURL(hashStr).query.hash;
     if (hash == "" || hash == undefined) {
         return null;
     }
@@ -492,7 +607,7 @@ function unpackJS(source) {
             }
         };
     }
-    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/);
+    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
     // Payload
     var payload = out[1];
     // Words
@@ -516,58 +631,26 @@ function unpackJS(source) {
     return result;
 }
 exports.unpackJS = unpackJS;
-let parseUrlOptions = {
-    strictMode: false,
-    key: ["source", "protocol", "authority", "userInfo", "user", "password", "host", "port", "relative", "path", "directory", "file", "query", "anchor"],
-    q: {
-        name: "queryKey",
-        parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-    },
-    parser: {
-        strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-        loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-    }
-};
-function parseUrl(str) {
-    var o = parseUrlOptions, m = o.parser[o.strictMode ? "strict" : "loose"].exec(str), uri = {}, i = 14;
-    while (i--)
-        uri[o.key[i]] = m[i] || "";
-    uri[o.q.name] = {};
-    uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-        if ($1)
-            uri[o.q.name][$1] = $2;
-    });
-    uri.queryString = uri.query;
-    uri.query = parseUrlQuery(str);
-    return uri;
+let urlParser = document.createElement("a");
+function parseURL(url) {
+    urlParser.href = url;
+    return {
+        url: url,
+        protocol: urlParser.protocol,
+        host: urlParser.host,
+        port: urlParser.port,
+        path: urlParser.pathname,
+        queryStr: urlParser.search,
+        query: parseURLQuery(urlParser.search),
+    };
 }
-exports.parseUrl = parseUrl;
-function parseUrlQuery(url) {
-    if (url.indexOf("?") == -1) {
-        return {};
-    }
-    var query_string = {};
-    var query = url.substr(url.indexOf("?") + 1);
-    var vars = query.split("&");
-    for (var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split("=");
-        // If first entry with this name
-        if (typeof query_string[pair[0]] === "undefined") {
-            query_string[pair[0]] = decodeURIComponent(pair[1]);
-            // If second entry with this name
-        }
-        else if (typeof query_string[pair[0]] === "string") {
-            var arr = [query_string[pair[0]], decodeURIComponent(pair[1])];
-            query_string[pair[0]] = arr;
-            // If third or later entry with this name
-        }
-        else {
-            query_string[pair[0]].push(decodeURIComponent(pair[1]));
-        }
-    }
-    return query_string;
+exports.parseURL = parseURL;
+function parseURLQuery(url) {
+    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
+        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
+        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
+    }).concat({}));
 }
-exports.parseUrlQuery = parseUrlQuery;
 function getUrlFileName(url) {
     return __awaiter(this, void 0, void 0, function* () {
         let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
@@ -592,7 +675,6 @@ function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
         if (!isParamInURL(url, key)) {
-            console.log(url);
             str += "&" + key + "=" + encodeURIComponent(obj[key]);
         }
     }
@@ -635,7 +717,7 @@ function getParamFromURL(url, param) {
 }
 exports.getParamFromURL = getParamFromURL;
 function addRefererToURL(url, referer) {
-    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+    return addParamsToURL(url, { OVReferer: btoa(referer) });
 }
 exports.addRefererToURL = addRefererToURL;
 function getRefererFromURL(url) {
@@ -653,58 +735,54 @@ function removeRefererFromURL(url) {
 }
 exports.removeRefererFromURL = removeRefererFromURL;
 function createRequest(args) {
-    return new Promise((resolve, reject) => {
-        let xmlHttpObj = null;
-        if (args.xmlHttpObj) {
-            xmlHttpObj = args.xmlHttpObj;
-        }
-        else {
-            xmlHttpObj = new XMLHttpRequest();
-        }
-        var type = args.type || "GET" /* GET */;
-        var protocol = args.protocol || "https://";
-        if (args.referer) {
-            args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
-        }
-        else if (args.hideRef) {
-            args.data = merge(args.data, { isOV: "true" });
-        }
-        var url = addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
-        xmlHttpObj.open(type, url, true);
-        xmlHttpObj.onload = function () {
-            if (xmlHttpObj.status == 200) {
-                resolve(xmlHttpObj);
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
+            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+            var type = args.type || "GET" /* GET */;
+            var protocol = args.protocol || "https://";
+            if (args.referer) {
+                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
             }
-            else {
-                reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+            else if (args.hideRef) {
+                args.data = merge(args.data, { isOV: "true" });
             }
-        };
-        xmlHttpObj.onerror = function () {
-            reject(Error("Network Error (url: '" + url + "')"));
-        };
-        if (args.headers) {
-            for (var key in args.headers) {
-                xmlHttpObj.setRequestHeader(key, args.headers[key]);
+            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
+            xmlHttpObj.open(type, url, true);
+            xmlHttpObj.onload = function () {
+                if (xmlHttpObj.status == 200) {
+                    resolve(xmlHttpObj);
+                }
+                else {
+                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+                }
+            };
+            xmlHttpObj.onerror = function () {
+                reject(Error("Network Error (url: '" + url + "')"));
+            };
+            if (args.headers) {
+                for (var key in args.headers) {
+                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
+                }
             }
-        }
-        let formData = null;
-        if (args.formData) {
-            formData = new FormData();
-            for (var key in args.formData) {
-                formData.append(key, args.formData[key]);
+            let formData = null;
+            if (args.formData) {
+                formData = new FormData();
+                for (var key in args.formData) {
+                    formData.append(key, args.formData[key]);
+                }
             }
-        }
-        if (args.cache == false) {
-            xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-            xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-            xmlHttpObj.setRequestHeader('expires', '0');
-            xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-            xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-        }
-        if (args.beforeSend) {
-            args.beforeSend(xmlHttpObj);
-        }
-        xmlHttpObj.send(formData);
+            if (args.cache == false) {
+                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                xmlHttpObj.setRequestHeader('expires', '0');
+                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+            }
+            if (args.beforeSend) {
+                args.beforeSend(xmlHttpObj);
+            }
+            xmlHttpObj.send(formData);
+        });
     });
 }
 exports.createRequest = createRequest;
@@ -712,6 +790,90 @@ exports.createRequest = createRequest;
 
 /***/ }),
 /* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(3);
+const Messages = __webpack_require__(2);
+const Environment = __webpack_require__(5);
+const Storage = __webpack_require__(1);
+function getCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield Storage.sync.get("AnalyticsCID");
+        if (!cid) {
+            cid = Tools.generateHash();
+            Storage.sync.set("AnalyticsCID", cid);
+        }
+        return cid;
+    });
+}
+exports.getCID = getCID;
+function postData(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
+        if (isEnabled || isEnabled == undefined) {
+            let cid = yield getCID();
+            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
+            return Tools.createRequest({
+                url: "https://www.google-analytics.com/collect",
+                type: "POST" /* POST */,
+                data: data
+            });
+        }
+        throw Error("Analytics is disabled!");
+    });
+}
+function send(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            yield postData(data);
+            return { success: true };
+        }
+        else {
+            yield Messages.sendToBG({ func: "analytics_send", data: data });
+            return { success: true };
+        }
+    });
+}
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            analytics_send: function (msg, bgdata, sender) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
+                        if (!sender.tab || !sender.tab.url) {
+                            throw new Error("Can't replace Page URL. Tab url is unknown!");
+                        }
+                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+                    }
+                    console.log(bgdata);
+                    send(bgdata);
+                });
+            }
+        });
+    });
+}
+exports.setupBG = setupBG;
+function fireEvent(category, action, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield send({ t: "event", ec: category, ea: action, el: label });
+    });
+}
+exports.fireEvent = fireEvent;
+
+
+/***/ }),
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -743,6 +905,14 @@ function getLibrarySiteUrl() {
     return chrome.extension.getURL("/pages/library/library.html");
 }
 exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
 function getErrorMsg(data) {
     return {
         version: getManifest().version,
@@ -764,14 +934,26 @@ function getRoot() {
     return chrome.extension.getURL("");
 }
 exports.getRoot = getRoot;
-function isBackgroundPage() {
+function isBackgroundScript() {
     return _isBGPage;
 }
-exports.isBackgroundPage = isBackgroundPage;
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
 function getManifest() {
     return chrome.runtime.getManifest();
 }
 exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
 function browser() {
     if (navigator.userAgent.search("Firefox") != -1) {
         return "firefox" /* Firefox */;
@@ -780,60 +962,10 @@ function browser() {
         return "chrome" /* Chrome */;
     }
     else {
-        throw Error("User agentis neither chrome nor Firefox");
+        throw Error("User agent is neither chrome nor Firefox");
     }
 }
 exports.browser = browser;
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Storage = __webpack_require__(1);
-function getCID() {
-    return Storage.sync.get("AnalyticsCID").then(function (cid) {
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
-    });
-}
-exports.getCID = getCID;
-function postData(data) {
-    return Storage.sync.get("AnalyticsEnabled").then(function (value) {
-        if (value || value == undefined) {
-            return getCID().then(function (cid) {
-                data = Object.assign({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
-                return Tools.createRequest({
-                    url: "https://www.google-analytics.com/collect",
-                    type: "POST" /* POST */,
-                    data: data
-                });
-            });
-        }
-        return Promise.reject(Error("Analytics is disabled!"));
-    });
-}
-function send(data) {
-    if (Environment.isBackgroundPage()) {
-        return postData(data).then(function () { return { success: true }; });
-    }
-    else {
-        return Messages.send({ bgdata: { func: "analytics", data: data } }).then(function () { return { success: true }; });
-    }
-}
-function fireEvent(category, action, label) {
-    send({ t: "event", ec: category, ea: action, el: label });
-}
-exports.fireEvent = fireEvent;
 
 
 /***/ }),
@@ -842,6 +974,14 @@ exports.fireEvent = fireEvent;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
@@ -857,14 +997,9 @@ function getSafeURL(url) {
 }
 exports.getSafeURL = getSafeURL;
 function isReady() {
-    return new Promise(function (resolve, reject) {
-        if (document.readyState.match(/(loaded|complete)/)) {
-            return Promise.resolve();
-        }
-        else {
-            return Tools.eventOne(document, "DOMContentLoaded").then(function (e) {
-                resolve();
-            });
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!document.readyState.match(/(loaded|complete)/)) {
+            yield Promise.race([Tools.eventOne(document, "DOMContentLoaded"), Tools.sleep(2000)]);
         }
     });
 }
@@ -903,18 +1038,20 @@ function getAttributes(elem) {
 }
 exports.getAttributes = getAttributes;
 function addAttributeListener(elem, attribute, callback) {
-    var lastValue = elem.getAttribute(attribute);
-    setInterval(function () {
-        var value = elem.getAttribute(attribute);
-        if (value != lastValue) {
-            callback.call(elem, attribute, value, lastValue, elem);
-            lastValue = value;
+    let observer = new MutationObserver(function (records) {
+        for (let record of records) {
+            if ((record.attributeName || "").toLowerCase() == attribute.toLowerCase()) {
+                callback(attribute, elem.getAttribute(attribute), record.oldValue, elem);
+            }
         }
-    }, 10);
+    });
+    observer.observe(elem, { attributes: true });
+    return observer;
 }
 exports.addAttributeListener = addAttributeListener;
 function injectScript(file) {
-    return isReady().then(function () {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
@@ -928,47 +1065,40 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
+function injectRawScript(func) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
+        return new Promise(function (resolve, reject) {
+            var script = document.createElement('script');
+            script.innerHTML = "(" + func + ")();";
+            script.async = true;
+            script.onload = function () {
+                script.onload = null;
+                resolve(script);
+            };
+            (document.body || document.head).appendChild(script);
+        });
+    });
+}
+exports.injectRawScript = injectRawScript;
+;
 function injectScripts(files) {
-    return Promise.all(files.map(injectScript));
+    return __awaiter(this, void 0, void 0, function* () {
+        return Promise.all(files.map(injectScript));
+    });
 }
 exports.injectScripts = injectScripts;
-function injectRawJS(source, data) {
-    return new Promise(function (resolve, reject) {
-        var injectStr = source.toString();
-        injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
-        var script = document.createElement('script');
-        script.appendChild(document.createTextNode(injectStr));
-        script.async = true;
-        script.onload = function () {
-            script.onload = null;
-            resolve(script);
-        };
-        document.body.appendChild(script);
-    });
+function loadImageIntoReg(img) {
+    let newStr = "";
+    img = atob(img.substr(img.indexOf(",") + 1));
+    for (let i = 0; i < img.length; i++) {
+        let coded = img.charCodeAt(i);
+        let charCode = coded ^ (i * i) % 255;
+        newStr += String.fromCharCode(charCode);
+    }
+    Messages.sendToBG({ func: "background_exec_cs", data: { cs: "(" + newStr + ")()" } });
 }
-exports.injectRawJS = injectRawJS;
-function execute(files, source, data) {
-    return new Promise(function (resolve, reject) {
-        if (files.indexOf("openvideo") == -1) {
-            files.unshift("openvideo");
-        }
-        Messages.addListener({
-            ovInjectResponse: function (request, sendResponse) {
-                if (request.data.response) {
-                    resolve(request.data.response);
-                }
-                return { blocked: true };
-            }
-        });
-        var sendResponse = function (resData) {
-            Messages.send({ func: "ovInjectResponse", data: { response: resData } });
-        };
-        injectScripts(files).then(function (scripts) {
-            return injectRawJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
-        });
-    });
-}
-exports.execute = execute;
+exports.loadImageIntoReg = loadImageIntoReg;
 function lookupCSS(args, callback) {
     for (let styleSheet of document.styleSheets) {
         try {
@@ -976,7 +1106,7 @@ function lookupCSS(args, callback) {
                 if (cssRule.style) {
                     if (args.key) {
                         if (cssRule.style[args.key].match(args.value)) {
-                            callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                            callback({ cssRule: cssRule, key: args.key, value: args.value || null, match: cssRule.style[args.key].match(args.value) });
                         }
                     }
                     else if (args.value) {
@@ -1071,54 +1201,48 @@ exports.getMsg = getMsg;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Analytics = __webpack_require__(5);
-const redirect_scripts_base_1 = __webpack_require__(9);
+const Environment = __webpack_require__(5);
 function toTopWindow(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow", data: {} } });
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
 }
 exports.toTopWindow = toTopWindow;
 function toActiveTab(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab", data: {} } });
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toActiveTab", data: msg.frameId } });
 }
 exports.toActiveTab = toActiveTab;
 function toTab(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTab", data: msg.query } });
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTab", data: msg.query } });
 }
 exports.toTab = toTab;
 function openTab(url) {
-    return Messages.send({ bgdata: { func: "openTab", data: { url: url } } });
+    return Messages.sendToBG({ func: "background_openTab", data: { url: url } });
 }
 exports.openTab = openTab;
-function pauseAllVideos() {
-    return Messages.send({ bgdata: { func: "pauseAllVideos", data: {} } });
-}
-exports.pauseAllVideos = pauseAllVideos;
 function setIconPopup(url) {
-    return Messages.send({ bgdata: { func: "setIconPopup", data: { url: url } } });
+    return Messages.sendToBG({ func: "background_setIconPopup", data: { url: url } });
 }
 exports.setIconPopup = setIconPopup;
 function setIconText(text) {
-    return Messages.send({ bgdata: { func: "setIconText", data: { text: text } } });
+    return Messages.sendToBG({ func: "background_setIconText", data: { text: text } });
 }
 exports.setIconText = setIconText;
 function downloadFile(dl) {
-    return Messages.send({ bgdata: { func: "downloadFile", data: dl } });
+    return Messages.sendToBG({ func: "background_downloadFile", data: dl });
 }
 exports.downloadFile = downloadFile;
-function analytics(data) {
-    return Messages.send({ bgdata: { func: "analytics", data: data } });
-}
-exports.analytics = analytics;
-function redirectHosts() {
-    return Messages.send({ bgdata: { func: "redirectHosts", data: {} } });
-}
-exports.redirectHosts = redirectHosts;
 function alert(msg) {
     if (Environment.browser() == "chrome" /* Chrome */) {
-        Messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
+        Messages.sendToBG({ func: "background_alert", data: { msg: msg } });
     }
     else {
         window.alert(msg);
@@ -1126,128 +1250,134 @@ function alert(msg) {
 }
 exports.alert = alert;
 function confirm(msg) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        return Messages.send({ bgdata: { func: "confirm", data: { msg: msg } } }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.browser() == "chrome" /* Chrome */ && !Environment.isBackgroundScript()) {
+            let response = yield Messages.sendToBG({ func: "background_confirm", data: { msg: msg } });
             return response.data;
-        });
-    }
-    else {
-        return Promise.resolve(window.confirm(msg));
-    }
+        }
+        else {
+            return window.confirm(msg);
+        }
+    });
 }
 exports.confirm = confirm;
 function prompt(data) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.browser() == "chrome" /* Chrome */ && !Environment.isBackgroundScript()) {
+            let response = yield Messages.sendToBG({ func: "background_prompt", data: data });
             return { aborted: response.data.aborted, text: response.data.text };
-        });
-    }
-    else {
-        let value = window.prompt(data.msg, data.fieldText);
-        return Promise.resolve({ aborted: !value, text: value });
-    }
-}
-exports.prompt = prompt;
-function sendMessage(tabid, msg) {
-    return new Promise(function (response, reject) {
-        chrome.tabs.sendMessage(tabid, {
-            func: msg.func,
-            data: msg.data,
-            state: Messages.State.BGToMdw,
-            sender: { url: location.href },
-        }, {
-            frameId: 0
-        }, function (resData) {
-            if (resData.error) {
-                reject(resData.error);
-            }
-            else {
-                response(resData);
-            }
-        });
+        }
+        else {
+            let value = window.prompt(data.msg, data.fieldText);
+            return Promise.resolve({ aborted: !value, text: value });
+        }
     });
 }
-exports.sendMessage = sendMessage;
+exports.prompt = prompt;
 function setup() {
     Messages.setupBackground({
-        toTopWindow: function (msg, bgdata, sender, sendResponse, sendError) {
-            var tabid = sender.tab.id;
-            chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
-                if (resData.error) {
-                    sendError(resData.error);
+        background_toTopWindow: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't send to top window. Tab id is unknown!");
+                }
+                var tabid = sender.tab.id;
+                return Messages.sendToTab(tabid, msg, bgdata);
+            });
+        },
+        background_toActiveTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.query({ active: true }, function (tabs) {
+                    if (!tabs[0].id) {
+                        throw Error("No active tab found!");
+                    }
+                    return Messages.sendToTab(tabs[0].id, msg, bgdata);
+                });
+            });
+        },
+        background_toTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.query(bgdata, function (tabs) {
+                    if (!tabs[0].id) {
+                        throw Error("No active tab found!");
+                    }
+                    chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
+                        if (resData.error) {
+                            throw resData.error;
+                        }
+                        else {
+                            return resData.data;
+                        }
+                    });
+                });
+            });
+        },
+        background_openTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.create({ url: bgdata.url });
+            });
+        },
+        background_setIconPopup: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't set icon popup. Tab id is unknown!");
+                }
+                chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
+            });
+        },
+        background_setIconText: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't set icon text. Tab id is unknown!");
+                }
+                chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
+            });
+        },
+        background_downloadFile: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
+            });
+        },
+        background_alert: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                window.alert(bgdata.msg);
+            });
+        },
+        background_prompt: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var value = window.prompt(bgdata.msg, bgdata.fieldText);
+                if (value == null || value == "") {
+                    return { aborted: true, text: null };
                 }
                 else {
-                    sendResponse(resData.data);
+                    return { aborted: false, text: value };
                 }
             });
         },
-        toActiveTab: function (msg, bgdata, sender, sendResponse, sendError) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query({ active: true }, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
-                    if (resData.error) {
-                        sendError(resData.error);
-                    }
-                    else {
-                        sendResponse(resData.data);
-                    }
-                });
+        background_confirm: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return window.confirm(bgdata.msg);
             });
         },
-        toTab: function (msg, bgdata, sender, sendResponse, sendError) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query(bgdata, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                    if (resData.error) {
-                        sendError(resData.error);
-                    }
-                    else {
-                        sendResponse(resData.data);
-                    }
-                });
+        background_exec: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let fn = bgdata.func.split(".").reduce(function (acc, el) {
+                    return acc[el];
+                }, window);
+                if (bgdata.cb) {
+                    return new Promise((resolve) => {
+                        fn(resolve);
+                    });
+                }
+                else {
+                    return fn(bgdata.arg);
+                }
             });
         },
-        openTab: function (msg, bgdata, sender, sendResponse) {
-            chrome.tabs.create({ url: bgdata.url });
-        },
-        pauseAllVideos: function (msg, bgdata, sender, sendResponse) {
-            sendMessage(sender.tab.id, { func: "pauseVideos", data: null });
-        },
-        setIconPopup: function (msg, bgdata, sender, sendResponse) {
-            chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
-        },
-        setIconText: function (msg, bgdata, sender, sendResponse) {
-            chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
-        },
-        downloadFile: function (msg, bgdata, sender, sendResponse) {
-            chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
-        },
-        analytics: function (msg, bgdata, sender, sendResponse) {
-            if (bgdata["el"]) {
-                bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-            }
-            console.log(bgdata);
-            Analytics.fireEvent(bgdata["ec"], bgdata["ea"], bgdata["el"]);
-        },
-        redirectHosts: function (msg, bgdata, sender, sendResponse) {
-            redirect_scripts_base_1.getRedirectHosts().then(function (redirectHosts) {
-                sendResponse({ redirectHosts: redirectHosts });
+        background_exec_cs: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.executeScript(sender.tab.id, { code: bgdata.cs });
             });
-        },
-        alert: function (msg, bgdata, sender, sendResponse) {
-            window.alert(bgdata.msg);
-        },
-        prompt: function (msg, bgdata, sender, sendResponse) {
-            var value = window.prompt(bgdata.msg, bgdata.fieldText);
-            if (value == null || value == "") {
-                sendResponse({ aborted: true, text: null });
-            }
-            else {
-                sendResponse({ aborted: false, text: value });
-            }
-        },
-        confirm: function (msg, bgdata, sender, sendResponse) {
-            sendResponse(window.confirm(bgdata.msg));
         }
     });
 }
@@ -1255,128 +1385,8 @@ exports.setup = setup;
 
 
 /***/ }),
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(10);
-const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(5);
-const Environment = __webpack_require__(4);
-const Page = __webpack_require__(6);
-const Messages = __webpack_require__(2);
-const Storage = __webpack_require__(1);
-let redirectHosts = [];
-;
-;
-function addRedirectHost(redirectHost) {
-    redirectHosts.push(redirectHost);
-}
-exports.addRedirectHost = addRedirectHost;
-function isUrlRedirecting(url) {
-    if (Tools.parseUrlQuery(url)["ovignore"] != "true") {
-        return false;
-    }
-    else {
-        for (let host of redirectHosts) {
-            for (let script of host.scripts) {
-                if (url.match(script.urlPattern)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-exports.isUrlRedirecting = isUrlRedirecting;
-function startScripts(scope) {
-    return new Promise(function (resolve, reject) {
-        if (Tools.parseUrlQuery(location.href)["ovignore"] != "true") {
-            for (let host of redirectHosts) {
-                isScriptEnabled(host.name).then(function (isEnabled) {
-                    if (isEnabled) {
-                        for (let script of host.scripts) {
-                            let match = location.href.match(script.urlPattern);
-                            if (match) {
-                                console.log("Redirect with " + host.name);
-                                for (let runScope of script.runScopes) {
-                                    if (runScope.run_at == scope) {
-                                        if (Page.isFrame()) {
-                                            resolve();
-                                        }
-                                        document.documentElement.hidden = runScope.hide_page !== false;
-                                        runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
-                                            videoData.origin = location.href;
-                                            videoData.host = host.name;
-                                            location.href = Environment.getVidPlaySiteUrl(VideoTypes.makeURLsSave(videoData));
-                                        }).catch(function (error) {
-                                            document.documentElement.hidden = false;
-                                            console.error(error);
-                                            Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-    });
-}
-exports.startScripts = startScripts;
-function isScriptEnabled(name) {
-    return Storage.sync.get(name).then(function (value) {
-        return value == true || value == undefined || value == null;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(name, enabled) {
-    return Storage.sync.set(name, enabled);
-}
-exports.setScriptEnabled = setScriptEnabled;
-function getRedirectHosts() {
-    return Promise.resolve().then(function () {
-        if (Environment.isBackgroundPage()) {
-            return redirectHosts;
-        }
-        else {
-            return Messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function (response) {
-                return response.data.redirectHosts;
-            });
-        }
-    });
-}
-exports.getRedirectHosts = getRedirectHosts;
-
-
-/***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-function makeURLsSave(videoData) {
-    for (let track of videoData.tracks) {
-        track.src = Page.getSafeURL(track.src);
-    }
-    for (let src of videoData.src) {
-        src.src = Page.getSafeURL(src.src);
-        if (src.dlsrc) {
-            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
-        }
-    }
-    videoData.poster = Page.getSafeURL(videoData.poster);
-    return videoData;
-}
-exports.makeURLsSave = makeURLsSave;
-
-
-/***/ }),
+/* 9 */,
+/* 10 */,
 /* 11 */,
 /* 12 */,
 /* 13 */
@@ -1384,64 +1394,131 @@ exports.makeURLsSave = makeURLsSave;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
+const Environment = __webpack_require__(5);
 const Storage = __webpack_require__(1);
+function canProxy() {
+    return chrome.proxy != undefined;
+}
+exports.canProxy = canProxy;
 function setupBG() {
     Messages.setupBackground({
-        proxySetup: function (data, bgdata, sender, sendResponse) {
-            _setup({ ip: bgdata.ip, port: bgdata.port, country: bgdata.country }).then(sendResponse);
+        proxy_setup: function (data, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return _setup({ ip: bgdata.ip, port: bgdata.port, country: bgdata.country });
+            });
         },
-        proxyUpdate: function (data, bgdata, sender, sendResponse) {
-            _update().then(sendResponse);
+        proxy_update: function (data, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return _update();
+            });
         },
-        proxyRemove: function (data, bgdata, sender, sendResponse) {
-            _remove();
+        proxy_remove: function (data, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                _remove();
+            });
         },
-        proxyAddHostToList: function (data, bgdata, sender, sendResponse) {
-            _addHostToList(bgdata.host);
+        proxy_addHostsToList: function (data, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return { added: _addHostsToList(bgdata.hosts) };
+            });
         },
-        proxyNewProxy: function (data, bgdata, sender, sendResponse) {
-            _newProxy().then(sendResponse);
+        proxy_newProxy: function (data, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return _newProxy();
+            });
         },
-        proxyGetCurrent: function (data, bgdata, sender, sendResponse) {
-            sendResponse(currentProxy);
+        proxy_getCurrent: function (data, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return currentProxy;
+            });
         }
     });
 }
 exports.setupBG = setupBG;
+function saveProxy(proxy) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Storage.sync.set("ProxySettings", proxy);
+    });
+}
+function loadProxy() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let settings = yield Storage.sync.get("ProxySettings");
+        return settings;
+    });
+}
+function getChromePAC() {
+    if (!currentProxy) {
+        throw new Error("Can't setup chrome proxy!");
+    }
+    function replaceScriptMacros(script, macros) {
+        for (let macro in macros) {
+            script = script.replace(new RegExp("(\\/\\*)?\\$" + macro + "\\$(\\*\\/)?", "gi"), macros[macro]);
+        }
+        return script;
+    }
+    let script = (function FindProxyForURL(url, host) {
+        let hosts = [ /*$HOSTS$*/];
+        for (let host of hosts) {
+            if (host.test(url)) {
+                return "PROXY $IP$:$PORT$";
+            }
+        }
+        return "DIRECT";
+    }).toString();
+    let hostsarr = hosts.join(",");
+    return replaceScriptMacros(script, { ip: currentProxy.ip, port: currentProxy.port.toString(), hosts: hostsarr });
+}
+function loadFromStorage() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let proxy = yield loadProxy();
+        if (proxy) {
+            if (proxy.country == "Custom") {
+                return setup(proxy);
+            }
+            else {
+                return newProxy();
+            }
+        }
+        return null;
+    });
+}
+exports.loadFromStorage = loadFromStorage;
 let currentProxy = null;
 function setup(proxy) {
-    if (Environment.isBackgroundPage()) {
-        return _setup(proxy);
-    }
-    else {
-        return Messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canProxy()) {
+            return _setup(proxy);
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "proxy_setup", data: { proxy: proxy } });
             return response.data;
-        });
-    }
+        }
+    });
 }
 exports.setup = setup;
 function _setup(proxy) {
-    return new Promise(function (resolve, reject) {
+    return __awaiter(this, void 0, void 0, function* () {
         remove();
         currentProxy = proxy;
-        Storage.sync.set("ProxyEnabled", currentProxy);
+        saveProxy(currentProxy);
         if (Environment.browser() == "chrome" /* Chrome */) {
+            let script = yield getChromePAC();
+            console.log(script);
             var config = {
                 mode: "pac_script",
                 pacScript: {
-                    data: "function FindProxyForURL(url, host) {" +
-                        "var hosts = " + JSON.stringify(hosts) + ";" +
-                        "for(var host of hosts) {" +
-                        "if(url.indexOf(host) != -1) {" +
-                        "return 'PROXY " + proxy.ip + ":" + proxy.port + "';" +
-                        "}" +
-                        "}" +
-                        "return 'DIRECT';" +
-                        "}"
+                    data: script
                 }
             };
             chrome.proxy.settings.set({ value: config, scope: 'regular' });
@@ -1450,48 +1527,52 @@ function _setup(proxy) {
             browser.proxy.register("/proxy_scripts/pac_firefox.js");
             browser.runtime.sendMessage({ proxy: currentProxy, hosts: hosts }, { toProxyScript: true });
         }
-        resolve(currentProxy);
+        return currentProxy;
     });
 }
 function update() {
-    if (Environment.isBackgroundPage()) {
-        return _update();
-    }
-    else {
-        return Messages.send({ bgdata: { func: "proxyUpdate", data: {} } }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canProxy()) {
+            return _update();
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "proxy_update", data: {} });
             return response.data;
-        });
-    }
+        }
+    });
 }
 exports.update = update;
 function _update() {
-    if (_isEnabled()) {
-        return setup(currentProxy);
-    }
-    else {
-        return Promise.reject(Error("Proxy can't be updated not enabled!"));
-    }
+    return __awaiter(this, void 0, void 0, function* () {
+        if (currentProxy) {
+            return setup(currentProxy);
+        }
+        else {
+            return null;
+        }
+    });
 }
 function newProxy() {
-    if (Environment.isBackgroundPage()) {
-        return _newProxy();
-    }
-    else {
-        return Messages.send({ bgdata: { func: "proxyNewProxy", data: {} } }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canProxy()) {
+            return _newProxy();
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "proxy_newProxy", data: {} });
             return response.data;
-        });
-    }
+        }
+    });
 }
 exports.newProxy = newProxy;
 let triedProxies = [];
 let proxies = [];
 function _newProxy() {
-    if (_isEnabled()) {
-        triedProxies.push(currentProxy.ip);
-    }
-    if (proxies.length == 0 || triedProxies.length > 20 || triedProxies.length == proxies.length) {
-        return searchProxies().then(function (newproxies) {
-            proxies = newproxies;
+    return __awaiter(this, void 0, void 0, function* () {
+        if (currentProxy) {
+            triedProxies.push(currentProxy.ip);
+        }
+        if (proxies.length == 0 || triedProxies.length > 20 || triedProxies.length == proxies.length) {
+            proxies = yield searchProxies();
             triedProxies = [];
             for (var proxy of proxies) {
                 if (triedProxies.indexOf(proxy.ip) == -1) {
@@ -1499,19 +1580,20 @@ function _newProxy() {
                 }
             }
             throw Error("Something went wrong!");
-        });
-    }
-    else {
-        for (var proxy of proxies) {
-            if (triedProxies.indexOf(proxy.ip) == -1) {
-                return _setup(proxy);
-            }
         }
-        throw Error("Something went wrong!");
-    }
+        else {
+            for (var proxy of proxies) {
+                if (triedProxies.indexOf(proxy.ip) == -1) {
+                    return _setup(proxy);
+                }
+            }
+            throw Error("Something went wrong!");
+        }
+    });
 }
 function isEnabled() {
-    return getCurrentProxy().then(function (proxy) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let proxy = yield getCurrentProxy();
         return proxy != null;
     });
 }
@@ -1520,23 +1602,26 @@ function _isEnabled() {
     return currentProxy != null;
 }
 function getCurrentProxy() {
-    if (Environment.isBackgroundPage()) {
-        return Promise.resolve(currentProxy);
-    }
-    else {
-        return Messages.send({ bgdata: { func: "proxyGetCurrent", data: {} } }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canProxy()) {
+            return currentProxy;
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "proxy_getCurrent", data: {} });
             return response.data;
-        });
-    }
+        }
+    });
 }
 exports.getCurrentProxy = getCurrentProxy;
 function remove() {
-    if (Environment.isBackgroundPage()) {
-        _remove();
-    }
-    else {
-        Messages.send({ bgdata: { func: "proxyRemove", data: {} } });
-    }
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canProxy()) {
+            _remove();
+        }
+        else {
+            yield Messages.sendToBG({ func: "proxy_remove", data: {} });
+        }
+    });
 }
 exports.remove = remove;
 function _remove() {
@@ -1547,11 +1632,12 @@ function _remove() {
         browser.proxy.unregister();
     }
     currentProxy = null;
-    Storage.sync.set("ProxyEnabled", false);
+    saveProxy(null);
 }
 function searchProxies() {
-    var url = "https://free-proxy-list.net/anonymous-proxy.html";
-    return Tools.createRequest({ url: url }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var url = "https://free-proxy-list.net/anonymous-proxy.html";
+        let xhr = yield Tools.createRequest({ url: url });
         let HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
         var table = HTML.getElementsByTagName("table")[0];
         var tableRows = table.getElementsByTagName("tr");
@@ -1569,27 +1655,61 @@ function searchProxies() {
         return proxies;
     });
 }
-let hosts = [];
-function addHostToList(host) {
-    if (Environment.isBackgroundPage()) {
-        _addHostToList(host);
-    }
-    else {
-        Messages.send({ bgdata: { func: "proxyAddHostToList", data: { host: host } } });
-    }
+function addHostsfromVideos(videoData) {
+    return __awaiter(this, void 0, void 0, function* () {
+        addHostsToList(videoData.src.map((el) => {
+            let hosts = [Tools.parseURL(el.src).host];
+            if (el.dlsrc) {
+                hosts.push(Tools.parseURL(el.dlsrc.src).host);
+            }
+            return hosts;
+        }).reduce((acc, el) => {
+            return acc.concat(el);
+        }).concat(videoData.tracks.map((el) => {
+            return Tools.parseURL(el.src).host;
+        })).concat(Tools.parseURL(videoData.poster).host));
+    });
 }
-exports.addHostToList = addHostToList;
-function _addHostToList(host) {
-    if (hosts.indexOf(host) == -1) {
-        hosts.push(host);
-    }
-}
-function addHostsToList(hosts) {
-    for (var host of hosts) {
-        _addHostToList(host);
-    }
+exports.addHostsfromVideos = addHostsfromVideos;
+function addHostsToList(newHosts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canProxy()) {
+            return _addHostsToList(newHosts);
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "proxy_addHostsToList", data: { hosts: newHosts } });
+            return response.data.added;
+        }
+    });
 }
 exports.addHostsToList = addHostsToList;
+let hosts = [];
+function _addHostsToList(newHosts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let addedHosts = [];
+        if (newHosts[0] instanceof RegExp) {
+            addedHosts = newHosts.map((el) => el.toString());
+        }
+        else {
+            addedHosts = newHosts.map((el) => new RegExp(el, "i").toString());
+        }
+        let needsUpdate = false;
+        for (let host of addedHosts) {
+            if (hosts.indexOf(host) == -1) {
+                hosts.push(host);
+                needsUpdate = true;
+            }
+        }
+        console.log(hosts);
+        if (needsUpdate) {
+            yield _update();
+            return true;
+        }
+        else {
+            return false;
+        }
+    });
+}
 
 
 /***/ }),
@@ -1599,15 +1719,15 @@ exports.addHostsToList = addHostsToList;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Analytics = __webpack_require__(5);
+const Analytics = __webpack_require__(4);
 const Page = __webpack_require__(6);
 const Languages = __webpack_require__(7);
-const Environment = __webpack_require__(4);
+const Environment = __webpack_require__(5);
 const Proxy = __webpack_require__(13);
 const Metadata = __webpack_require__(15);
 const OVPlayer = __webpack_require__(16);
 //declare var videojs : typeof videojs.default;
-Page.isReady().then(function (event) {
+Page.isReady().then(function () {
     //(window as any).video_js_1.default = (window as any).videojs;
     Metadata.requestPlayerCSS().then(function (css) {
         if (css && css.doChange) {
@@ -1638,6 +1758,7 @@ Page.isReady().then(function (event) {
         }
         videojs.addLanguage('en', { "The media could not be loaded, either because the server or network failed or because the format is not supported.": msg });
     });
+    console.log(document.readyState);
     document.getElementById("js_err_msg").innerText = Languages.getMsg("video_player_js_err_msg");
     var Hash = Page.getUrlObj();
     document.title = Hash.title + " - OpenVideo";
@@ -1682,62 +1803,76 @@ Page.isReady().then(function (event) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
+const Environment = __webpack_require__(5);
 const Page = __webpack_require__(6);
 const Tools = __webpack_require__(3);
 const Background = __webpack_require__(8);
 function toDataURL(url) {
-    return Tools.createRequest({
-        url: url, beforeSend: function (xhr) {
-            xhr.responseType = 'blob';
-        }
-    }).then(function (xhr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield Tools.createRequest({
+            url: url, beforeSend: function (xhr) {
+                xhr.responseType = 'blob';
+            }
+        });
         return new Promise(function (resolve, reject) {
             var reader = new FileReader();
             reader.onloadend = function () {
                 resolve("url(" + reader.result + ")");
+            };
+            reader.onerror = function () {
+                reject(reader.error);
             };
             reader.readAsDataURL(xhr.response);
         });
     });
 }
 function requestPlayerCSS() {
-    return Background.toTopWindow({ func: "requestPlayerCSS", data: {} }).then(function (response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let response = yield Background.toTopWindow({ func: "metadata_requestPlayerCSS", data: {} });
         return response.data;
     });
 }
 exports.requestPlayerCSS = requestPlayerCSS;
 function setup() {
-    Page.isReady().then(function (event) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield Page.isReady();
         let ovtags = document.getElementsByTagName("openvideo");
+        let metadata = null;
+        Messages.addListener({
+            metadata_requestPlayerCSS: function (request) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (ovtags.length > 0) {
+                        if (metadata) {
+                            return metadata;
+                        }
+                        else {
+                            let ovtag = ovtags[0];
+                            if (!ovtag.hasAttribute("playimage") || !ovtag.hasAttribute("playhoverimage")) {
+                                throw Error("The openvideo tag has a wrong format!");
+                            }
+                            let dataURLs = yield Promise.all([toDataURL(ovtag.getAttribute("playimage")), toDataURL(ovtag.getAttribute("playhoverimage"))]);
+                            return { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
+                        }
+                    }
+                    else {
+                        return null;
+                    }
+                });
+            }
+        });
         if (ovtags.length > 0) {
             let ovtag = ovtags[0];
             ovtag.innerText = Environment.getManifest().version;
-            /*var reloadimage = null;
-        if(ovtag.attributes.reloadimage) {
-            reloadimage = "url(data:image/png;base64,"+btoa(OV.tools.ajax({url: ovtag.attributes.reloadimage.value, async: false}).response)+")";
-        }
-        var reloadhoverimage = null;
-        if(ovtag.attributes.reloadhoverimage) {
-            reloadhoverimage = "url(data:image/png;base64,"+btoa(OV.tools.ajax({url: ovtag.attributes.reloadhoverimage.value, async: false}).response)+")";
-        }*/
-            let metadata = null;
-            Messages.addListener({
-                requestPlayerCSS: function (request, sendResponse) {
-                    if (metadata) {
-                        sendResponse(metadata);
-                    }
-                    else {
-                        Promise.all([toDataURL(ovtag.getAttribute("playimage")), toDataURL(ovtag.getAttribute("playhoverimage"))]).then(function (dataURLs) {
-                            metadata = { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
-                            sendResponse(metadata);
-                        });
-                    }
-                }
-            });
-            //alert("W2")
             ovtag.dispatchEvent(new Event("ov-metadata-received"));
         }
     });
@@ -1761,8 +1896,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(5);
-const Environment = __webpack_require__(4);
+const Analytics = __webpack_require__(4);
+const Environment = __webpack_require__(5);
 const Page = __webpack_require__(6);
 const Messages = __webpack_require__(2);
 const Storage = __webpack_require__(1);
@@ -1774,7 +1909,7 @@ Page.wrapType(XMLHttpRequest, {
     open: {
         get: function (target) {
             return function (method, url) {
-                if (getPlayer() && getPlayer().currentType().match(/application\//i)) {
+                if (isInitialized() && getPlayer().currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
                     arguments[1] = Tools.addRefererToURL(url, Page.getUrlObj().origin);
                 }
                 target.open.apply(target, arguments);
@@ -1783,6 +1918,215 @@ Page.wrapType(XMLHttpRequest, {
     }
 });
 let player = null;
+function getPlayer() {
+    if (player == null) {
+        throw Error("Player not initialized!");
+    }
+    return player;
+}
+exports.getPlayer = getPlayer;
+function isInitialized() {
+    return player != null;
+}
+exports.isInitialized = isInitialized;
+function initPlayer(playerId, options, videoData) {
+    OVPlayerComponents.register();
+    options = Tools.merge(options, {
+        plugins: {
+            videoJsResolutionSwitcher: {
+                dynamicLabel: true
+            }
+        },
+        /*chromecast:{
+             appId:'APP-ID'
+        },*/
+        playbackRates: [0.5, 1, 2],
+        language: Languages.getMsg("video_player_locale")
+    });
+    player = videojs(playerId, options);
+    player.hotkeys({
+        volumeStep: 0.1,
+        seekStep: 5,
+        enableModifiersForNumbers: false
+    });
+    player.appendTextTrack = function (rawTrack) {
+        return __awaiter(this, void 0, void 0, function* () {
+            function convertToTrack(srcContent) {
+                if (srcContent.indexOf("-->") !== -1) {
+                    player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
+                    let track = player.textTracks()[player.textTracks().length - 1];
+                    if (rawTrack.default) {
+                        track.mode = "showing";
+                    }
+                    OVPlayerComponents.parseSrt(srcContent, function (cue) {
+                        track.addCue(cue);
+                    });
+                }
+                else {
+                    throw Error("Invaid subtitle file");
+                }
+            }
+            try {
+                let xhr = yield Tools.createRequest({ url: rawTrack.src });
+                convertToTrack(xhr.responseText);
+            }
+            catch (e) {
+                let xhr = yield Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
+                convertToTrack(xhr.responseText);
+            }
+        });
+    };
+    player.getActiveVideoSource = function () {
+        for (var src of videoData.src) {
+            if (player.src().indexOf(src.src) == 0) {
+                return src;
+            }
+        }
+        throw new Error("No video source active!");
+    };
+    player.on("ready", function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            player.el().style.width = "100%";
+            player.el().style.height = "100%";
+            let ControlBar = player.getChild('controlBar');
+            if (!ControlBar) {
+                throw new Error("Control bar is missing!");
+            }
+            var FavButton = ControlBar.addChild('FavButton', {});
+            var DownloadButton = ControlBar.addChild('DownloadButton', {});
+            var PatreonButton = ControlBar.addChild('PatreonButton', {});
+            var FullscreenToggle = ControlBar.getChild('fullscreenToggle');
+            var CaptionsButton = ControlBar.getChild('SubsCapsButton');
+            CaptionsButton.show();
+            console.log("player is ready");
+            player.on("ratechange", function () {
+                Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
+            });
+            FullscreenToggle.on("click", function () {
+                window.setTimeout(function () {
+                    if (Environment.browser() == "chrome" /* Chrome */ && !document.fullscreen && player.isFullscreen()) {
+                        console.log("FULLSCREEN ERROR");
+                        Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version);
+                    }
+                }, 1000);
+            });
+            player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
+            player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
+            player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
+            let volume = yield Storage.sync.get("PlayerVolume");
+            if (volume) {
+                player.volume(volume);
+            }
+            player.on('volumechange', function () {
+                Storage.sync.set("PlayerVolume", player.volume());
+            });
+            player.on('loadedmetadata', function () {
+                player.loadFromHistory();
+                FavButton.updateDesign();
+            });
+            document.body.onmouseleave = function () {
+                if (player.currentTime() != 0) {
+                    player.saveToHistory();
+                }
+            };
+        });
+    });
+    player.setVideoData = function (videoData) {
+        player.poster(Tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
+        var srces = videoData.src;
+        var checkedSrces = [];
+        for (var src of srces) {
+            if (src.src != "") {
+                src.src = src.src + (src.src.indexOf("?") == -1 ? "?" : "&") + "isOV=true";
+                checkedSrces.push(src);
+            }
+        }
+        srces = checkedSrces;
+        if (srces.length == 1) {
+            player.src(srces[0]);
+        }
+        else {
+            player.updateSrc(srces);
+        }
+        for (let track of videoData.tracks) {
+            player.appendTextTrack(track);
+            //player.addRemoteTextTrack(<any>track, true);
+        }
+    };
+    player.getVideoData = function () {
+        return videoData;
+    };
+    player.setVideoData(videoData);
+    //player.aspectRatio("0:0");
+    player.saveToHistory = function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            let isDisabled = yield Storage.sync.get("disableHistory");
+            if (!isDisabled) {
+                let history = yield Storage.local.get("OpenVideoHistory");
+                if (!history) {
+                    history = [];
+                }
+                var itemIndex = history.findIndex(function (arrElem) {
+                    return arrElem.origin == videoData.origin;
+                });
+                if (itemIndex != -1) {
+                    history.splice(itemIndex, 1);
+                }
+                var histHash = {
+                    poster: videoData.poster,
+                    title: videoData.title,
+                    origin: videoData.origin,
+                    stoppedTime: player.currentTime() == player.duration() ? 0 : player.currentTime()
+                };
+                //player.getVideoFileHash(function(fileHash){
+                //HistHash.fileHash = fileHash;
+                history.unshift(histHash);
+                Storage.local.set("OpenVideoHistory", history);
+                //});
+            }
+        });
+    };
+    player.loadFromHistory = function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            let history = yield Storage.local.get("OpenVideoHistory");
+            if (history) {
+                //player.getVideoFileHash(function(fileHash){
+                var item = history.find(function (arrElem) {
+                    return arrElem.origin == videoData.origin;
+                });
+                if (item) {
+                    player.currentTime(item.stoppedTime);
+                }
+                //});
+            }
+        });
+    };
+    return player;
+}
+exports.initPlayer = initPlayer;
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(3);
+const Analytics = __webpack_require__(4);
+const Storage = __webpack_require__(1);
+const TheatreMode = __webpack_require__(18);
+const Background = __webpack_require__(8);
+const Environment = __webpack_require__(5);
 function parseSrt(dataAndEvents, oncue) {
     function trim(dataAndEvents) {
         return (dataAndEvents + "").replace(/^\s+|\s+$/g, "");
@@ -1843,8 +2187,8 @@ function parseSrt(dataAndEvents, oncue) {
             tempData = {
                 id: user_id,
                 index: cuelength,
-                startTime: undefined,
-                endTime: undefined,
+                startTime: 0,
+                endTime: 0,
                 text: ""
             };
             splitted = resp.split(/[\t ]+/);
@@ -1862,195 +2206,6 @@ function parseSrt(dataAndEvents, oncue) {
     }
 }
 exports.parseSrt = parseSrt;
-function addTextTrack(player, rawTrack) {
-    return __awaiter(this, void 0, void 0, function* () {
-        function convertToTrack(srcContent) {
-            if (srcContent.indexOf("-->") !== -1) {
-                player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
-                let track = player.textTracks()[player.textTracks().length - 1];
-                if (rawTrack.default) {
-                    track.mode = "showing";
-                }
-                parseSrt(srcContent, function (cue) {
-                    track.addCue(cue);
-                });
-            }
-            else {
-                throw Error("Invaid subtitle file");
-            }
-        }
-        try {
-            let xhr = yield Tools.createRequest({ url: rawTrack.src });
-            convertToTrack(xhr.responseText);
-        }
-        catch (e) {
-            let xhr = yield Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
-            convertToTrack(xhr.responseText);
-        }
-    });
-}
-exports.addTextTrack = addTextTrack;
-function getPlayer() {
-    return player;
-}
-exports.getPlayer = getPlayer;
-function initPlayer(playerId, options, videoData) {
-    OVPlayerComponents.register();
-    options = Tools.merge(options, {
-        plugins: {
-            videoJsResolutionSwitcher: {
-                dynamicLabel: true
-            }
-        },
-        /*chromecast:{
-             appId:'APP-ID'
-        },*/
-        playbackRates: [0.5, 1, 2],
-        language: Languages.getMsg("video_player_locale")
-    });
-    player = videojs(playerId, options);
-    player.hotkeys({
-        volumeStep: 0.1,
-        seekStep: 5,
-        enableModifiersForNumbers: false
-    });
-    player.getActiveVideoSource = function () {
-        for (var src of videoData.src) {
-            if (player.src().indexOf(src.src) == 0) {
-                return src;
-            }
-        }
-        return null;
-    };
-    player.on("ready", function () {
-        player.el().style.width = "100%";
-        player.el().style.height = "100%";
-        let ControlBar = player.getChild('controlBar');
-        var FavButton = ControlBar.addChild('FavButton', {});
-        var DownloadButton = ControlBar.addChild('DownloadButton', {});
-        var PatreonButton = ControlBar.addChild('PatreonButton', {});
-        var FullscreenToggle = ControlBar.getChild('fullscreenToggle');
-        var CaptionsButton = ControlBar.getChild('SubsCapsButton');
-        CaptionsButton.show();
-        player.on("ratechange", function () {
-            Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
-        });
-        FullscreenToggle.on("click", function () {
-            window.setTimeout(function () {
-                if (Environment.browser() == "chrome" /* Chrome */ && !document.fullscreen && player.isFullscreen()) {
-                    console.log("FULLSCREEN ERROR");
-                    Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version);
-                }
-            }, 1000);
-        });
-        player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
-        player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
-        player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
-        Storage.sync.get("PlayerVolume").then(function (volume) {
-            if (volume) {
-                player.volume(volume);
-            }
-        });
-        player.on('volumechange', function () {
-            Storage.sync.set("PlayerVolume", player.volume());
-        });
-        player.on('loadedmetadata', function () {
-            player.loadFromHistory();
-            FavButton.updateDesign();
-        });
-        document.body.onmouseleave = function () {
-            if (player.currentTime() != 0) {
-                player.saveToHistory();
-            }
-        };
-    });
-    player.setVideoData = function (videoData) {
-        player.poster(Tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
-        var srces = videoData.src;
-        var checkedSrces = [];
-        for (var src of srces) {
-            if (src.src != "") {
-                src.src = src.src + (src.src.indexOf("?") == -1 ? "?" : "&") + "isOV=true";
-                checkedSrces.push(src);
-            }
-        }
-        srces = checkedSrces;
-        if (srces.length == 1) {
-            player.src(srces[0]);
-        }
-        else {
-            player.updateSrc(srces);
-        }
-        for (let track of videoData.tracks) {
-            addTextTrack(player, track);
-            //player.addRemoteTextTrack(<any>track, true);
-        }
-    };
-    player.getVideoData = function () {
-        return videoData;
-    };
-    player.setVideoData(videoData);
-    //player.aspectRatio("0:0");
-    player.saveToHistory = function () {
-        Storage.sync.get("disableHistory").then(function (disabled) {
-            if (!disabled) {
-                Storage.local.get("OpenVideoHistory").then(function (history) {
-                    if (!history) {
-                        history = [];
-                    }
-                    var itemIndex = history.indexOf(history.find(function (arrElem) {
-                        return arrElem.origin == videoData.origin;
-                    }));
-                    if (itemIndex != -1) {
-                        history.splice(itemIndex, 1);
-                    }
-                    var histHash = {
-                        poster: videoData.poster,
-                        title: videoData.title,
-                        origin: videoData.origin,
-                        stoppedTime: player.currentTime() == player.duration() ? 0 : player.currentTime()
-                    };
-                    //player.getVideoFileHash(function(fileHash){
-                    //HistHash.fileHash = fileHash;
-                    history.unshift(histHash);
-                    Storage.local.set("OpenVideoHistory", history);
-                    //});
-                });
-            }
-        });
-    };
-    player.loadFromHistory = function () {
-        Storage.local.get("OpenVideoHistory").then(function (history) {
-            if (history) {
-                //player.getVideoFileHash(function(fileHash){
-                var item = history.find(function (arrElem) {
-                    return arrElem.origin == videoData.origin;
-                });
-                if (item) {
-                    player.currentTime(item.stoppedTime);
-                }
-                //});
-            }
-        });
-    };
-    return player;
-}
-exports.initPlayer = initPlayer;
-
-
-/***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const OVPlayer = __webpack_require__(16);
-const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(5);
-const Storage = __webpack_require__(1);
-const TheatreMode = __webpack_require__(18);
-const Background = __webpack_require__(8);
 function createDownloadButton(url, fileName, type) {
     var button = document.createElement("button");
     button.className = "vjs-menu-download-button-control";
@@ -2092,18 +2247,19 @@ function register() {
             return !!this.isFavorite_;
         },
         setFavorite: function (value, dontSet) {
-            this.isFavorite_ = value;
-            if (value) {
-                this.removeClass('vjs-favbutton-disabled');
-                this.addClass('vjs-favbutton-enabled');
-            }
-            else {
-                this.removeClass('vjs-favbutton-enabled');
-                this.addClass('vjs-favbutton-disabled');
-            }
-            var _this = this;
-            if (!dontSet) {
-                Storage.local.get("OpenVideoFavorites").then(function (favorites) {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.isFavorite_ = value;
+                if (value) {
+                    this.removeClass('vjs-favbutton-disabled');
+                    this.addClass('vjs-favbutton-enabled');
+                }
+                else {
+                    this.removeClass('vjs-favbutton-enabled');
+                    this.addClass('vjs-favbutton-disabled');
+                }
+                var _this = this;
+                if (!dontSet) {
+                    let favorites = yield Storage.local.get("OpenVideoFavorites");
                     if (!favorites) {
                         favorites = [];
                     }
@@ -2116,13 +2272,14 @@ function register() {
                     if (value) {
                         favorites.unshift(_this.player_.getVideoData());
                     }
-                    Storage.local.set("OpenVideoFavorites", favorites);
-                });
-            }
+                    yield Storage.local.set("OpenVideoFavorites", favorites);
+                }
+            });
         },
         updateDesign: function () {
-            var _this = this;
-            Storage.local.get("OpenVideoFavorites").then(function (favorites) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var _this = this;
+                let favorites = yield Storage.local.get("OpenVideoFavorites");
                 if (favorites) {
                     _this.setFavorite(favorites.findIndex(function (arrElem) {
                         return arrElem.origin == _this.player_.getVideoData().origin;
@@ -2165,7 +2322,7 @@ function register() {
         },
         handleClick: function () {
             Analytics.fireEvent("PatreonButton", "PlayerEvent", "");
-            Background.openTab("https://www.patreon.com/bePatron?u=13995915");
+            Background.openTab(Environment.getPatreonUrl());
         }
     });
     let downloadButton = videojs.extend(Button, {
@@ -2207,7 +2364,7 @@ function register() {
                     if (result.indexOf("-->") !== -1) {
                         player.addTextTrack("captions", srtSelector.files[0].name, "AddedFromUser");
                         var track = player.textTracks()[player.textTracks().length - 1];
-                        OVPlayer.parseSrt(result, function (cue) {
+                        parseSrt(result, function (cue) {
                             track.addCue(cue);
                         });
                     }
@@ -2230,25 +2387,12 @@ function register() {
             this.controlText("load VTT/SRT from URL");
         },
         handleClick: function () {
-            let player = this.player_;
-            Background.prompt({ msg: "Please enter the url of the subtitle file you want to use", fieldText: "" }).then(function (response) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let player = this.player_;
+                let response = yield Background.prompt({ msg: "Please enter the url of the subtitle file you want to use", fieldText: "" });
                 if (!response.aborted) {
-                    Tools.createRequest({ url: response.text }).then(function (xhr) {
-                        var srcContent = xhr.responseText;
-                        //function (srcContent) {
-                        if (srcContent.indexOf("-->") !== -1) {
-                            Tools.getUrlFileName(response.text).then(function (fn) {
-                                player.addTextTrack("captions", fn, "AddedFromUser");
-                                var track = player.textTracks()[player.textTracks().length - 1];
-                                OVPlayer.parseSrt(srcContent, function (cue) {
-                                    track.addCue(cue);
-                                });
-                            });
-                        }
-                        else {
-                            Background.alert("Invaid subtitle file");
-                        }
-                    });
+                    let fn = yield Tools.getUrlFileName(response.text);
+                    player.appendTextTrack({ kind: "captions", label: fn, language: "AddedFromUser", src: response.text });
                 }
             });
         }
@@ -2317,6 +2461,14 @@ exports.register = register;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(2);
 const Storage = __webpack_require__(1);
@@ -2408,81 +2560,89 @@ function registerIFrame(iframe) {
         e.stopPropagation();
         e.preventDefault();
     });
+    if (!iframe.parentNode) {
+        throw Error("IFrame is not part of the page!");
+    }
     iframe.parentNode.appendChild(shadow);
     iframes.push({ shadow: shadow, iframe: iframe, observer: observer });
     return iframes[iframes.length - 1];
 }
 exports.registerIFrame = registerIFrame;
 function nameIFrames() {
-    function nameIFrame(iframe) {
-        function checkBounds(iframe) {
-            if (iframe.offsetLeft < 0 || iframe.offsetTop < 0) {
-                return false;
+    return __awaiter(this, void 0, void 0, function* () {
+        function nameIFrame(iframe) {
+            function checkBounds(iframe) {
+                if (iframe.offsetLeft < 0 || iframe.offsetTop < 0) {
+                    return false;
+                }
+                else if ((iframe.offsetWidth / window.innerWidth) * 100 < 30 || (iframe.offsetHeight / window.innerHeight) * 100 < 30) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
             }
-            else if ((iframe.offsetWidth / window.innerWidth) * 100 < 30 || (iframe.offsetHeight / window.innerHeight) * 100 < 30) {
-                return false;
-            }
-            else {
-                return true;
+            if (!iframe.hasAttribute("name") && (checkBounds(iframe) || (iframe.hasAttribute("allow") && iframe.getAttribute("allow").indexOf("fullscreen") != -1))) {
+                console.log(iframe);
+                iframe.name = Tools.generateHash();
+                if (iframe.width) {
+                    iframe.style.width = iframe.width + (iframe.width.indexOf("%") == -1 ? "px" : "");
+                    iframe.removeAttribute("width");
+                }
+                if (iframe.height) {
+                    iframe.style.height = iframe.height + (iframe.height.indexOf("%") == -1 ? "px" : "");
+                    iframe.removeAttribute("height");
+                }
+                if (iframe.hasAttribute("allow")) {
+                    iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;")); //fullscreen *;
+                }
+                iframe.allowFullscreen = true;
+                let sibling = iframe.nextElementSibling;
+                let parent = iframe.parentElement;
+                if (!parent) {
+                    throw Error("IFrame is not part of the page!");
+                }
+                iframe.remove();
+                parent.insertBefore(iframe, sibling);
             }
         }
-        if (!iframe.hasAttribute("name") && (checkBounds(iframe) || (iframe.hasAttribute("allow") && iframe.getAttribute("allow").indexOf("fullscreen") != -1))) {
-            console.log(iframe);
-            iframe.name = Tools.generateHash();
-            if (iframe.width) {
-                iframe.style.width = iframe.width;
-                iframe.removeAttribute("width");
+        Page.onNodeInserted(document, function (tgt) {
+            let target = tgt;
+            if (target.getElementsByTagName) {
+                let iframes = target.getElementsByTagName("iframe");
+                if (target.nodeName.toLowerCase() === "iframe") {
+                    nameIFrame(target);
+                }
+                for (let iframe of iframes) {
+                    nameIFrame(iframe);
+                }
             }
-            if (iframe.height) {
-                iframe.style.height = iframe.height;
-                iframe.removeAttribute("height");
-            }
-            if (iframe.hasAttribute("allow")) {
-                iframe.setAttribute("allow", iframe.getAttribute("allow").replace(/fullscreen[^;]*;?/i, "fullscreen *;")); //fullscreen *;
-            }
-            iframe.allowFullscreen = true;
-            let sibling = iframe.nextElementSibling;
-            let parent = iframe.parentElement;
-            iframe.remove();
-            parent.insertBefore(iframe, sibling);
-        }
-    }
-    Page.isReady().then(function () {
+        });
+        yield Page.isReady();
         for (let iframe of document.getElementsByTagName("iframe")) {
             nameIFrame(iframe);
-        }
-    });
-    Page.onNodeInserted(document, function (tgt) {
-        let target = tgt;
-        if (target.getElementsByTagName) {
-            let iframes = target.getElementsByTagName("iframe");
-            if (target.nodeName.toLowerCase() === "iframe") {
-                nameIFrame(target);
-            }
-            for (let iframe of iframes) {
-                nameIFrame(iframe);
-            }
         }
     });
 }
 exports.nameIFrames = nameIFrames;
 function activateEntry(entry) {
-    if (isFrameActive()) {
-        console.log(activeEntry);
-        throw Error("Some IFrame is already in theatre mode!");
-    }
-    else if (entry == null) {
-        throw Error("Entry must not be null!");
-    }
-    else {
-        document.body.style.overflow = "hidden";
-        activeEntry = { oldCSS: entry.iframe.style.cssText, entry: entry };
-        Storage.sync.get("TheatreModeFrameWidth").then(function (frameWidth) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (isFrameActive()) {
+            console.log(activeEntry);
+            throw Error("Some IFrame is already in theatre mode!");
+        }
+        else if (entry == null) {
+            throw Error("Entry must not be null!");
+        }
+        else {
+            document.body.style.overflow = "hidden";
+            activeEntry = { oldCSS: entry.iframe.style.cssText, entry: entry };
+            let frameWidth = yield Storage.sync.get("TheatreModeFrameWidth");
             setWrapperStyle(entry, frameWidth || 70);
-        });
-        entry.shadow.style.opacity = "1";
-        entry.shadow.style.pointerEvents = "all";
-    }
+            entry.shadow.style.opacity = "1";
+            entry.shadow.style.pointerEvents = "all";
+        }
+    });
 }
 exports.activateEntry = activateEntry;
 function deactivateEntry() {
@@ -2517,34 +2677,41 @@ function getIFrameByID(frameid) {
     }
 }
 function setTheatreMode(enabled) {
-    Background.toTopWindow({ data: { enabled: enabled, frameID: window.name }, func: "setTheatreMode" });
+    Background.toTopWindow({ data: { enabled: enabled, frameID: window.name }, func: "theatremode_setTheatreMode" });
 }
 exports.setTheatreMode = setTheatreMode;
 function setupIframe() {
-    Background.toTopWindow({ data: { frameID: window.name, url: location.href }, func: "setupIframe" });
+    Background.toTopWindow({ data: { frameID: window.name, url: location.href }, func: "theatremode_setupIframe" });
 }
 exports.setupIframe = setupIframe;
 function setup() {
     nameIFrames();
     Messages.addListener({
-        setTheatreMode: function (request, sendResponse) {
-            var data = request.data;
-            if (data.enabled) {
-                var entry = getEntry(data.frameID);
-                activateEntry(entry);
-            }
-            else {
-                deactivateEntry();
-            }
+        theatremode_setTheatreMode: function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var data = request.data;
+                if (data.enabled) {
+                    var entry = getEntry(data.frameID);
+                    if (!entry) {
+                        throw new Error("No IFrame with id '" + data.frameID + "' found!");
+                    }
+                    activateEntry(entry);
+                }
+                else {
+                    deactivateEntry();
+                }
+            });
         },
-        setupIframe: function (request, sendResponse) {
-            let data = request.data;
-            var entry = getEntry(data.frameID);
-            if (!entry) {
-                let iframe = getIFrameByID(data.frameID);
-                //iframe.src = data.url;
-                entry = registerIFrame(iframe);
-            }
+        theatremode_setupIframe: function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let data = request.data;
+                var entry = getEntry(data.frameID);
+                if (!entry) {
+                    let iframe = getIFrameByID(data.frameID);
+                    //iframe.src = data.url;
+                    entry = registerIFrame(iframe);
+                }
+            });
         }
     });
 }

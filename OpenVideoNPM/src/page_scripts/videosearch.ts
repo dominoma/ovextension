@@ -1,13 +1,8 @@
 import * as Page from "OV/page";
-import * as Languages from "OV/languages";
 import * as Messages from "OV/messages";
 import * as Storage from "OV/storage";
 import * as Tools from "OV/tools";
 import * as Analytics from "OV/analytics";
-
-import * as VideoPopup from "Messages/videopopup";
-
-import * as VideoTypes from "video_types";
 
 import { ComboBox, ComboBoxEntry } from "./combobox";
 
@@ -43,17 +38,17 @@ Page.isReady().then(function() {
     }
     class WebsiteEntry extends ComboBoxEntry<Website> {
 
-        private deleteBtn_: HTMLElement = null;
+        private deleteBtn_: HTMLElement|null = null;
 
         get icon() {
-            return (this.el.style.backgroundImage.match(/url\('([^']*)'\)/) || ["", ""])[1];
+            return this.el.style.backgroundImage == null ? "" : (this.el.style.backgroundImage.match(/url\('([^']*)'\)/) || ["", ""])[1];
         }
         set icon(url: string) {
             this.el.style.backgroundImage = "url('" + url + "')";
         }
 
         get isWebsite() {
-            return this.data.host.indexOf("$$") != 0;
+            return (this.data.host).indexOf("$$") != 0;
         }
 
         repaint() {
@@ -79,46 +74,36 @@ Page.isReady().then(function() {
             this.display.el.appendChild(document.createElement("span"));
         }
 
-        protected createEntry(data: Website) {
-            let entry: WebsiteEntry = new WebsiteEntry(this);
-            entry.data = data;
-            return entry;
+        protected createEntry(data: Website) : WebsiteEntry {
+            return new WebsiteEntry(this, data);
         }
 
         get websiteEntries() {
             return this.entries.filter((el) => { return el.host.indexOf("$$") != 0 });
         }
-        loadWebsites() {
-            let this_ = this;
-            return Storage.sync.get("VideoSearchWebsites").then(function(sites: Website[]) {
-                if (sites == null) {
-                    let sites = resolveFavicons([
-                        { name: "9Anime", host: "9anime.to" },
-                        { name: "StreamCR", host: "scr.cr" },
-                        { name: "KimCartoon", host: "kimcartoon.to" }
-                    ]);
-                    Storage.sync.set("VideoSearchWebsites", sites);
-                    return sites;
+        async loadWebsites() {
 
-                }
-                else {
-                    return sites;
-                }
-            }).then(function(sites) {
-                this_.entries = [
-                    { name: "Add Site to search", host: "$$AddSite", favicon: "" },
-                    { name: "All listed Sites", host: "$$AllSites", favicon: "" }
-                ].concat(sites);
-                this_.select(1);
-            });
+            let sites: Website[] = await Storage.sync.get("VideoSearchWebsites");
+            if (sites == null) {
+                sites = await resolveFavicons([
+                    { name: "9Anime", host: "9anime.to" },
+                    { name: "StreamCR", host: "scr.cr" },
+                    { name: "KimCartoon", host: "kimcartoon.to" }
+                ]);
+                Storage.sync.set("VideoSearchWebsites", sites);
+            }
+            this.entries = [
+                { name: "Add Site to search", host: "$$AddSite", favicon: "" },
+                { name: "All listed Sites", host: "$$AllSites", favicon: "" }
+            ].concat(sites);
+            this.select(1);
         }
         saveWebsites() {
             Storage.sync.set("VideoSearchWebsites", this.websiteEntries);
         }
 
         onSelected() {
-            console.log(this.selected.data)
-            if (this.selected.data.host == "$$AddSite") {
+            if (this.selected!.data.host == "$$AddSite") {
                 let name = prompt("Please enter the name of the website you want to add. (eg. YouTube)", "");
                 if (name) {
                     let host = prompt("Please enter the url of the website you want to add. (eg. youtube.com)", "");
@@ -130,7 +115,7 @@ Page.isReady().then(function() {
                             this.select(1);
                             let this_ = this;
                             getWebsiteIcon("https://" + host).then(function(favicon) {
-                                let newentry = { name: name, host: host, favicon: favicon };
+                                let newentry = { name: name!, host: host!, favicon: favicon! };
                                 this_.addItem(newentry);
                                 this_.select(this_.items.length);
                                 this_.saveWebsites();
@@ -140,14 +125,14 @@ Page.isReady().then(function() {
                             this.select(1);
                             alert("Your input ('"+host+"') is not a valid url!");
                         }
-                       
+
                     }
                     else {
                         this.select(1);
                     }
-                    
 
-                    
+
+
                 }
                 else {
                     this.select(1);
@@ -158,7 +143,7 @@ Page.isReady().then(function() {
             else {
                 let search = document.getElementById("search") as HTMLInputElement;
                 if (search.value) {
-                    location.href = Page.getObjUrl({ q: search.value, site: this.selected.data });
+                    location.href = Page.getObjUrl({ q: search.value, site: this.selected!.data });
                 }
             }
 
@@ -166,38 +151,35 @@ Page.isReady().then(function() {
     }
 
 
-    function resolveFavicons(sites: { name: string, host: string }[]) {
-        return Promise.all(sites.map(function(site) {
+    async function resolveFavicons(sites: { name: string, host: string }[]) {
+        let favicons = await Promise.all(sites.map(function(site) {
             return getWebsiteIcon("https://" + site.host);
-        })).then(function(favicons) {
-            return favicons.map(function(icon, index) {
-                return { name: sites[index].name, host: sites[index].host, favicon: icon };
-            });
+        }));
+        return favicons.map(function(icon, index) {
+            return { name: sites[index].name, host: sites[index].host, favicon: icon };
         });
     }
 
 
-    function setup() {
+    async function setup() {
 
         let searchBar = document.getElementById("searchBar");
         let search = document.getElementById("search") as HTMLInputElement;
         let websites = new WebsiteBox("websites", { name: "All Sites", host: "$$AllSites", favicon: "" });
 
         let searchresults = document.getElementById("searchresults");
-        searchBar.insertBefore(websites.el, searchresults);
+        searchBar!.insertBefore(websites.el, searchresults);
 
         search.addEventListener("keypress", function(e: KeyboardEvent) {
-            if (e.keyCode == 13) {
-                location.href = Page.getObjUrl({ q: search.value, site: websites.selected.data });
+            if (e.keyCode == 13 && websites.selected != null) {
+                location.href = Page.getObjUrl({ q: search.value, site: websites.selected!.data });
                 return false;
             }
             return true;
         });
 
-        return websites.loadWebsites().then(function() {
-            return { websites: websites };
-        });
-
+        await websites.loadWebsites();
+        return { websites: websites };
     }
 
     interface SearchResult {
@@ -232,9 +214,9 @@ Page.isReady().then(function() {
                 let data: SearchResult[] = [];
                 for (let result of results) {
                     if (result.querySelector("h3") && result.querySelector("span.st")) {
-                        let title = result.querySelector("h3").innerText;
-                        let url = result.querySelector("a").href;
-                        let description = result.querySelector("span.st").innerHTML;
+                        let title = result.querySelector("h3")!.innerText;
+                        let url = result.querySelector("a")!.href;
+                        let description = result.querySelector("span.st")!.innerHTML;
                         data.push({ title: title, url: url, description: description });
                     }
                 }
@@ -271,16 +253,16 @@ Page.isReady().then(function() {
         }
         function displayResults(data: SearchResult[]) {
             let searchresults = document.getElementById("searchresults");
-            searchresults.innerHTML = "";
+            searchresults!.innerHTML = "";
             let container = document.getElementById("container");
-            container.style.verticalAlign = "top";
-            searchresults.style.removeProperty("display");
+            container!.style.verticalAlign = "top";
+            searchresults!.style.removeProperty("display");
             console.log(data);
             for (let result of data) {
-                searchresults.appendChild(createSearchEntry(result));
+                searchresults!.appendChild(createSearchEntry(result));
             }
             if (data.length == 0) {
-                searchresults.appendChild(createNoResults());
+                searchresults!.appendChild(createNoResults());
             }
         }
         let urlobj = Page.getUrlObj();

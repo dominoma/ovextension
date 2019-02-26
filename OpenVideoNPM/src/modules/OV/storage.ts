@@ -1,82 +1,81 @@
 import * as Messages from "./messages";
-import * as Environment from "./environment";
 
 export const enum StorageScopes {
     Local = "local",
     Sync = "sync"
 }
-export function setup() {
+interface GetData {
+    scope: StorageScopes;
+    name: string;
+}
+interface SetData extends GetData {
+    value: any;
+}
+export function canStorage() {
+    return chrome.storage != undefined;
+}
+export function setupBG() {
+    let scopes = {
+        "local": chrome.storage.local,
+        "sync": chrome.storage.sync
+    }
     Messages.setupBackground({
-        getStorageData: function(msg, bgdata: any, sender, sendResponse) {
-            chrome.storage.local.get(bgdata.name, function(item) {
-                sendResponse(item[bgdata.name]);
+        storage_getData: async function(msg, bgdata: GetData, sender) {
+            return new Promise<any>(function(resolve, reject){
+                scopes[bgdata.scope].get(bgdata.name, function(item) {
+                    resolve(item[bgdata.name]);
+                });
             });
-
         },
-        setStorageData: function(msg, bgdata: any, sender, sendResponse) {
-            chrome.storage.local.set({ [bgdata.name]: bgdata.value }, function() {
-                sendResponse({ success: true });
+        storage_setData: async function(msg, bgdata: SetData, sender) {
+            return new Promise<{ success: boolean }>(function(resolve, reject){
+                scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function() {
+                    resolve({ success: true });
+                });
             });
         }
     });
 }
-export module local {
-    export function get(name: string): Promise<any> {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function(resolve, reject) {
-                chrome.storage.local.get(name, function(item) {
-                    resolve(item[name]);
-                });
+type Scope = typeof chrome.storage.local | typeof chrome.storage.sync;
+async function getValue(name: string, scope : Scope): Promise<any> {
+    if (canStorage()) {
+        return new Promise(function(resolve, reject) {
+            scope.get(name, function(item) {
+                resolve(item[name]);
             });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "local", name: name } } }).then(function(response) {
-                return response.data;
-            });
-        }
+        });
     }
-    export function set(name: string, value: any): Promise<{ success: boolean }> {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function(resolve, reject) {
-                chrome.storage.local.set({ [name]: value }, function() {
-                    resolve({ success: true });
-                });
+    else {
+        let response = await Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
+        return response.data;
+    }
+}
+async function setValue(name: string, value: any, scope : Scope): Promise<{ success: boolean }> {
+    if (canStorage()) {
+        return new Promise(function(resolve, reject) {
+            scope.set({ [name]: value }, function() {
+                resolve({ success: true });
             });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "local", name: name, value: value } } }).then(function() {
-                return { success: true };
-            });
-        }
+        });
+    }
+    else {
+        await Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
+        return { success: true };
+    }
+}
+export module local {
+    export async function get(name: string): Promise<any> {
+        return getValue(name, chrome.storage.local);
+    }
+    export async function set(name: string, value: any): Promise<{ success: boolean }> {
+        return setValue(name, value, chrome.storage.local);
     }
 }
 export module sync {
-    export function get(name: string): Promise<any> {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function(resolve, reject) {
-                chrome.storage.sync.get(name, function(item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } }).then(function(response) {
-                return response.data;
-            });
-        }
+    export async function get(name: string): Promise<any> {
+        return getValue(name, chrome.storage.sync);
     }
-    export function set(name: string, value: any): Promise<{ success: boolean }> {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function(resolve, reject) {
-                chrome.storage.sync.set({ [name]: value }, function() {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "sync", name: name, value: value } } }).then(function() {
-                return { success: true };
-            });
-        }
+    export async function set(name: string, value: any): Promise<{ success: boolean }> {
+        return setValue(name, value, chrome.storage.sync);
     }
 }

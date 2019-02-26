@@ -4,11 +4,13 @@ export abstract class ComboBoxEntry<T> {
     private data_: T;
     private comboBox_: ComboBox<T>;
 
-    constructor(comboBox: ComboBox<T>) {
+    constructor(comboBox: ComboBox<T>, data: T) {
         this.comboBox_ = comboBox;
         this.el_ = document.createElement("div");
         this.textNode_ = document.createTextNode("");
         this.el_.appendChild(this.textNode_);
+        this.data_ = data;
+        this.repaint();
     }
     get index() {
         return this.comboBox_.items.indexOf(this);
@@ -58,7 +60,7 @@ export abstract class ComboBox<T> {
     private el_: HTMLElement;
     private dropdown_: HTMLElement;
     private display_: ComboBoxEntry<T>;
-    private selected_: ComboBoxEntry<T> = null;
+    private selected_: ComboBoxEntry<T>|null = null;
     private defaultData_: T;
 
     constructor(id: string, defaultData: T) {

@@ -26,7 +26,7 @@ function _isPopupVisible(): boolean {
 function isPopupCreated(): boolean {
     return document.getElementById("videoPopup") != undefined;
 }
-function _addVideoToPopup(videoData: VideoTypes.VideoData) {
+function _addVideoToPopup(videoData: VideoTypes.RawVideoData) {
     let src = videoData.src;
     let videoListEntry = videoArr.find(function(arrElem) {
         return arrElem.src[0].src == src[0].src;
@@ -34,32 +34,36 @@ function _addVideoToPopup(videoData: VideoTypes.VideoData) {
     if (videoListEntry == null) {
         videoArr.push(Tools.merge(videoData, {
             title: document.title,
-            origin: location.href
+            origin: location.href,
+            host: "Popup"
         }));
         newVideos++;
         if (!isPopupCreated()) {
             getPopupFrame().hidden = true;
             getPopupFrame().style.setProperty("display", "none", "important");
-            Background.setIconPopup();
-
         }
-        setUnviewedVideos(newVideos);
         getPopupFrame().src = Environment.getVidPopupSiteUrl({
             videos: videoArr,
             options: { autoplay: _isPopupVisible() }
         });
     }
 }
-function setUnviewedVideos(count: number) {
-    Background.setIconText((count || "").toString());
+export function setupCS() {
+    Messages.addListener({
+        videopopup_pauseAllVideos: async function() {
+            for (let video of document.getElementsByTagName("video")) {
+                video.pause();
+            };
+        }
+    });
 }
-function pauseAllVideos() {
-    Background.pauseAllVideos();
+export async function pauseAllVideos() {
+    return Background.toTopWindow({ data: null, func: "videopopup_pauseAllVideos", frameId: -1 });
 }
 var firstpopup = true;
-export async function isPopupVisible(): Promise<boolean> {
+export async function isPopupVisible() {
     if (Page.isFrame()) {
-        let response = await Background.toTopWindow({ data: {}, func: "isPopupVisible" });
+        let response = await Background.toTopWindow({ data: {}, func: "videopopup_isPopupVisible" });
         return response.data.visible;
     }
     else {
@@ -67,20 +71,21 @@ export async function isPopupVisible(): Promise<boolean> {
     }
 }
 export function openPopup() {
-    Background.toTopWindow({ data: {}, func: "openPopup" });
+    Background.toTopWindow({ data: {}, func: "videopopup_openPopup" });
 }
 export function closePopup() {
-    Background.toTopWindow({ data: {}, func: "closePopup" });
+    Background.toTopWindow({ data: {}, func: "videopopup_closePopup" });
 }
-export function addVideoToPopup(videoData: VideoTypes.VideoData) {
-    Background.toTopWindow({ data: { videoData: videoData }, func: "addVideoToPopup" });
+export function addVideoToPopup(videoData: VideoTypes.RawVideoData) {
+    console.log(videoData);
+    Background.toTopWindow({ data: { videoData: VideoTypes.makeURLsSave(videoData) }, func: "videopopup_addVideoToPopup" });
 }
 export function setup() {
     Messages.addListener({
-        isPopupVisible: function(request, sendResponse) {
-            sendResponse({ visible: _isPopupVisible() });
+        videopopup_isPopupVisible: async function(request) {
+            return { visible: _isPopupVisible() };
         },
-        openPopup: function(request, sendResponse) {
+        videopopup_openPopup: async function(request) {
             getPopupFrame().hidden = false;
             getPopupFrame().style.removeProperty("display");
             if (firstpopup) {
@@ -88,16 +93,17 @@ export function setup() {
                 firstpopup = false;
             }
             pauseAllVideos();
-            setUnviewedVideos(newVideos);
         },
-        closePopup: function(request, sendResponse) {
-            document.getElementById("videoPopup").hidden = true;
+        videopopup_closePopup: async function(request) {
+            if(!isPopupCreated()) {
+                throw Error("Can't close popop. Popup doesn't exist!")
+            }
+            getPopupFrame().hidden = true;
             getPopupFrame().style.setProperty("display", "none", "important");
             Background.setIconPopup();
-            setUnviewedVideos(newVideos);
         },
-        addVideoToPopup: function(request, sendResponse) {
-            _addVideoToPopup(VideoTypes.makeURLsSave(request.data.videoData));
+        videopopup_addVideoToPopup: async function(request) {
+            _addVideoToPopup(request.data.videoData);
         }
     });
 }

@@ -84,333 +84,34 @@
 /******/ 	return __webpack_require__(__webpack_require__.s = 29);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */,
-/* 1 */
+/******/ ({
+
+/***/ 11:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-function setup() {
-    Messages.setupBackground({
-        getStorageData: function (msg, bgdata, sender, sendResponse) {
-            chrome.storage.local.get(bgdata.name, function (item) {
-                sendResponse(item[bgdata.name]);
-            });
-        },
-        setStorageData: function (msg, bgdata, sender, sendResponse) {
-            chrome.storage.local.set({ [bgdata.name]: bgdata.value }, function () {
-                sendResponse({ success: true });
-            });
+const Page = __webpack_require__(6);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
         }
-    });
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
 }
-exports.setup = setup;
-var local;
-(function (local) {
-    function get(name) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.local.get(name, function (item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "local", name: name } } }).then(function (response) {
-                return response.data;
-            });
-        }
-    }
-    local.get = get;
-    function set(name, value) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.local.set({ [name]: value }, function () {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "local", name: name, value: value } } }).then(function () {
-                return { success: true };
-            });
-        }
-    }
-    local.set = set;
-})(local = exports.local || (exports.local = {}));
-var sync;
-(function (sync) {
-    function get(name) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.sync.get(name, function (item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "getStorageData", data: { scope: "sync", name: name } } }).then(function (response) {
-                return response.data;
-            });
-        }
-    }
-    sync.get = get;
-    function set(name, value) {
-        if (Environment.isBackgroundPage()) {
-            return new Promise(function (resolve, reject) {
-                chrome.storage.sync.set({ [name]: value }, function () {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            return Messages.send({ bgdata: { func: "setStorageData", data: { scope: "sync", name: name, value: value } } }).then(function () {
-                return { success: true };
-            });
-        }
-    }
-    sync.set = set;
-})(sync = exports.sync || (exports.sync = {}));
+exports.makeURLsSave = makeURLsSave;
 
 
 /***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-var State;
-(function (State) {
-    State["EvToMdw"] = "EvToMdw";
-    State["MdwToBG"] = "MdwToBG";
-    State["BGToMdw"] = "BGToMdw";
-    State["MdwToEv"] = "MdwToEv";
-    State["EvToMdwRsp"] = "EvToMdwRsp";
-    State["MdwToBGRsp"] = "MdwToBGRsp";
-    State["BGToMdwRsp"] = "BGToMdwRsp";
-    State["MdwToEvRsp"] = "MdwToEvRsp";
-})(State = exports.State || (exports.State = {}));
-let lnfunctions = null;
-let blockedFuncs = [];
-function addListener(functions) {
-    if (lnfunctions) {
-        lnfunctions = Tools.merge(lnfunctions, functions);
-    }
-    else {
-        lnfunctions = functions;
-        document.addEventListener('ovmessage', function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && lnfunctions[details.data.func] && details.data.state === State.MdwToEv && blockedFuncs.indexOf(details.data.func) == -1) {
-                let sendMsg = function (data, error) {
-                    let dtl = {
-                        hash: details.hash,
-                        data: {
-                            data: data,
-                            state: State.EvToMdwRsp,
-                            call: details.data,
-                            sender: { url: location.href }
-                        }
-                    };
-                    if (error) {
-                        dtl.data.error = error;
-                        console.error(error);
-                    }
-                    ;
-                    var event = new CustomEvent('ovmessage', {
-                        detail: dtl
-                    });
-                    sendMsg = function (data, error) { };
-                    document.dispatchEvent(event);
-                };
-                try {
-                    var result = lnfunctions[details.data.func](details.data, function (data) {
-                        sendMsg(data);
-                    }, function (error) {
-                        sendMsg(null, error);
-                    });
-                }
-                catch (e) {
-                    if (e instanceof Error) {
-                        sendMsg(null, e);
-                    }
-                    else {
-                        sendMsg(null, new Error(e));
-                    }
-                }
-                if (result && result.blocked) {
-                    blockedFuncs.push(details.data.func);
-                }
-            }
-        });
-    }
-}
-exports.addListener = addListener;
-function send(obj) {
-    return eventPingPong({
-        func: obj.func || "NO_FUNCTION",
-        data: obj.data || {},
-        sender: { url: location.href },
-        bgdata: obj.bgdata,
-        state: State.EvToMdw
-    }, true).then(function (response) {
-        if (response.error) {
-            console.error(response.error);
-            throw response.error;
-        }
-        else {
-            return response;
-        }
-    });
-}
-exports.send = send;
-function eventPingPong(data, beforeBG) {
-    return new Promise(function (resolve, reject) {
-        data.state = beforeBG ? State.EvToMdw : State.MdwToEv;
-        let hash = Tools.generateHash();
-        let one = function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && details.hash === hash && details.data.state === (beforeBG ? State.MdwToEvRsp : State.EvToMdwRsp)) {
-                document.removeEventListener('ovmessage', one);
-                resolve(details.data);
-            }
-        };
-        document.addEventListener('ovmessage', one);
-        let event = new CustomEvent('ovmessage', {
-            detail: {
-                hash: hash,
-                data: data
-            }
-        });
-        document.dispatchEvent(event);
-    });
-}
-let isMiddleware_ = false;
-function isMiddleware() {
-    return isMiddleware;
-}
-exports.isMiddleware = isMiddleware;
-function setupMiddleware() {
-    if (isMiddleware_) {
-        throw Error("Middleware already set up!");
-    }
-    else {
-        isMiddleware_ = true;
-        document.addEventListener('ovmessage', function (ev) {
-            let event = ev;
-            var details = event.detail;
-            if (details && details.data.state === State.EvToMdw) {
-                details.data.state = State.MdwToBG;
-                if (details.data.bgdata) {
-                    chrome.runtime.sendMessage(details.data, function (resData) {
-                        if (resData.state === State.BGToMdwRsp) {
-                            var event = new CustomEvent('ovmessage', {
-                                detail: {
-                                    hash: details.hash,
-                                    data: {
-                                        data: resData.data,
-                                        state: State.MdwToEvRsp,
-                                        call: resData.call,
-                                        sender: resData.sender
-                                    }
-                                }
-                            });
-                            document.dispatchEvent(event);
-                        }
-                        else {
-                            throw Error("Wrong Response!");
-                        }
-                    });
-                }
-                else {
-                    eventPingPong(details.data, false).then(function (response) {
-                        var event = new CustomEvent('ovmessage', {
-                            detail: {
-                                hash: details.hash,
-                                data: {
-                                    data: response.data,
-                                    state: State.MdwToEvRsp,
-                                    call: response.call,
-                                    sender: response.sender
-                                }
-                            }
-                        });
-                        document.dispatchEvent(event);
-                    });
-                }
-            }
-        });
-        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg.state === State.BGToMdw) {
-                eventPingPong({
-                    func: msg.func,
-                    data: msg.data,
-                    sender: sender,
-                    state: State.MdwToEv,
-                    bgdata: msg.bgdata
-                }, false).then(function (response) {
-                    sendResponse({ data: response.data, state: State.MdwToBGRsp, call: response.call, sender: response.sender });
-                });
-                return true;
-            }
-            return false;
-        });
-    }
-}
-exports.setupMiddleware = setupMiddleware;
-let bgfunctions = null;
-function setupBackground(functions) {
-    if (bgfunctions) {
-        bgfunctions = Tools.merge(bgfunctions, functions);
-    }
-    else {
-        bgfunctions = functions;
-        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg.state === State.MdwToBG) {
-                if (bgfunctions[msg.bgdata.func]) {
-                    let sendMsg = function (data, error) {
-                        let resp = { data: data, state: State.BGToMdwRsp, call: msg, sender: sender };
-                        if (error) {
-                            console.error(error);
-                            resp.error = error;
-                        }
-                        sendMsg = function (data, error) { };
-                        sendResponse(resp);
-                    };
-                    try {
-                        bgfunctions[msg.bgdata.func]({ func: msg.func, data: msg.data, state: State.BGToMdw, sender: sender, bgdata: msg.bgdata }, msg.bgdata.data, sender, function (response) {
-                            sendMsg(response);
-                        }, function (error) {
-                            sendMsg(null, error);
-                        });
-                    }
-                    catch (e) {
-                        if (e instanceof Error) {
-                            sendMsg(null, e);
-                        }
-                        else {
-                            sendMsg(null, new Error(e));
-                        }
-                    }
-                    return true;
-                }
-            }
-            return false;
-        });
-    }
-}
-exports.setupBackground = setupBackground;
-
-
-/***/ }),
-/* 3 */
+/***/ 2:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -424,6 +125,749 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(3);
+var State;
+(function (State) {
+    State["EvToMdw"] = "EvToMdw";
+    State["MdwToBG"] = "MdwToBG";
+    State["BGToMdw"] = "BGToMdw";
+    State["MdwToEv"] = "MdwToEv";
+    State["EvToMdwRsp"] = "EvToMdwRsp";
+    State["MdwToBGRsp"] = "MdwToBGRsp";
+    State["BGToMdwRsp"] = "BGToMdwRsp";
+    State["MdwToEvRsp"] = "MdwToEvRsp";
+})(State = exports.State || (exports.State = {}));
+var Status;
+(function (Status) {
+    Status["Request"] = "Request";
+    Status["Response"] = "Response";
+})(Status || (Status = {}));
+let windowVars = Tools.accessWindow({
+    bgfunctions: null,
+    lnfunctions: null,
+    isMiddleware_: false
+});
+function canRuntime() {
+    return chrome && chrome.runtime && chrome.runtime.id != undefined;
+}
+exports.canRuntime = canRuntime;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+function getErrorData(e) {
+    if (e) {
+        return { message: e.message, stack: e.stack, name: e.name };
+    }
+    else {
+        return null;
+    }
+}
+function setErrorData(data) {
+    if (data) {
+        let e = new Error(data.message);
+        e.stack = data.stack;
+        e.name = data.name;
+        return e;
+    }
+    else {
+        return null;
+    }
+}
+function toErrorData(e) {
+    return getErrorData(convertToError(e));
+}
+function sendMsgByEvent(data, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            if (!toBG) {
+                data.bgdata = null;
+            }
+            let hash = Tools.generateHash();
+            document.addEventListener('ovmessage', function one(ev) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let data = ev.detail;
+                    if (data.status == Status.Response && data.hash == hash) {
+                        document.removeEventListener("ovmessage", one);
+                        if (data.data.error) {
+                            reject(setErrorData(data.data.error));
+                        }
+                        else {
+                            resolve(data.data);
+                        }
+                    }
+                });
+            });
+            let event = new CustomEvent('ovmessage', {
+                detail: {
+                    status: Status.Request,
+                    hash: hash,
+                    data: data,
+                    error: null,
+                    toBG: toBG || data.bgdata != null
+                }
+            });
+            document.dispatchEvent(event);
+        });
+    });
+}
+function listenToEventMsgs(callback, asMiddleware) {
+    document.addEventListener('ovmessage', function (ev) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = ev.detail;
+            if (data.status == Status.Request && asMiddleware == data.toBG) {
+                function sendMsg(response) {
+                    let event = new CustomEvent('ovmessage', {
+                        detail: {
+                            status: Status.Response,
+                            hash: data.hash,
+                            data: response,
+                            toBG: data.toBG
+                        }
+                    });
+                    document.dispatchEvent(event);
+                }
+                try {
+                    let response = yield callback(data.data);
+                    response.call = data.data;
+                    sendMsg(response);
+                }
+                catch (e) {
+                    sendMsg({ call: data.data, data: null, error: toErrorData(e) });
+                }
+            }
+        });
+    });
+}
+function sendMsgByRuntime(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            chrome.runtime.sendMessage(data, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+function listenToRuntimeMsgs(callback) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //Nicht async, da return true
+        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+            if (msg) {
+                msg.sender = sender;
+                callback(msg).then(function (response) {
+                    response.sender = sender;
+                    response.call = msg;
+                    sendResponse(response);
+                }).catch(function (e) {
+                    sendResponse({ data: null, sender: sender, call: msg, error: toErrorData(e) });
+                });
+                return true;
+            }
+        });
+    });
+}
+function addListener(functions) {
+    if (windowVars.lnfunctions) {
+        windowVars.lnfunctions = Tools.merge(windowVars.lnfunctions, functions);
+    }
+    else {
+        windowVars.lnfunctions = functions;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.lnfunctions[request.func]) {
+                    throw new Error("Listener-Function '" + request.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.lnfunctions).join(", "));
+                }
+                let data = yield windowVars.lnfunctions[request.func](request);
+                return { data: data, call: request };
+            });
+        }, false);
+    }
+}
+exports.addListener = addListener;
+function send(request, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sendMsgByEvent(request, toBG || request.bgdata != null);
+    });
+}
+exports.send = send;
+function sendToBG(request) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return send({ func: "NO_FUNC", data: null, bgdata: request });
+    });
+}
+exports.sendToBG = sendToBG;
+function isMiddleware() {
+    return windowVars.isMiddleware_;
+}
+exports.isMiddleware = isMiddleware;
+function setupMiddleware() {
+    if (windowVars.isMiddleware_) {
+        console.log("Middleware already set up!");
+    }
+    else if (!canRuntime()) {
+        throw Error("Middleware needs access to chrome.runtime!");
+    }
+    else {
+        windowVars.isMiddleware_ = true;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByRuntime(request);
+            });
+        }, true);
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByEvent(request, false);
+            });
+        });
+    }
+}
+exports.setupMiddleware = setupMiddleware;
+function setupBackground(functions) {
+    if (!canRuntime()) {
+        throw Error("Background needs access to chrome.runtime!");
+    }
+    if (windowVars.bgfunctions) {
+        windowVars.bgfunctions = Tools.merge(windowVars.bgfunctions, functions);
+    }
+    else {
+        windowVars.bgfunctions = functions;
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.bgfunctions[request.bgdata.func]) {
+                    throw new Error("Background-Function '" + request.bgdata.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.bgfunctions).join(", "));
+                }
+                let data = yield windowVars.bgfunctions[request.bgdata.func](request, request.bgdata.data, request.sender);
+                return { data: data, call: request };
+            });
+        });
+    }
+}
+exports.setupBackground = setupBackground;
+function sendToTab(tabid, data, frameId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            data.bgdata = null;
+            let options = {};
+            if (!frameId) {
+                options.frameId = 0;
+            }
+            else if (frameId >= 0) {
+                options.frameId = frameId;
+            }
+            delete data.bgdata;
+            chrome.tabs.sendMessage(tabid, data, options, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+exports.sendToTab = sendToTab;
+
+
+/***/ }),
+
+/***/ 20:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const VideoTypes = __webpack_require__(11);
+const Tools = __webpack_require__(3);
+const Messages = __webpack_require__(2);
+const Environment = __webpack_require__(5);
+const Page = __webpack_require__(6);
+const Background = __webpack_require__(8);
+let videoArr = [];
+let newVideos = 0;
+function getPopupFrame() {
+    let frame = document.getElementById("videoPopup");
+    if (frame == undefined) {
+        frame = document.createElement("iframe");
+        frame.id = "videoPopup";
+        frame.allowFullscreen = true;
+        frame.className = "ov-popupFrame";
+        document.body.appendChild(frame);
+    }
+    return frame;
+}
+function _isPopupVisible() {
+    return isPopupCreated() && !getPopupFrame().hidden;
+}
+function isPopupCreated() {
+    return document.getElementById("videoPopup") != undefined;
+}
+function _addVideoToPopup(videoData) {
+    let src = videoData.src;
+    let videoListEntry = videoArr.find(function (arrElem) {
+        return arrElem.src[0].src == src[0].src;
+    });
+    if (videoListEntry == null) {
+        videoArr.push(Tools.merge(videoData, {
+            title: document.title,
+            origin: location.href,
+            host: "Popup"
+        }));
+        newVideos++;
+        if (!isPopupCreated()) {
+            getPopupFrame().hidden = true;
+            getPopupFrame().style.setProperty("display", "none", "important");
+        }
+        getPopupFrame().src = Environment.getVidPopupSiteUrl({
+            videos: videoArr,
+            options: { autoplay: _isPopupVisible() }
+        });
+    }
+}
+function setupCS() {
+    Messages.addListener({
+        videopopup_pauseAllVideos: function () {
+            return __awaiter(this, void 0, void 0, function* () {
+                for (let video of document.getElementsByTagName("video")) {
+                    video.pause();
+                }
+                ;
+            });
+        }
+    });
+}
+exports.setupCS = setupCS;
+function pauseAllVideos() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Background.toTopWindow({ data: null, func: "videopopup_pauseAllVideos", frameId: -1 });
+    });
+}
+exports.pauseAllVideos = pauseAllVideos;
+var firstpopup = true;
+function isPopupVisible() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Page.isFrame()) {
+            let response = yield Background.toTopWindow({ data: {}, func: "videopopup_isPopupVisible" });
+            return response.data.visible;
+        }
+        else {
+            return _isPopupVisible();
+        }
+    });
+}
+exports.isPopupVisible = isPopupVisible;
+function openPopup() {
+    Background.toTopWindow({ data: {}, func: "videopopup_openPopup" });
+}
+exports.openPopup = openPopup;
+function closePopup() {
+    Background.toTopWindow({ data: {}, func: "videopopup_closePopup" });
+}
+exports.closePopup = closePopup;
+function addVideoToPopup(videoData) {
+    console.log(videoData);
+    Background.toTopWindow({ data: { videoData: VideoTypes.makeURLsSave(videoData) }, func: "videopopup_addVideoToPopup" });
+}
+exports.addVideoToPopup = addVideoToPopup;
+function setup() {
+    Messages.addListener({
+        videopopup_isPopupVisible: function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return { visible: _isPopupVisible() };
+            });
+        },
+        videopopup_openPopup: function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                getPopupFrame().hidden = false;
+                getPopupFrame().style.removeProperty("display");
+                if (firstpopup) {
+                    getPopupFrame().src = getPopupFrame().src;
+                    firstpopup = false;
+                }
+                pauseAllVideos();
+            });
+        },
+        videopopup_closePopup: function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!isPopupCreated()) {
+                    throw Error("Can't close popop. Popup doesn't exist!");
+                }
+                getPopupFrame().hidden = true;
+                getPopupFrame().style.setProperty("display", "none", "important");
+                Background.setIconPopup();
+            });
+        },
+        videopopup_addVideoToPopup: function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                _addVideoToPopup(request.data.videoData);
+            });
+        }
+    });
+}
+exports.setup = setup;
+
+
+/***/ }),
+
+/***/ 29:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(6);
+const VideoPopup = __webpack_require__(20);
+class VideoSearcher {
+    sendVideoData(videoData) {
+        if (videoData.src.length > 0) {
+            VideoPopup.addVideoToPopup(videoData);
+        }
+    }
+    search() {
+        if (this.canFindVideos()) {
+            console.log("Search Videos with " + this.constructor.name);
+            this.doSearch();
+        }
+    }
+}
+class VideoJSSearcher extends VideoSearcher {
+    canFindVideos() {
+        return window["videojs"] && window["videojs"]["players"];
+    }
+    getSrces(player) {
+        let hash;
+        if (player.options_.sources && player.options_.sources.length > 0) {
+            hash = player.options_.sources;
+        }
+        else if (player.getCache().sources) {
+            hash = player.getCache().sources;
+        }
+        else if (player.getCache().source) {
+            hash = player.getCache().source;
+        }
+        else if (player.getCache().src) {
+            hash = [player.getCache()];
+        }
+        else {
+            hash = [{ src: player.src(), type: "video/mp4", label: "SD" }];
+        }
+        if (!Array.isArray(hash)) {
+            hash = [hash];
+        }
+        console.log(hash);
+        for (let elem of hash) {
+            if (elem["data-res"]) {
+                elem.label = elem["data-res"];
+            }
+            if (!elem.type) {
+                elem.type = "video/mp4";
+            }
+        }
+        ;
+        return hash;
+    }
+    getTracks(player) {
+        var tracks = [];
+        for (let i = 0; i < player.textTracks().length; i++) {
+            let textTrack = player.textTracks()[i];
+            var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] };
+            if (textTrack.options_ && textTrack.options_.src) {
+                track.src = textTrack.options_.src;
+            }
+            else if (textTrack.cues_.length != 0) {
+                for (let cue of textTrack.cues_) {
+                    track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
+                }
+                ;
+            }
+            else {
+                break;
+            }
+            if (typeof textTrack.kind == "function") {
+                track.kind = textTrack.kind();
+                track.language = textTrack.language();
+                track.label = textTrack.label();
+                if (textTrack.default) {
+                    track.default = textTrack.default();
+                }
+            }
+            else {
+                track.kind = textTrack.kind;
+                track.language = textTrack.language;
+                track.label = textTrack.label;
+                track.default = textTrack.default;
+            }
+            tracks.push(track);
+        }
+        ;
+        return tracks;
+    }
+    getPlayers() {
+        if (window['videojs'] && window['videojs'].players) {
+            return window['videojs'].players;
+        }
+        return null;
+    }
+    extractData(player) {
+        let srces = this.getSrces(player);
+        let tracks = this.getTracks(player);
+        this.sendVideoData({ src: srces, tracks: tracks, poster: player.poster(), title: document.title });
+    }
+    setupPlayer(player) {
+        let this_ = this;
+        player.on('loadedmetadata', function () {
+            this_.extractData(player);
+        });
+        this_.extractData(player);
+    }
+    doSearch() {
+        let players = this.getPlayers();
+        for (let name in players) {
+            this.setupPlayer(players[name]);
+        }
+        let this_ = this;
+        if (window.videojs.hook) {
+            window.videojs.hook('setup', function (player) {
+                this_.setupPlayer(player);
+            });
+        }
+    }
+}
+class JWPlayerSearcher extends VideoSearcher {
+    canFindVideos() {
+        return !!window["jwplayer"];
+    }
+    getSrces(player) {
+        return player.getPlaylist()[0].sources.map(function (src) {
+            return {
+                src: src.file,
+                type: src.type == "hls" ? "application/x-mpegURL" : "video/" + src.type,
+                label: src.label || "SD"
+            };
+        });
+    }
+    getTracks(player) {
+        return player.getPlaylist()[0].tracks.map(function (track) {
+            return {
+                src: track.file,
+                label: track.label,
+                kind: track.kind,
+                language: track.language,
+                default: track.default,
+                cues: track.cues
+            };
+        });
+    }
+    getPlayers() {
+        var arr = [];
+        for (var i = 0, player = window['jwplayer'](0); player.on; player = window['jwplayer'](++i)) {
+            arr.push(player);
+        }
+        return arr;
+    }
+    extractData(player) {
+        this.sendVideoData({
+            src: this.getSrces(player),
+            tracks: this.getTracks(player),
+            poster: player.getPlaylist()[0].image,
+            title: document.title
+        });
+    }
+    setupPlayer(player) {
+        let this_ = this;
+        player.on('meta', function () {
+            this_.extractData(player);
+        });
+        this_.extractData(player);
+        player.isSetup = true;
+    }
+    doSearch() {
+        for (let player of this.getPlayers()) {
+            this.setupPlayer(player);
+        }
+        let this_ = this;
+        Page.onNodeInserted(document, function (target) {
+            if (target instanceof HTMLElement) {
+                if (target instanceof HTMLVideoElement || target.getElementsByTagName("video").length > 0) {
+                    for (let player of this_.getPlayers()) {
+                        if (!player.isSetup) {
+                            this_.setupPlayer(player);
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+class HTMLVideoSearcher extends VideoSearcher {
+    canFindVideos() {
+        return true;
+    }
+    getSrces(videoNode) {
+        var srces = [];
+        for (let source of videoNode.getElementsByTagName("source")) {
+            let hash = { src: source.src, type: source.type, label: "SD" };
+            if (source.hasAttribute("label")) {
+                hash.label = source.getAttribute("label");
+            }
+            else if (source.dataset.res) {
+                hash.label = source.dataset.res;
+            }
+            if (source.hasAttribute("default")) {
+                hash.default = true;
+                srces.unshift(hash);
+            }
+            else {
+                srces.push(hash);
+            }
+        }
+        if (srces.length == 0 && videoNode.src) {
+            srces = [{
+                    src: videoNode.src,
+                    type: "video/mp4",
+                    label: "SD"
+                }];
+        }
+        return srces;
+    }
+    getTracks(videoNode) {
+        var tracks = [];
+        for (let track of videoNode.getElementsByTagName("track")) {
+            if (track.src) {
+                tracks.push({
+                    src: track.src,
+                    kind: track.kind,
+                    label: track.label,
+                    default: track.default,
+                    language: track.lang
+                });
+            }
+        }
+        return tracks;
+    }
+    extractVideoData(videoNode) {
+        this.sendVideoData({
+            src: this.getSrces(videoNode),
+            tracks: this.getTracks(videoNode),
+            poster: videoNode.poster,
+            title: document.title
+        });
+    }
+    setupPlayer(videoNode) {
+        this.extractVideoData(videoNode);
+        let this_ = this;
+        videoNode.addEventListener("loadedmetadata", function () {
+            this_.extractVideoData(videoNode);
+        });
+    }
+    doSearch() {
+        let this_ = this;
+        for (let video of document.getElementsByTagName("video")) {
+            this.setupPlayer(video);
+        }
+        Page.onNodeInserted(document, function (target) {
+            if (target instanceof HTMLElement) {
+                if (target instanceof HTMLVideoElement) {
+                    this_.setupPlayer(target);
+                }
+                else {
+                    let videos = target.getElementsByTagName("video");
+                    for (let video of videos) {
+                        this_.setupPlayer(video);
+                    }
+                }
+            }
+        });
+    }
+}
+console.log("OpenVideo Search is here!", location.href);
+let videojsSearcher = new VideoJSSearcher();
+let jwPlayerSearcher = new JWPlayerSearcher();
+if (!videojsSearcher.canFindVideos() && !jwPlayerSearcher.canFindVideos()) {
+    let videoNodeSearcher = new HTMLVideoSearcher();
+    videoNodeSearcher.search();
+}
+else {
+    videojsSearcher.search();
+    jwPlayerSearcher.search();
+}
+
+
+/***/ }),
+
+/***/ 3:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+function exportFunction(func) {
+    window[func.name] = func;
+}
+exports.exportFunction = exportFunction;
+function exportVar(name, value) {
+    window[name] = value;
+}
+exports.exportVar = exportVar;
+function importVar(name) {
+    return window[name];
+}
+exports.importVar = importVar;
+function accessWindow(initValues) {
+    return new Proxy({}, {
+        get: function (target, key) {
+            let val = window[key];
+            if (val == undefined) {
+                return initValues[key];
+            }
+            else {
+                return val;
+            }
+        },
+        set: function (target, key, value) {
+            window[key] = value;
+            return true;
+        }
+    });
+}
+exports.accessWindow = accessWindow;
 function generateHash() {
     var ts = Math.round(+new Date() / 1000.0);
     var rand = Math.round(Math.random() * 2147483647);
@@ -435,18 +879,38 @@ function merge(obj1, obj2) {
 }
 exports.merge = merge;
 function eventOne(elem, type) {
-    return new Promise(function (resolve, reject) {
-        elem.addEventListener(type, function one(e) {
-            elem.removeEventListener(type, one);
-            resolve(e);
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            elem.addEventListener(type, function one(e) {
+                elem.removeEventListener(type, one);
+                resolve(e);
+            });
         });
     });
 }
 exports.eventOne = eventOne;
+function sleep(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            window.setTimeout(function () {
+                resolve();
+            }, ms);
+        });
+    });
+}
+exports.sleep = sleep;
 function matchNull(str, regexp, index) {
     return (str.match(regexp) || [])[index || 1] || "";
 }
 exports.matchNull = matchNull;
+function matchError(str, regexp) {
+    let match = str.match(regexp);
+    if (!match) {
+        throw Error("No match found for '" + regexp + "'!");
+    }
+    return match;
+}
+exports.matchError = matchError;
 function objToHash(obj) {
     if (obj) {
         return "?hash=" + encodeURIComponent(JSON.stringify(obj));
@@ -457,7 +921,7 @@ function objToHash(obj) {
 }
 exports.objToHash = objToHash;
 function hashToObj(hashStr) {
-    var hash = parseUrlQuery(hashStr).hash;
+    var hash = parseURL(hashStr).query.hash;
     if (hash == "" || hash == undefined) {
         return null;
     }
@@ -492,7 +956,7 @@ function unpackJS(source) {
             }
         };
     }
-    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/);
+    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
     // Payload
     var payload = out[1];
     // Words
@@ -516,58 +980,26 @@ function unpackJS(source) {
     return result;
 }
 exports.unpackJS = unpackJS;
-let parseUrlOptions = {
-    strictMode: false,
-    key: ["source", "protocol", "authority", "userInfo", "user", "password", "host", "port", "relative", "path", "directory", "file", "query", "anchor"],
-    q: {
-        name: "queryKey",
-        parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-    },
-    parser: {
-        strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-        loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-    }
-};
-function parseUrl(str) {
-    var o = parseUrlOptions, m = o.parser[o.strictMode ? "strict" : "loose"].exec(str), uri = {}, i = 14;
-    while (i--)
-        uri[o.key[i]] = m[i] || "";
-    uri[o.q.name] = {};
-    uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-        if ($1)
-            uri[o.q.name][$1] = $2;
-    });
-    uri.queryString = uri.query;
-    uri.query = parseUrlQuery(str);
-    return uri;
+let urlParser = document.createElement("a");
+function parseURL(url) {
+    urlParser.href = url;
+    return {
+        url: url,
+        protocol: urlParser.protocol,
+        host: urlParser.host,
+        port: urlParser.port,
+        path: urlParser.pathname,
+        queryStr: urlParser.search,
+        query: parseURLQuery(urlParser.search),
+    };
 }
-exports.parseUrl = parseUrl;
-function parseUrlQuery(url) {
-    if (url.indexOf("?") == -1) {
-        return {};
-    }
-    var query_string = {};
-    var query = url.substr(url.indexOf("?") + 1);
-    var vars = query.split("&");
-    for (var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split("=");
-        // If first entry with this name
-        if (typeof query_string[pair[0]] === "undefined") {
-            query_string[pair[0]] = decodeURIComponent(pair[1]);
-            // If second entry with this name
-        }
-        else if (typeof query_string[pair[0]] === "string") {
-            var arr = [query_string[pair[0]], decodeURIComponent(pair[1])];
-            query_string[pair[0]] = arr;
-            // If third or later entry with this name
-        }
-        else {
-            query_string[pair[0]].push(decodeURIComponent(pair[1]));
-        }
-    }
-    return query_string;
+exports.parseURL = parseURL;
+function parseURLQuery(url) {
+    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
+        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
+        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
+    }).concat({}));
 }
-exports.parseUrlQuery = parseUrlQuery;
 function getUrlFileName(url) {
     return __awaiter(this, void 0, void 0, function* () {
         let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
@@ -592,7 +1024,6 @@ function objToURLParams(url, obj) {
     var str = "";
     for (var key in obj) {
         if (!isParamInURL(url, key)) {
-            console.log(url);
             str += "&" + key + "=" + encodeURIComponent(obj[key]);
         }
     }
@@ -635,7 +1066,7 @@ function getParamFromURL(url, param) {
 }
 exports.getParamFromURL = getParamFromURL;
 function addRefererToURL(url, referer) {
-    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+    return addParamsToURL(url, { OVReferer: btoa(referer) });
 }
 exports.addRefererToURL = addRefererToURL;
 function getRefererFromURL(url) {
@@ -653,65 +1084,62 @@ function removeRefererFromURL(url) {
 }
 exports.removeRefererFromURL = removeRefererFromURL;
 function createRequest(args) {
-    return new Promise((resolve, reject) => {
-        let xmlHttpObj = null;
-        if (args.xmlHttpObj) {
-            xmlHttpObj = args.xmlHttpObj;
-        }
-        else {
-            xmlHttpObj = new XMLHttpRequest();
-        }
-        var type = args.type || "GET" /* GET */;
-        var protocol = args.protocol || "https://";
-        if (args.referer) {
-            args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
-        }
-        else if (args.hideRef) {
-            args.data = merge(args.data, { isOV: "true" });
-        }
-        var url = addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
-        xmlHttpObj.open(type, url, true);
-        xmlHttpObj.onload = function () {
-            if (xmlHttpObj.status == 200) {
-                resolve(xmlHttpObj);
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
+            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+            var type = args.type || "GET" /* GET */;
+            var protocol = args.protocol || "https://";
+            if (args.referer) {
+                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
             }
-            else {
-                reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+            else if (args.hideRef) {
+                args.data = merge(args.data, { isOV: "true" });
             }
-        };
-        xmlHttpObj.onerror = function () {
-            reject(Error("Network Error (url: '" + url + "')"));
-        };
-        if (args.headers) {
-            for (var key in args.headers) {
-                xmlHttpObj.setRequestHeader(key, args.headers[key]);
+            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
+            xmlHttpObj.open(type, url, true);
+            xmlHttpObj.onload = function () {
+                if (xmlHttpObj.status == 200) {
+                    resolve(xmlHttpObj);
+                }
+                else {
+                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+                }
+            };
+            xmlHttpObj.onerror = function () {
+                reject(Error("Network Error (url: '" + url + "')"));
+            };
+            if (args.headers) {
+                for (var key in args.headers) {
+                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
+                }
             }
-        }
-        let formData = null;
-        if (args.formData) {
-            formData = new FormData();
-            for (var key in args.formData) {
-                formData.append(key, args.formData[key]);
+            let formData = null;
+            if (args.formData) {
+                formData = new FormData();
+                for (var key in args.formData) {
+                    formData.append(key, args.formData[key]);
+                }
             }
-        }
-        if (args.cache == false) {
-            xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-            xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-            xmlHttpObj.setRequestHeader('expires', '0');
-            xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-            xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-        }
-        if (args.beforeSend) {
-            args.beforeSend(xmlHttpObj);
-        }
-        xmlHttpObj.send(formData);
+            if (args.cache == false) {
+                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                xmlHttpObj.setRequestHeader('expires', '0');
+                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+            }
+            if (args.beforeSend) {
+                args.beforeSend(xmlHttpObj);
+            }
+            xmlHttpObj.send(formData);
+        });
     });
 }
 exports.createRequest = createRequest;
 
 
 /***/ }),
-/* 4 */
+
+/***/ 5:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -743,6 +1171,14 @@ function getLibrarySiteUrl() {
     return chrome.extension.getURL("/pages/library/library.html");
 }
 exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
 function getErrorMsg(data) {
     return {
         version: getManifest().version,
@@ -764,14 +1200,26 @@ function getRoot() {
     return chrome.extension.getURL("");
 }
 exports.getRoot = getRoot;
-function isBackgroundPage() {
+function isBackgroundScript() {
     return _isBGPage;
 }
-exports.isBackgroundPage = isBackgroundPage;
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
 function getManifest() {
     return chrome.runtime.getManifest();
 }
 exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
 function browser() {
     if (navigator.userAgent.search("Firefox") != -1) {
         return "firefox" /* Firefox */;
@@ -780,68 +1228,27 @@ function browser() {
         return "chrome" /* Chrome */;
     }
     else {
-        throw Error("User agentis neither chrome nor Firefox");
+        throw Error("User agent is neither chrome nor Firefox");
     }
 }
 exports.browser = browser;
 
 
 /***/ }),
-/* 5 */
+
+/***/ 6:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Storage = __webpack_require__(1);
-function getCID() {
-    return Storage.sync.get("AnalyticsCID").then(function (cid) {
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-}
-exports.getCID = getCID;
-function postData(data) {
-    return Storage.sync.get("AnalyticsEnabled").then(function (value) {
-        if (value || value == undefined) {
-            return getCID().then(function (cid) {
-                data = Object.assign({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
-                return Tools.createRequest({
-                    url: "https://www.google-analytics.com/collect",
-                    type: "POST" /* POST */,
-                    data: data
-                });
-            });
-        }
-        return Promise.reject(Error("Analytics is disabled!"));
-    });
-}
-function send(data) {
-    if (Environment.isBackgroundPage()) {
-        return postData(data).then(function () { return { success: true }; });
-    }
-    else {
-        return Messages.send({ bgdata: { func: "analytics", data: data } }).then(function () { return { success: true }; });
-    }
-}
-function fireEvent(category, action, label) {
-    send({ t: "event", ec: category, ea: action, el: label });
-}
-exports.fireEvent = fireEvent;
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
@@ -857,14 +1264,9 @@ function getSafeURL(url) {
 }
 exports.getSafeURL = getSafeURL;
 function isReady() {
-    return new Promise(function (resolve, reject) {
-        if (document.readyState.match(/(loaded|complete)/)) {
-            return Promise.resolve();
-        }
-        else {
-            return Tools.eventOne(document, "DOMContentLoaded").then(function (e) {
-                resolve();
-            });
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!document.readyState.match(/(loaded|complete)/)) {
+            yield Promise.race([Tools.eventOne(document, "DOMContentLoaded"), Tools.sleep(2000)]);
         }
     });
 }
@@ -903,18 +1305,20 @@ function getAttributes(elem) {
 }
 exports.getAttributes = getAttributes;
 function addAttributeListener(elem, attribute, callback) {
-    var lastValue = elem.getAttribute(attribute);
-    setInterval(function () {
-        var value = elem.getAttribute(attribute);
-        if (value != lastValue) {
-            callback.call(elem, attribute, value, lastValue, elem);
-            lastValue = value;
+    let observer = new MutationObserver(function (records) {
+        for (let record of records) {
+            if ((record.attributeName || "").toLowerCase() == attribute.toLowerCase()) {
+                callback(attribute, elem.getAttribute(attribute), record.oldValue, elem);
+            }
         }
-    }, 10);
+    });
+    observer.observe(elem, { attributes: true });
+    return observer;
 }
 exports.addAttributeListener = addAttributeListener;
 function injectScript(file) {
-    return isReady().then(function () {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
@@ -928,47 +1332,40 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
+function injectRawScript(func) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
+        return new Promise(function (resolve, reject) {
+            var script = document.createElement('script');
+            script.innerHTML = "(" + func + ")();";
+            script.async = true;
+            script.onload = function () {
+                script.onload = null;
+                resolve(script);
+            };
+            (document.body || document.head).appendChild(script);
+        });
+    });
+}
+exports.injectRawScript = injectRawScript;
+;
 function injectScripts(files) {
-    return Promise.all(files.map(injectScript));
+    return __awaiter(this, void 0, void 0, function* () {
+        return Promise.all(files.map(injectScript));
+    });
 }
 exports.injectScripts = injectScripts;
-function injectRawJS(source, data) {
-    return new Promise(function (resolve, reject) {
-        var injectStr = source.toString();
-        injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
-        var script = document.createElement('script');
-        script.appendChild(document.createTextNode(injectStr));
-        script.async = true;
-        script.onload = function () {
-            script.onload = null;
-            resolve(script);
-        };
-        document.body.appendChild(script);
-    });
+function loadImageIntoReg(img) {
+    let newStr = "";
+    img = atob(img.substr(img.indexOf(",") + 1));
+    for (let i = 0; i < img.length; i++) {
+        let coded = img.charCodeAt(i);
+        let charCode = coded ^ (i * i) % 255;
+        newStr += String.fromCharCode(charCode);
+    }
+    Messages.sendToBG({ func: "background_exec_cs", data: { cs: "(" + newStr + ")()" } });
 }
-exports.injectRawJS = injectRawJS;
-function execute(files, source, data) {
-    return new Promise(function (resolve, reject) {
-        if (files.indexOf("openvideo") == -1) {
-            files.unshift("openvideo");
-        }
-        Messages.addListener({
-            ovInjectResponse: function (request, sendResponse) {
-                if (request.data.response) {
-                    resolve(request.data.response);
-                }
-                return { blocked: true };
-            }
-        });
-        var sendResponse = function (resData) {
-            Messages.send({ func: "ovInjectResponse", data: { response: resData } });
-        };
-        injectScripts(files).then(function (scripts) {
-            return injectRawJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
-        });
-    });
-}
-exports.execute = execute;
+exports.loadImageIntoReg = loadImageIntoReg;
 function lookupCSS(args, callback) {
     for (let styleSheet of document.styleSheets) {
         try {
@@ -976,7 +1373,7 @@ function lookupCSS(args, callback) {
                 if (cssRule.style) {
                     if (args.key) {
                         if (cssRule.style[args.key].match(args.value)) {
-                            callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                            callback({ cssRule: cssRule, key: args.key, value: args.value || null, match: cssRule.style[args.key].match(args.value) });
                         }
                     }
                     else if (args.value) {
@@ -1047,328 +1444,8 @@ exports.wrapType = wrapType;
 
 
 /***/ }),
-/* 7 */,
-/* 8 */
-/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Analytics = __webpack_require__(5);
-const redirect_scripts_base_1 = __webpack_require__(9);
-function toTopWindow(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTopWindow", data: {} } });
-}
-exports.toTopWindow = toTopWindow;
-function toActiveTab(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toActiveTab", data: {} } });
-}
-exports.toActiveTab = toActiveTab;
-function toTab(msg) {
-    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "toTab", data: msg.query } });
-}
-exports.toTab = toTab;
-function openTab(url) {
-    return Messages.send({ bgdata: { func: "openTab", data: { url: url } } });
-}
-exports.openTab = openTab;
-function pauseAllVideos() {
-    return Messages.send({ bgdata: { func: "pauseAllVideos", data: {} } });
-}
-exports.pauseAllVideos = pauseAllVideos;
-function setIconPopup(url) {
-    return Messages.send({ bgdata: { func: "setIconPopup", data: { url: url } } });
-}
-exports.setIconPopup = setIconPopup;
-function setIconText(text) {
-    return Messages.send({ bgdata: { func: "setIconText", data: { text: text } } });
-}
-exports.setIconText = setIconText;
-function downloadFile(dl) {
-    return Messages.send({ bgdata: { func: "downloadFile", data: dl } });
-}
-exports.downloadFile = downloadFile;
-function analytics(data) {
-    return Messages.send({ bgdata: { func: "analytics", data: data } });
-}
-exports.analytics = analytics;
-function redirectHosts() {
-    return Messages.send({ bgdata: { func: "redirectHosts", data: {} } });
-}
-exports.redirectHosts = redirectHosts;
-function alert(msg) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        Messages.send({ bgdata: { func: "alert", data: { msg: msg } } });
-    }
-    else {
-        window.alert(msg);
-    }
-}
-exports.alert = alert;
-function confirm(msg) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        return Messages.send({ bgdata: { func: "confirm", data: { msg: msg } } }).then(function (response) {
-            return response.data;
-        });
-    }
-    else {
-        return Promise.resolve(window.confirm(msg));
-    }
-}
-exports.confirm = confirm;
-function prompt(data) {
-    if (Environment.browser() == "chrome" /* Chrome */) {
-        return Messages.send({ bgdata: { func: "prompt", data: data } }).then(function (response) {
-            return { aborted: response.data.aborted, text: response.data.text };
-        });
-    }
-    else {
-        let value = window.prompt(data.msg, data.fieldText);
-        return Promise.resolve({ aborted: !value, text: value });
-    }
-}
-exports.prompt = prompt;
-function sendMessage(tabid, msg) {
-    return new Promise(function (response, reject) {
-        chrome.tabs.sendMessage(tabid, {
-            func: msg.func,
-            data: msg.data,
-            state: Messages.State.BGToMdw,
-            sender: { url: location.href },
-        }, {
-            frameId: 0
-        }, function (resData) {
-            if (resData.error) {
-                reject(resData.error);
-            }
-            else {
-                response(resData);
-            }
-        });
-    });
-}
-exports.sendMessage = sendMessage;
-function setup() {
-    Messages.setupBackground({
-        toTopWindow: function (msg, bgdata, sender, sendResponse, sendError) {
-            var tabid = sender.tab.id;
-            chrome.tabs.sendMessage(tabid, msg, { frameId: 0 }, function (resData) {
-                if (resData.error) {
-                    sendError(resData.error);
-                }
-                else {
-                    sendResponse(resData.data);
-                }
-            });
-        },
-        toActiveTab: function (msg, bgdata, sender, sendResponse, sendError) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query({ active: true }, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, msg, { frameId: 0 }, function (resData) {
-                    if (resData.error) {
-                        sendError(resData.error);
-                    }
-                    else {
-                        sendResponse(resData.data);
-                    }
-                });
-            });
-        },
-        toTab: function (msg, bgdata, sender, sendResponse, sendError) {
-            var tabid = sender.tab.id;
-            chrome.tabs.query(bgdata, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                    if (resData.error) {
-                        sendError(resData.error);
-                    }
-                    else {
-                        sendResponse(resData.data);
-                    }
-                });
-            });
-        },
-        openTab: function (msg, bgdata, sender, sendResponse) {
-            chrome.tabs.create({ url: bgdata.url });
-        },
-        pauseAllVideos: function (msg, bgdata, sender, sendResponse) {
-            sendMessage(sender.tab.id, { func: "pauseVideos", data: null });
-        },
-        setIconPopup: function (msg, bgdata, sender, sendResponse) {
-            chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
-        },
-        setIconText: function (msg, bgdata, sender, sendResponse) {
-            chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
-        },
-        downloadFile: function (msg, bgdata, sender, sendResponse) {
-            chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
-        },
-        analytics: function (msg, bgdata, sender, sendResponse) {
-            if (bgdata["el"]) {
-                bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-            }
-            console.log(bgdata);
-            Analytics.fireEvent(bgdata["ec"], bgdata["ea"], bgdata["el"]);
-        },
-        redirectHosts: function (msg, bgdata, sender, sendResponse) {
-            redirect_scripts_base_1.getRedirectHosts().then(function (redirectHosts) {
-                sendResponse({ redirectHosts: redirectHosts });
-            });
-        },
-        alert: function (msg, bgdata, sender, sendResponse) {
-            window.alert(bgdata.msg);
-        },
-        prompt: function (msg, bgdata, sender, sendResponse) {
-            var value = window.prompt(bgdata.msg, bgdata.fieldText);
-            if (value == null || value == "") {
-                sendResponse({ aborted: true, text: null });
-            }
-            else {
-                sendResponse({ aborted: false, text: value });
-            }
-        },
-        confirm: function (msg, bgdata, sender, sendResponse) {
-            sendResponse(window.confirm(bgdata.msg));
-        }
-    });
-}
-exports.setup = setup;
-
-
-/***/ }),
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(10);
-const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(5);
-const Environment = __webpack_require__(4);
-const Page = __webpack_require__(6);
-const Messages = __webpack_require__(2);
-const Storage = __webpack_require__(1);
-let redirectHosts = [];
-;
-;
-function addRedirectHost(redirectHost) {
-    redirectHosts.push(redirectHost);
-}
-exports.addRedirectHost = addRedirectHost;
-function isUrlRedirecting(url) {
-    if (Tools.parseUrlQuery(url)["ovignore"] != "true") {
-        return false;
-    }
-    else {
-        for (let host of redirectHosts) {
-            for (let script of host.scripts) {
-                if (url.match(script.urlPattern)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-exports.isUrlRedirecting = isUrlRedirecting;
-function startScripts(scope) {
-    return new Promise(function (resolve, reject) {
-        if (Tools.parseUrlQuery(location.href)["ovignore"] != "true") {
-            for (let host of redirectHosts) {
-                isScriptEnabled(host.name).then(function (isEnabled) {
-                    if (isEnabled) {
-                        for (let script of host.scripts) {
-                            let match = location.href.match(script.urlPattern);
-                            if (match) {
-                                console.log("Redirect with " + host.name);
-                                for (let runScope of script.runScopes) {
-                                    if (runScope.run_at == scope) {
-                                        if (Page.isFrame()) {
-                                            resolve();
-                                        }
-                                        document.documentElement.hidden = runScope.hide_page !== false;
-                                        runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at }).then(function (videoData) {
-                                            videoData.origin = location.href;
-                                            videoData.host = host.name;
-                                            location.href = Environment.getVidPlaySiteUrl(VideoTypes.makeURLsSave(videoData));
-                                        }).catch(function (error) {
-                                            document.documentElement.hidden = false;
-                                            console.error(error);
-                                            Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-    });
-}
-exports.startScripts = startScripts;
-function isScriptEnabled(name) {
-    return Storage.sync.get(name).then(function (value) {
-        return value == true || value == undefined || value == null;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(name, enabled) {
-    return Storage.sync.set(name, enabled);
-}
-exports.setScriptEnabled = setScriptEnabled;
-function getRedirectHosts() {
-    return Promise.resolve().then(function () {
-        if (Environment.isBackgroundPage()) {
-            return redirectHosts;
-        }
-        else {
-            return Messages.send({ bgdata: { func: "redirectHosts", data: {} } }).then(function (response) {
-                return response.data.redirectHosts;
-            });
-        }
-    });
-}
-exports.getRedirectHosts = getRedirectHosts;
-
-
-/***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-function makeURLsSave(videoData) {
-    for (let track of videoData.tracks) {
-        track.src = Page.getSafeURL(track.src);
-    }
-    for (let src of videoData.src) {
-        src.src = Page.getSafeURL(src.src);
-        if (src.dlsrc) {
-            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
-        }
-    }
-    videoData.poster = Page.getSafeURL(videoData.poster);
-    return videoData;
-}
-exports.makeURLsSave = makeURLsSave;
-
-
-/***/ }),
-/* 11 */,
-/* 12 */,
-/* 13 */,
-/* 14 */,
-/* 15 */,
-/* 16 */,
-/* 17 */,
-/* 18 */,
-/* 19 */,
-/* 20 */
+/***/ 8:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1382,334 +1459,181 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(10);
-const Tools = __webpack_require__(3);
 const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(4);
-const Page = __webpack_require__(6);
-const Background = __webpack_require__(8);
-let videoArr = [];
-let newVideos = 0;
-function getPopupFrame() {
-    let frame = document.getElementById("videoPopup");
-    if (frame == undefined) {
-        frame = document.createElement("iframe");
-        frame.id = "videoPopup";
-        frame.allowFullscreen = true;
-        frame.className = "ov-popupFrame";
-        document.body.appendChild(frame);
+const Environment = __webpack_require__(5);
+function toTopWindow(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
+}
+exports.toTopWindow = toTopWindow;
+function toActiveTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toActiveTab", data: msg.frameId } });
+}
+exports.toActiveTab = toActiveTab;
+function toTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTab", data: msg.query } });
+}
+exports.toTab = toTab;
+function openTab(url) {
+    return Messages.sendToBG({ func: "background_openTab", data: { url: url } });
+}
+exports.openTab = openTab;
+function setIconPopup(url) {
+    return Messages.sendToBG({ func: "background_setIconPopup", data: { url: url } });
+}
+exports.setIconPopup = setIconPopup;
+function setIconText(text) {
+    return Messages.sendToBG({ func: "background_setIconText", data: { text: text } });
+}
+exports.setIconText = setIconText;
+function downloadFile(dl) {
+    return Messages.sendToBG({ func: "background_downloadFile", data: dl });
+}
+exports.downloadFile = downloadFile;
+function alert(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        Messages.sendToBG({ func: "background_alert", data: { msg: msg } });
     }
-    return frame;
-}
-function _isPopupVisible() {
-    return isPopupCreated() && !getPopupFrame().hidden;
-}
-function isPopupCreated() {
-    return document.getElementById("videoPopup") != undefined;
-}
-function _addVideoToPopup(videoData) {
-    let src = videoData.src;
-    let videoListEntry = videoArr.find(function (arrElem) {
-        return arrElem.src[0].src == src[0].src;
-    });
-    if (videoListEntry == null) {
-        videoArr.push(Tools.merge(videoData, {
-            title: document.title,
-            origin: location.href
-        }));
-        newVideos++;
-        if (!isPopupCreated()) {
-            getPopupFrame().hidden = true;
-            getPopupFrame().style.setProperty("display", "none", "important");
-            Background.setIconPopup();
-        }
-        setUnviewedVideos(newVideos);
-        getPopupFrame().src = Environment.getVidPopupSiteUrl({
-            videos: videoArr,
-            options: { autoplay: _isPopupVisible() }
-        });
+    else {
+        window.alert(msg);
     }
 }
-function setUnviewedVideos(count) {
-    Background.setIconText((count || "").toString());
-}
-function pauseAllVideos() {
-    Background.pauseAllVideos();
-}
-var firstpopup = true;
-function isPopupVisible() {
+exports.alert = alert;
+function confirm(msg) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (Page.isFrame()) {
-            let response = yield Background.toTopWindow({ data: {}, func: "isPopupVisible" });
-            return response.data.visible;
+        if (Environment.browser() == "chrome" /* Chrome */ && !Environment.isBackgroundScript()) {
+            let response = yield Messages.sendToBG({ func: "background_confirm", data: { msg: msg } });
+            return response.data;
         }
         else {
-            return _isPopupVisible();
+            return window.confirm(msg);
         }
     });
 }
-exports.isPopupVisible = isPopupVisible;
-function openPopup() {
-    Background.toTopWindow({ data: {}, func: "openPopup" });
+exports.confirm = confirm;
+function prompt(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.browser() == "chrome" /* Chrome */ && !Environment.isBackgroundScript()) {
+            let response = yield Messages.sendToBG({ func: "background_prompt", data: data });
+            return { aborted: response.data.aborted, text: response.data.text };
+        }
+        else {
+            let value = window.prompt(data.msg, data.fieldText);
+            return Promise.resolve({ aborted: !value, text: value });
+        }
+    });
 }
-exports.openPopup = openPopup;
-function closePopup() {
-    Background.toTopWindow({ data: {}, func: "closePopup" });
-}
-exports.closePopup = closePopup;
-function addVideoToPopup(videoData) {
-    Background.toTopWindow({ data: { videoData: videoData }, func: "addVideoToPopup" });
-}
-exports.addVideoToPopup = addVideoToPopup;
+exports.prompt = prompt;
 function setup() {
-    Messages.addListener({
-        isPopupVisible: function (request, sendResponse) {
-            sendResponse({ visible: _isPopupVisible() });
+    Messages.setupBackground({
+        background_toTopWindow: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't send to top window. Tab id is unknown!");
+                }
+                var tabid = sender.tab.id;
+                return Messages.sendToTab(tabid, msg, bgdata);
+            });
         },
-        openPopup: function (request, sendResponse) {
-            getPopupFrame().hidden = false;
-            getPopupFrame().style.removeProperty("display");
-            if (firstpopup) {
-                getPopupFrame().src = getPopupFrame().src;
-                firstpopup = false;
-            }
-            pauseAllVideos();
-            setUnviewedVideos(newVideos);
+        background_toActiveTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.query({ active: true }, function (tabs) {
+                    if (!tabs[0].id) {
+                        throw Error("No active tab found!");
+                    }
+                    return Messages.sendToTab(tabs[0].id, msg, bgdata);
+                });
+            });
         },
-        closePopup: function (request, sendResponse) {
-            document.getElementById("videoPopup").hidden = true;
-            getPopupFrame().style.setProperty("display", "none", "important");
-            Background.setIconPopup();
-            setUnviewedVideos(newVideos);
+        background_toTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.query(bgdata, function (tabs) {
+                    if (!tabs[0].id) {
+                        throw Error("No active tab found!");
+                    }
+                    chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
+                        if (resData.error) {
+                            throw resData.error;
+                        }
+                        else {
+                            return resData.data;
+                        }
+                    });
+                });
+            });
         },
-        addVideoToPopup: function (request, sendResponse) {
-            _addVideoToPopup(VideoTypes.makeURLsSave(request.data.videoData));
+        background_openTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.create({ url: bgdata.url });
+            });
+        },
+        background_setIconPopup: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't set icon popup. Tab id is unknown!");
+                }
+                chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
+            });
+        },
+        background_setIconText: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't set icon text. Tab id is unknown!");
+                }
+                chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
+            });
+        },
+        background_downloadFile: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
+            });
+        },
+        background_alert: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                window.alert(bgdata.msg);
+            });
+        },
+        background_prompt: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var value = window.prompt(bgdata.msg, bgdata.fieldText);
+                if (value == null || value == "") {
+                    return { aborted: true, text: null };
+                }
+                else {
+                    return { aborted: false, text: value };
+                }
+            });
+        },
+        background_confirm: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return window.confirm(bgdata.msg);
+            });
+        },
+        background_exec: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let fn = bgdata.func.split(".").reduce(function (acc, el) {
+                    return acc[el];
+                }, window);
+                if (bgdata.cb) {
+                    return new Promise((resolve) => {
+                        fn(resolve);
+                    });
+                }
+                else {
+                    return fn(bgdata.arg);
+                }
+            });
+        },
+        background_exec_cs: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.executeScript(sender.tab.id, { code: bgdata.cs });
+            });
         }
     });
 }
 exports.setup = setup;
 
 
-/***/ }),
-/* 21 */,
-/* 22 */,
-/* 23 */,
-/* 24 */,
-/* 25 */,
-/* 26 */,
-/* 27 */,
-/* 28 */,
-/* 29 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-const video_js_1 = __webpack_require__(30);
-const VideoPopup = __webpack_require__(20);
-function getVJSPlayerSrces(player) {
-    let hash;
-    if (player.options_.sources && player.options_.sources.length > 0) {
-        hash = player.options_.sources;
-    }
-    else if (player.getCache().sources) {
-        hash = player.getCache().sources;
-    }
-    else if (player.getCache().source) {
-        hash = player.getCache().source;
-    }
-    else if (player.getCache().src) {
-        hash = [player.getCache()];
-    }
-    else {
-        hash = [{ src: player.src(), type: "video/mp4", label: "SD" }];
-    }
-    for (let elem of hash) {
-        if (elem["data-res"]) {
-            elem.label = elem["data-res"];
-        }
-        if (!elem.type) {
-            elem.type = "video/mp4";
-        }
-    }
-    ;
-    return hash;
-}
-function getVJSPlayerCaptions(player) {
-    var tracks = [];
-    for (let i = 0; i < player.textTracks().length; i++) {
-        let textTrack = player.textTracks()[i];
-        var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] };
-        if (textTrack.options_ && textTrack.options_.src) {
-            track.src = textTrack.options_.src;
-        }
-        else if (textTrack.cues_.length != 0) {
-            for (let cue of textTrack.cues_) {
-                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
-            }
-            ;
-        }
-        else {
-            break;
-        }
-        if (typeof textTrack.kind == "function") {
-            track.kind = textTrack.kind();
-            track.language = textTrack.language();
-            track.label = textTrack.label();
-            if (textTrack.default) {
-                track.default = textTrack.default();
-            }
-        }
-        else {
-            track.kind = textTrack.kind;
-            track.language = textTrack.language;
-            track.label = textTrack.label;
-            track.default = textTrack.default;
-        }
-        tracks.push(track);
-    }
-    ;
-    return tracks;
-}
-function getVideoJSPlayers() {
-    if (window['videojs'] != undefined) {
-        console.log("VIDEOJS FOUND");
-        return window['videojs'].players;
-    }
-    return null;
-}
-function getJWPlayers() {
-    if (window['jwplayer'] == undefined) {
-        return null;
-    }
-    console.log("JWPLAYER FOUND");
-    var arr = [];
-    for (var i = 0, player = window['jwplayer'](0); player.on; player = window['jwplayer'](++i)) {
-        arr.push(player);
-    }
-    return arr;
-}
-function isPlayerLibrary() {
-    return window['jwplayer'] != null || window['videojs'] != null;
-}
-function getJWPlayerSrces(player) {
-    return player.getPlaylist()[0].sources.map(function (src) {
-        return {
-            src: src.file,
-            type: src.type == "hls" ? "application/x-mpegURL" : "video/" + src.type,
-            label: src.label || "SD"
-        };
-    });
-}
-function getJWPlayerCaptions(player) {
-    return player.getPlaylist()[0].tracks.map(function (track) {
-        return {
-            src: track.file,
-            label: track.label,
-            kind: track.kind,
-            language: track.language,
-            default: track.default,
-            cues: track.cues
-        };
-    });
-}
-function getSrc(videoNode) {
-    var srces = [];
-    for (let source of videoNode.getElementsByTagName("source")) {
-        let hash = { src: source.src, type: source.type, label: "SD" };
-        if (source.hasAttribute("label")) {
-            hash.label = source.getAttribute("label");
-        }
-        else if (source.dataset.res) {
-            hash.label = source.dataset.res;
-        }
-        if (source.hasAttribute("default")) {
-            hash.default = true;
-            srces.unshift(hash);
-        }
-        else {
-            srces.push(hash);
-        }
-    }
-    ;
-    if (srces.length == 0) {
-        VideoPopup.addVideoToPopup({ src: [{ src: videoNode.src, type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
-    }
-    else {
-        VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
-    }
-}
-console.log("OpenVideo Search is here!", location.href);
-/*var videoArr = document.getElementsByTagName("video");
-OV.tools.forEach(videoArr, function(videoNode){
-    SetupVideo(videoNode);
-});*/
-var videoJSPlayers = getVideoJSPlayers();
-console.log(videoJSPlayers);
-if (videoJSPlayers) {
-    function extractVJSVideoData(player) {
-        VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-        player.on('loadstart', function () {
-            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-        });
-    }
-    for (var player of videoJSPlayers) {
-        extractVJSVideoData(player);
-    }
-    if (video_js_1.default.hook) {
-        video_js_1.default.hook('setup', function (player) {
-            extractVJSVideoData(player);
-        });
-    }
-}
-var jwPlayers = getJWPlayers();
-if (jwPlayers) {
-    for (let player of jwPlayers) {
-        VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-        player.on('meta', function () {
-            VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-        });
-    }
-}
-function setupPlainVideoListener(video) {
-    //video.play();
-    if (!isPlayerLibrary()) {
-        getSrc(video);
-        video.addEventListener('loadedmetadata', function () {
-            getSrc(video);
-        });
-    }
-    else {
-        var jwPlayers = getJWPlayers();
-        if (jwPlayers) {
-            for (let player of jwPlayers) {
-                VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                player.on('meta', function () {
-                    VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                });
-            }
-        }
-    }
-}
-for (let videoNode of document.getElementsByTagName("video")) {
-    setupPlainVideoListener(videoNode);
-}
-;
-Page.onNodeInserted(document, function (tgt) {
-    let target = tgt;
-    if (target.tagName && target.tagName.toLowerCase() == "video") {
-        setupPlainVideoListener(target);
-    }
-});
-
-
-/***/ }),
-/* 30 */
-/***/ (function(module, exports) {
-
-
-
 /***/ })
-/******/ ]);
+
+/******/ });
 //# sourceMappingURL=search_videos.js.map

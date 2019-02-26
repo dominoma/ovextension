@@ -22,7 +22,7 @@ Page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {
             return function(method: string, url: string) {
-                if (getPlayer() && getPlayer().currentType().match(/application\//i)) {
+                if (isInitialized() && getPlayer()!.currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
                     arguments[1] = Tools.addRefererToURL(url, Page.getUrlObj().origin);
                 }
                 target.open.apply(target, arguments as any);
@@ -30,124 +30,21 @@ Page.wrapType(XMLHttpRequest, {
         }
     }
 });
-export interface Player extends videojs_raw.Player {
-    hotkeys?: (obj: Object) => void;
-    getActiveVideoSource?: () => VideoTypes.VideoSource;
-    getVideoData?: () => VideoTypes.VideoData;
-    setVideoData?: (videoData: VideoTypes.VideoData) => void;
-    updateSrc?: (srces: Array<VideoTypes.VideoSource>) => void;
-    saveToHistory?: () => void;
-    loadFromHistory?: () => void;
-}
+
+export type Player = OVPlayerComponents.Player;
 
 
-let player: Player = null;
-export function parseSrt(dataAndEvents: string, oncue: (cue: VideoTypes.VTTCue) => void) {
+let player: Player|null = null;
 
-    function trim(dataAndEvents: string) {
-        return (dataAndEvents + "").replace(/^\s+|\s+$/g, "");
-    }
-    function parseCueTime(dataAndEvents: string): number {
-        var parts = dataAndEvents.split(":");
-        /** @type {number} */
-        var sum = 0;
-        var minutes;
-        var part;
-        var url;
-        var x;
-        var i;
-        if (parts.length == 3) {
-            minutes = parts[0];
-            part = parts[1];
-            url = parts[2];
-        } else {
-            minutes = "0";
-            part = parts[0];
-            url = parts[1];
-        }
-        url = url.split(/\s+/);
-        x = url.splice(0, 1)[0];
-        x = x.split(/\.|,/);
-        i = parseFloat(x[1]);
-        x = x[0];
-        sum += parseFloat(minutes) * 3600;
-        sum += parseFloat(part) * 60;
-        sum += parseFloat(x);
-        if (i) {
-            sum += i / 1E3;
-        }
-        return sum;
-    }
 
-    if (dataAndEvents == "") {
-        alert("Invalid srt file!");
-    }
-    var tempData;
-    var splitted;
-    var collection;
-    var nodes = dataAndEvents.split("\n");
-    var resp = "";
-    var user_id;
-    var cuelength = 0;
-    var n = nodes.length;
-    for (var i = 1; i < n; ++i) {
-        resp = trim(nodes[i]);
-        if (resp) {
-            if (resp.indexOf("-->") == -1) {
-                user_id = resp;
-                resp = trim(nodes[++i]);
-            } else {
-                user_id = cuelength;
-            }
-            tempData = {
-                id: user_id,
-                index: cuelength,
-                startTime: undefined,
-                endTime: undefined,
-                text: ""
-            };
-            splitted = resp.split(/[\t ]+/);
-            tempData.startTime = parseCueTime(splitted[0]);
-            tempData.endTime = parseCueTime(splitted[2]);
-            /** @type {Array} */
-            collection = [];
-            for (; nodes[++i] && (resp = trim(nodes[i]));) {
-                collection.push(resp);
-            }
-            tempData.text = collection.join("\n");
-            oncue({ id: "", startTime: tempData.startTime, endTime: tempData.endTime, text: tempData.text, pauseOnExit: false });
-            cuelength += 1;
-        }
-    }
-}
-export async function addTextTrack(player: Player, rawTrack: VideoTypes.SubtitleSource) {
-    function convertToTrack(srcContent : string) {
-        if (srcContent.indexOf("-->") !== -1) {
-
-            player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
-            let track = player.textTracks()[player.textTracks().length - 1];
-            if (rawTrack.default) {
-                track.mode = "showing";
-            }
-            parseSrt(srcContent, function(cue) {
-                track.addCue(cue);
-            });
-
-        } else {
-            throw Error("Invaid subtitle file");
-        }
-    }
-    try {
-        let xhr = await Tools.createRequest({ url: rawTrack.src });
-        convertToTrack(xhr.responseText);
-    }
-    catch(e) {
-        let xhr = await Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
-        convertToTrack(xhr.responseText);
-    }
-}
 export function getPlayer() {
+    if(player == null) {
+        throw Error("Player not initialized!");
+    }
     return player;
+}
+export function isInitialized() {
+    return player != null;
 }
 export function initPlayer(playerId: string, options: Object, videoData: VideoTypes.VideoData): Player {
 
@@ -164,62 +61,90 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
         playbackRates: [0.5, 1, 2],
         language: Languages.getMsg("video_player_locale")
     });
-    player = videojs(playerId, options);
+    player = videojs(playerId, options) as Player;
     player.hotkeys({
         volumeStep: 0.1,
         seekStep: 5,
         enableModifiersForNumbers: false
     });
+    player.appendTextTrack = async function (rawTrack: VideoTypes.SubtitleSource) {
+        function convertToTrack(srcContent : string) {
+            if (srcContent.indexOf("-->") !== -1) {
 
+                player!.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
+                let track = player!.textTracks()[player!.textTracks().length - 1];
+                if (rawTrack.default) {
+                    track.mode = "showing";
+                }
+                OVPlayerComponents.parseSrt(srcContent, function(cue) {
+                    track.addCue(cue);
+                });
+
+            } else {
+                throw Error("Invaid subtitle file");
+            }
+        }
+        try {
+            let xhr = await Tools.createRequest({ url: rawTrack.src });
+            convertToTrack(xhr.responseText);
+        }
+        catch(e) {
+            let xhr = await Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
+            convertToTrack(xhr.responseText);
+        }
+    }
     player.getActiveVideoSource = function(): VideoTypes.VideoSource {
         for (var src of videoData.src) {
-            if (player.src().indexOf(src.src) == 0) {
+            if (player!.src().indexOf(src.src) == 0) {
                 return src;
             }
         }
-        return null;
+        throw new Error("No video source active!");
     }
 
 
-    player.on("ready", function() {
-        (player.el() as HTMLElement).style.width = "100%";
-        (player.el() as HTMLElement).style.height = "100%";
-        let ControlBar = player.getChild('controlBar');
+    player.on("ready", async function() {
+        (player!.el() as HTMLElement).style.width = "100%";
+        (player!.el() as HTMLElement).style.height = "100%";
+        let ControlBar = player!.getChild('controlBar');
+        if(!ControlBar) {
+            throw new Error("Control bar is missing!");
+        }
         var FavButton = ControlBar.addChild('FavButton', {}) as OVPlayerComponents.FavButton;
         var DownloadButton = ControlBar.addChild('DownloadButton', {});
         var PatreonButton = ControlBar.addChild('PatreonButton', {});
         var FullscreenToggle = ControlBar.getChild('fullscreenToggle') as videojs_raw.FullscreenToggle;
         var CaptionsButton = ControlBar.getChild('SubsCapsButton') as videojs_raw.CaptionsButton;
         CaptionsButton.show();
-        player.on("ratechange", function() {
+        console.log("player is ready");
+        player!.on("ratechange", function() {
             Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
         });
         FullscreenToggle.on("click", function() {
             window.setTimeout(function() {
-                if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && player.isFullscreen()) {
+                if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && player!.isFullscreen()) {
                     console.log("FULLSCREEN ERROR");
                     Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version)
                 }
             }, 1000);
         });
-        player.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
-        player.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
-        player.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
-        Storage.sync.get("PlayerVolume").then(function(volume) {
-            if (volume) {
-                player.volume(volume);
-            }
+        player!.controlBar.el().insertBefore(FavButton.el(), CaptionsButton.el());
+        player!.controlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
+        player!.controlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
+        let volume = await Storage.sync.get("PlayerVolume");
+        if (volume) {
+            player!.volume(volume);
+        }
+        player!.on('volumechange', function() {
+            Storage.sync.set("PlayerVolume", player!.volume());
         });
-        player.on('volumechange', function() {
-            Storage.sync.set("PlayerVolume", player.volume());
-        });
-        player.on('loadedmetadata', function() {
-            player.loadFromHistory();
+        player!.on('loadedmetadata', function() {
+            player!.loadFromHistory();
             FavButton.updateDesign();
         });
         document.body.onmouseleave = function() {
-            if (player.currentTime() != 0) {
-                player.saveToHistory();
+            if (player!.currentTime() != 0) {
+                player!.saveToHistory();
             }
         };
     });
@@ -227,7 +152,7 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
     player.setVideoData = function(videoData: VideoTypes.VideoData) {
 
 
-        player.poster(Tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
+        player!.poster(Tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
         var srces = videoData.src;
 
         var checkedSrces = [];
@@ -239,15 +164,15 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
         }
         srces = checkedSrces;
         if (srces.length == 1) {
-            player.src(srces[0]);
+            player!.src(srces[0]);
         }
         else {
-            player.updateSrc(srces);
+            player!.updateSrc(srces);
 
 
         }
         for (let track of videoData.tracks) {
-            addTextTrack(player, track);
+            player!.appendTextTrack(track);
             //player.addRemoteTextTrack(<any>track, true);
         }
 
@@ -258,49 +183,46 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
     player.setVideoData(videoData);
 
     //player.aspectRatio("0:0");
-    player.saveToHistory = function() {
-        Storage.sync.get("disableHistory").then(function(disabled) {
-            if (!disabled) {
-                Storage.local.get("OpenVideoHistory").then(function(history: Array<VideoTypes.HistoryEntry>) {
-                    if (!history) {
-                        history = [];
-                    }
-                    var itemIndex = history.indexOf(history.find(function(arrElem: VideoTypes.HistoryEntry) {
-                        return arrElem.origin == videoData.origin;
-                    }));
-                    if (itemIndex != -1) {
-                        history.splice(itemIndex, 1);
-                    }
-                    var histHash: VideoTypes.HistoryEntry = {
-                        poster: videoData.poster,
-                        title: videoData.title,
-                        origin: videoData.origin,
-                        stoppedTime: player.currentTime() == player.duration() ? 0 : player.currentTime()
-                    };
-
-
-                    //player.getVideoFileHash(function(fileHash){
-                    //HistHash.fileHash = fileHash;
-                    history.unshift(histHash);
-                    Storage.local.set("OpenVideoHistory", history);
-                    //});
-                });
+    player.saveToHistory = async function() {
+        let isDisabled = await Storage.sync.get("disableHistory");
+        if (!isDisabled) {
+            let history = await Storage.local.get("OpenVideoHistory") as Array<VideoTypes.HistoryEntry>;
+            if (!history) {
+                history = [];
             }
-        });
+            var itemIndex = history.findIndex(function(arrElem: VideoTypes.HistoryEntry) {
+                return arrElem.origin == videoData.origin;
+            });
+            if (itemIndex != -1) {
+                history.splice(itemIndex, 1);
+            }
+            var histHash: VideoTypes.HistoryEntry = {
+                poster: videoData.poster,
+                title: videoData.title,
+                origin: videoData.origin,
+                stoppedTime: player!.currentTime() == player!.duration() ? 0 : player!.currentTime()
+            };
+
+
+            //player.getVideoFileHash(function(fileHash){
+            //HistHash.fileHash = fileHash;
+            history.unshift(histHash);
+            Storage.local.set("OpenVideoHistory", history);
+            //});
+        }
     };
-    player.loadFromHistory = function() {
-        Storage.local.get("OpenVideoHistory").then(function(history: Array<VideoTypes.HistoryEntry>) {
-            if (history) {
-                //player.getVideoFileHash(function(fileHash){
-                var item = history.find(function(arrElem) {
-                    return arrElem.origin == videoData.origin;
-                });
-                if (item) {
-                    player.currentTime(item.stoppedTime);
-                }
-                //});
+    player.loadFromHistory = async function() {
+        let history = await Storage.local.get("OpenVideoHistory") as Array<VideoTypes.HistoryEntry>;
+        if (history) {
+            //player.getVideoFileHash(function(fileHash){
+            var item = history.find(function(arrElem) {
+                return arrElem.origin == videoData.origin;
+            });
+            if (item) {
+                player!.currentTime(item.stoppedTime);
             }
-        });
+            //});
+        }
     };
 
 
