@@ -2,26 +2,31 @@ import * as Tools from "./tools";
 import * as Messages from "./messages";
 import * as Environment from "./environment";
 import * as Storage from "./storage";
+import * as VideoTypes from "video_types";
+import {StringMap} from "OV/types";
 
+export function canProxy() {
+    return chrome.proxy != undefined;
+}
 export function setupBG(): void {
     Messages.setupBackground({
-        proxySetup: function(data, bgdata: Proxy, sender, sendResponse) {
-            _setup({ ip: bgdata.ip, port: bgdata.port, country: bgdata.country }).then(sendResponse);
+        proxy_setup: async function(data, bgdata: Proxy, sender) {
+            return _setup({ ip: bgdata.ip, port: bgdata.port, country: bgdata.country });
         },
-        proxyUpdate: function(data, bgdata, sender, sendResponse) {
-            _update().then(sendResponse);
+        proxy_update: async function(data, bgdata, sender) {
+            return _update();
         },
-        proxyRemove: function(data, bgdata, sender, sendResponse) {
+        proxy_remove: async function(data, bgdata, sender) {
             _remove();
         },
-        proxyAddHostToList: function(data, bgdata, sender, sendResponse) {
-            _addHostToList(bgdata.host);
+        proxy_addHostsToList: async function(data, bgdata, sender) {
+            return { added: _addHostsToList(bgdata.hosts) };
         },
-        proxyNewProxy: function(data, bgdata, sender, sendResponse) {
-            _newProxy().then(sendResponse);
+        proxy_newProxy: async function(data, bgdata, sender) {
+            return _newProxy();
         },
-        proxyGetCurrent: function(data, bgdata, sender, sendResponse) {
-            sendResponse(currentProxy);
+        proxy_getCurrent: async function(data, bgdata, sender) {
+            return currentProxy;
         }
     });
 }
@@ -31,94 +36,123 @@ export interface Proxy {
     country?: string;
     anonymity?: string;
 }
-let currentProxy: Proxy | null = null;
-export function setup(proxy: Proxy): Promise<Proxy> {
+async function saveProxy(proxy : Proxy | null) {
+    return Storage.sync.set("ProxySettings", proxy);
+}
+async function loadProxy() {
+    let settings = await Storage.sync.get("ProxySettings");
+    return settings as Proxy | null;
+}
+function getChromePAC() {
+    if(!currentProxy) {
+        throw new Error("Can't setup chrome proxy!");
+    }
+    function replaceScriptMacros(script: string, macros : StringMap) {
+        for(let macro in macros) {
+            script = script.replace(new RegExp("(\\/\\*)?\\$"+macro+"\\$(\\*\\/)?", "gi"), macros[macro]);
+        }
+        return script;
+    }
 
-    if (Environment.isBackgroundPage()) {
+    let script = (function FindProxyForURL(url : string, host : string) {
+        let hosts = [/*$HOSTS$*/] as RegExp[];
+        for(let host of hosts) {
+            if(host.test(url)) {
+                return "PROXY $IP$:$PORT$";
+            }
+        }
+        return "DIRECT";
+    }).toString();
+    let hostsarr = hosts.join(",");
+    return replaceScriptMacros(script, { ip: currentProxy.ip, port: currentProxy.port.toString(), hosts: hostsarr });
+
+}
+export async function loadFromStorage() {
+    let proxy = await loadProxy();
+    if(proxy) {
+        if(proxy.country == "Custom") {
+            return setup(proxy);
+        }
+        else {
+            return newProxy();
+        }
+    }
+    return null;
+}
+let currentProxy: Proxy | null = null;
+export async function setup(proxy: Proxy): Promise<Proxy> {
+
+    if (canProxy()) {
         return _setup(proxy);
     }
     else {
-        return Messages.send({ bgdata: { func: "proxySetup", data: { proxy: proxy } } }).then(function(response) {
-            return response.data;
-        });
+        let response = await Messages.sendToBG({ func: "proxy_setup", data: { proxy: proxy } });
+        return response.data;
     }
 }
-function _setup(proxy: Proxy): Promise<Proxy> {
-    return new Promise(function(resolve, reject) {
-
-        remove();
-        currentProxy = proxy;
-        Storage.sync.set("ProxyEnabled", currentProxy);
-        if (Environment.browser() == Environment.Browsers.Chrome) {
-            var config = {
-                mode: "pac_script",
-                pacScript: {
-                    data: "function FindProxyForURL(url, host) {" +
-                    "var hosts = " + JSON.stringify(hosts) + ";" +
-                    "for(var host of hosts) {" +
-                    "if(url.indexOf(host) != -1) {" +
-                    "return 'PROXY " + proxy.ip + ":" + proxy.port + "';" +
-                    "}" +
-                    "}" +
-                    "return 'DIRECT';" +
-                    "}"
-                }
-            };
-            chrome.proxy.settings.set({ value: config, scope: 'regular' });
-        }
-        else {
-            browser.proxy.register("/proxy_scripts/pac_firefox.js");
-            browser.runtime.sendMessage({ proxy: currentProxy, hosts: hosts }, { toProxyScript: true });
-        }
-        resolve(currentProxy);
-    });
+async function _setup(proxy: Proxy): Promise<Proxy> {
+    remove();
+    currentProxy = proxy;
+    saveProxy(currentProxy);
+    if (Environment.browser() == Environment.Browsers.Chrome) {
+        let script  = await getChromePAC();
+        console.log(script);
+        var config = {
+            mode: "pac_script",
+            pacScript: {
+                data: script
+            }
+        };
+        chrome.proxy.settings.set({ value: config, scope: 'regular' });
+    }
+    else {
+        browser.proxy.register("/proxy_scripts/pac_firefox.js");
+        browser.runtime.sendMessage({ proxy: currentProxy, hosts: hosts }, { toProxyScript: true });
+    }
+    return currentProxy;
 }
-export function update(): Promise<Proxy> {
-    if (Environment.isBackgroundPage()) {
+export async function update(): Promise<Proxy|null> {
+    if (canProxy()) {
         return _update();
     }
     else {
-        return Messages.send({ bgdata: { func: "proxyUpdate", data: {} } }).then(function(response) {
-            return response.data;
-        });
+        let response = await Messages.sendToBG({ func: "proxy_update", data: {} });
+        return response.data;
     }
 }
-function _update(): Promise<Proxy> {
-    if (_isEnabled()) {
+async function _update(): Promise<Proxy|null> {
+    if (currentProxy) {
         return setup(currentProxy);
     }
     else {
-        return Promise.reject(Error("Proxy can't be updated not enabled!"));
+        return null;
     }
 }
-export function newProxy(): Promise<Proxy> {
-    if (Environment.isBackgroundPage()) {
+export async function newProxy(): Promise<Proxy> {
+    if (canProxy()) {
         return _newProxy();
     }
     else {
-        return Messages.send({ bgdata: { func: "proxyNewProxy", data: {} } }).then(function(response) {
-            return response.data;
-        });
+        let response = await Messages.sendToBG({ func: "proxy_newProxy", data: {} });
+        return response.data;
     }
 }
 let triedProxies: Array<string> = [];
 let proxies: Array<Proxy> = [];
-function _newProxy(): Promise<Proxy> {
-    if (_isEnabled()) {
+async function _newProxy(): Promise<Proxy> {
+    if (currentProxy) {
         triedProxies.push(currentProxy.ip);
     }
     if (proxies.length == 0 || triedProxies.length > 20 || triedProxies.length == proxies.length) {
-        return searchProxies().then(function(newproxies) {
-            proxies = newproxies;
-            triedProxies = [];
+        proxies = await searchProxies();
+        triedProxies = [];
 
-            for (var proxy of proxies) {
-                if (triedProxies.indexOf(proxy.ip) == -1) {
-                    return _setup(proxy);
-                }
+        for (var proxy of proxies) {
+            if (triedProxies.indexOf(proxy.ip) == -1) {
+                return _setup(proxy);
             }
-            throw Error("Something went wrong!");
-        });
+        }
+        throw Error("Something went wrong!");
     }
     else {
         for (var proxy of proxies) {
@@ -130,31 +164,28 @@ function _newProxy(): Promise<Proxy> {
     }
 
 }
-export function isEnabled(): Promise<boolean> {
-    return getCurrentProxy().then(function(proxy) {
-
-        return proxy != null;
-    });
+export async function isEnabled(): Promise<boolean> {
+    let proxy = await getCurrentProxy();
+    return proxy != null;
 }
 function _isEnabled(): boolean {
     return currentProxy != null;
 }
-export function getCurrentProxy(): Promise<Proxy> {
-    if (Environment.isBackgroundPage()) {
-        return Promise.resolve(currentProxy);
+export async function getCurrentProxy(): Promise<Proxy|null> {
+    if (canProxy()) {
+        return currentProxy;
     }
     else {
-        return Messages.send({ bgdata: { func: "proxyGetCurrent", data: {} } }).then(function(response) {
-            return response.data;
-        });
+        let response = await Messages.sendToBG({ func: "proxy_getCurrent", data: {} });
+        return response.data;
     }
 }
-export function remove() {
-    if (Environment.isBackgroundPage()) {
+export async function remove() {
+    if (canProxy()) {
         _remove();
     }
     else {
-        Messages.send({ bgdata: { func: "proxyRemove", data: {} } });
+        await Messages.sendToBG({ func: "proxy_remove", data: {} });
     }
 }
 function _remove() {
@@ -165,46 +196,72 @@ function _remove() {
         browser.proxy.unregister();
     }
     currentProxy = null;
-    Storage.sync.set("ProxyEnabled", false);
+    saveProxy(null);
 }
-function searchProxies(): Promise<Array<Proxy>> {
+async function searchProxies(): Promise<Array<Proxy>> {
     var url = "https://free-proxy-list.net/anonymous-proxy.html";
-    return Tools.createRequest({ url: url }).then(function(xhr) {
-        let HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
+    let xhr = await Tools.createRequest({ url: url });
+    let HTML = (new DOMParser()).parseFromString(xhr.response, "text/html");
 
-        var table = HTML.getElementsByTagName("table")[0];
-        var tableRows = table.getElementsByTagName("tr");
-        var proxies: Array<Proxy> = [];
-        for (let row of tableRows) {
-            if (row.cells[4].innerText == "elite proxy") {
-                proxies.push({
-                    ip: row.cells[0].innerText,
-                    port: parseInt(row.cells[1].innerText),
-                    country: row.cells[3].innerText,
-                    anonymity: row.cells[4].innerText
-                });
-            }
+    var table = HTML.getElementsByTagName("table")[0];
+    var tableRows = table.getElementsByTagName("tr");
+    var proxies: Array<Proxy> = [];
+    for (let row of tableRows) {
+        if (row.cells[4].innerText == "elite proxy") {
+            proxies.push({
+                ip: row.cells[0].innerText,
+                port: parseInt(row.cells[1].innerText),
+                country: row.cells[3].innerText,
+                anonymity: row.cells[4].innerText
+            });
         }
-        return proxies;
-    });
-
+    }
+    return proxies;
 }
-let hosts: Array<string> = [];
-export function addHostToList(host: string): void {
-    if (Environment.isBackgroundPage()) {
-        _addHostToList(host);
+export async function addHostsfromVideos(videoData: VideoTypes.VideoData) {
+    addHostsToList(videoData.src.map((el) => {
+        let hosts = [Tools.parseURL(el.src).host];
+        if(el.dlsrc) {
+            hosts.push(Tools.parseURL(el.dlsrc.src).host);
+        }
+        return hosts;
+    }).reduce((acc, el) => {
+        return acc.concat(el);
+    }).concat(videoData.tracks.map((el) => {
+        return Tools.parseURL(el.src).host;
+    })).concat(Tools.parseURL(videoData.poster).host));
+}
+export async function addHostsToList(newHosts: RegExp[]|string[]) {
+    if (canProxy()) {
+        return _addHostsToList(newHosts);
     }
     else {
-        Messages.send({ bgdata: { func: "proxyAddHostToList", data: { host: host } } });
+        let response = await Messages.sendToBG({ func: "proxy_addHostsToList", data: { hosts: newHosts } });
+        return response.data.added;
     }
 }
-function _addHostToList(host: string) {
-    if (hosts.indexOf(host) == -1) {
-        hosts.push(host);
+let hosts = [] as string[];
+async function _addHostsToList(newHosts: RegExp[]|string[]) {
+    let addedHosts = [] as string[];
+    if(newHosts[0] instanceof RegExp) {
+        addedHosts = (newHosts as RegExp[]).map((el) => el.toString() );
     }
-}
-export function addHostsToList(hosts: Array<string>) {
-    for (var host of hosts) {
-        _addHostToList(host);
+    else {
+        addedHosts = (newHosts as string[]).map((el) => new RegExp(el, "i").toString() );
+    }
+    let needsUpdate = false;
+    for(let host of addedHosts) {
+        if(hosts.indexOf(host) == -1) {
+            hosts.push(host);
+            needsUpdate = true;
+        }
+    }
+    console.log(hosts);
+    if(needsUpdate) {
+        await _update();
+        return true;
+    }
+    else {
+        return false;
     }
 }

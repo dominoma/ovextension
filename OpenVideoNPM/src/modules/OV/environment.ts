@@ -1,5 +1,5 @@
-import * as Tools from "./tools";
-import * as VideoTypes from "./../video_types";
+import * as Tools from "OV/tools";
+import * as VideoTypes from "video_types";
 
 let _isBGPage = false;
 export function declareBGPage(): void {
@@ -20,6 +20,12 @@ export function getOptionsSiteUrl(): string {
 export function getLibrarySiteUrl(): string {
     return chrome.extension.getURL("/pages/library/library.html");
 }
+export function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+export function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
 export function getErrorMsg(data: any) {
     return {
         version: getManifest().version,
@@ -38,11 +44,20 @@ export function isExtensionPage(url: string): boolean {
 export function getRoot(): string {
     return chrome.extension.getURL("");
 }
-export function isBackgroundPage(): boolean {
+export function isBackgroundScript(): boolean {
     return _isBGPage;
+}
+export function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+export function isPageScript() {
+    return chrome.storage == undefined;
 }
 export function getManifest(): any {
     return chrome.runtime.getManifest();
+}
+export function getID() {
+    return chrome.runtime.id;
 }
 export const enum Browsers {
     Chrome = "chrome",
@@ -56,6 +71,6 @@ export function browser(): Browsers {
         return Browsers.Chrome;
     }
     else {
-        throw Error("User agentis neither chrome nor Firefox");
+        throw Error("User agent is neither chrome nor Firefox");
     }
 }

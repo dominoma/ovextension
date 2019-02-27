@@ -4,76 +4,123 @@ import * as VideoTypes from "video_types";
 
 import * as VideoPopup from "Messages/videopopup";
 
+abstract class VideoSearcher {
 
-function getVJSPlayerSrces(player : videojs.Player) {
-    let hash : Array<VideoTypes.VideoSource>;
-    if(player.options_.sources && player.options_.sources.length > 0) {
-        hash = player.options_.sources as Array<VideoTypes.VideoSource>;
-    }
-    else if(player.getCache().sources) {
-        hash = player.getCache().sources as Array<VideoTypes.VideoSource>;
-    }
-    else if(player.getCache().source) {
-        hash = player.getCache().source as Array<VideoTypes.VideoSource>;
-    }
-    else if(player.getCache().src){
-        hash = [player.getCache()] as Array<VideoTypes.VideoSource>;
-    }
-    else {
-        hash = [{src: player.src(), type: "video/mp4", label: "SD" }];
-    }
-
-    for(let elem of hash) {
-        if((elem as any)["data-res"]) {
-            elem.label = (elem as any)["data-res"];
+    protected sendVideoData(videoData : VideoTypes.RawVideoData) {
+        if(videoData.src.length > 0) {
+            VideoPopup.addVideoToPopup(videoData);
         }
-        if(!elem.type) {
-            elem.type = "video/mp4";
+    }
+    abstract canFindVideos() : boolean;
+    protected abstract doSearch() : void;
+    search() {
+        if(this.canFindVideos()) {
+            console.log("Search Videos with "+this.constructor.name);
+            this.doSearch();
         }
-    };
-    return hash;
+    }
 }
-function getVJSPlayerCaptions(player : videojs.Player) {
-    var tracks : VideoTypes.SubtitleSource[] = [];
-    for(let i = 0;i<player.textTracks().length;i++) {
-        let textTrack = player.textTracks()[i] as any;
-        var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] as VideoTypes.VTTCue[] };
-        if(textTrack.options_ &&  textTrack.options_.src) {
-            track.src = textTrack.options_.src;
+
+class VideoJSSearcher extends VideoSearcher {
+    canFindVideos() {
+        return (window as any)["videojs"] && (window as any)["videojs"]["players"];
+    }
+    private getSrces(player : videojs.Player) {
+        let hash : Array<VideoTypes.VideoSource>;
+        if(player.options_.sources && player.options_.sources.length > 0) {
+            hash = player.options_.sources as Array<VideoTypes.VideoSource>;
         }
-        else if(textTrack.cues_.length != 0) {
-            for(let cue of textTrack.cues_) {
-                track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
-            };
+        else if(player.getCache().sources) {
+            hash = player.getCache().sources as Array<VideoTypes.VideoSource>;
+        }
+        else if(player.getCache().source) {
+            hash = player.getCache().source as Array<VideoTypes.VideoSource>;
+        }
+        else if(player.getCache().src){
+            hash = [player.getCache()] as Array<VideoTypes.VideoSource>;
         }
         else {
-            break;
+            hash = [{src: player.src(), type: "video/mp4", label: "SD" }];
         }
-        if(typeof textTrack.kind == "function") {
-            track.kind = textTrack.kind();
-            track.language = textTrack.language();
-            track.label = textTrack.label();
-            if(textTrack.default) {
-                track.default = textTrack.default();
+        if(!Array.isArray(hash)) {
+            hash = [hash];
+        }
+        console.log(hash);
+        for(let elem of hash) {
+            if((elem as any)["data-res"]) {
+                elem.label = (elem as any)["data-res"];
             }
-        }
-        else {
-            track.kind = textTrack.kind;
-            track.language = textTrack.language;
-            track.label = textTrack.label;
-            track.default = textTrack.default;
-        }
-
-        tracks.push(track);
-    };
-    return tracks;
-}
-function getVideoJSPlayers() : Array<videojs.Player> {
-    if((<any>window)['videojs'] != undefined) {
-        console.log("VIDEOJS FOUND");
-        return (<any>window)['videojs'].players;
+            if(!elem.type) {
+                elem.type = "video/mp4";
+            }
+        };
+        return hash;
     }
-    return null;
+    private getTracks(player : videojs.Player) {
+        var tracks : VideoTypes.SubtitleSource[] = [];
+        for(let i = 0;i<player.textTracks().length;i++) {
+            let textTrack = player.textTracks()[i] as any;
+            var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] as VideoTypes.VTTCue[] };
+            if(textTrack.options_ &&  textTrack.options_.src) {
+                track.src = textTrack.options_.src;
+            }
+            else if(textTrack.cues_.length != 0) {
+                for(let cue of textTrack.cues_) {
+                    track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
+                };
+            }
+            else {
+                break;
+            }
+            if(typeof textTrack.kind == "function") {
+                track.kind = textTrack.kind();
+                track.language = textTrack.language();
+                track.label = textTrack.label();
+                if(textTrack.default) {
+                    track.default = textTrack.default();
+                }
+            }
+            else {
+                track.kind = textTrack.kind;
+                track.language = textTrack.language;
+                track.label = textTrack.label;
+                track.default = textTrack.default;
+            }
+
+            tracks.push(track);
+        };
+        return tracks;
+    }
+    private getPlayers() : { [key:string]: videojs.Player }|null {
+        if((<any>window)['videojs'] && (<any>window)['videojs'].players) {
+            return (<any>window)['videojs'].players;
+        }
+        return null;
+    }
+    private extractData(player : videojs.Player) {
+        let srces = this.getSrces(player);
+        let tracks = this.getTracks(player);
+        this.sendVideoData({ src: srces, tracks: tracks, poster: player.poster(), title: document.title });
+    }
+    private setupPlayer(player : videojs.Player) {
+        let this_= this;
+        player.on('loadedmetadata', function(){
+            this_.extractData(player);
+        });
+        this_.extractData(player);
+    }
+    protected doSearch() {
+        let players = this.getPlayers();
+        for(let name in players) {
+            this.setupPlayer(players[name]);
+        }
+        let this_ = this;
+        if((window as any).videojs.hook) {
+            (window as any).videojs.hook('setup', function(player : videojs.Player) {
+                this_.setupPlayer(player);
+            });
+        }
+    }
 }
 interface JWPlayer {
     getPlaylist: () => {
@@ -81,128 +128,168 @@ interface JWPlayer {
         tracks: [VideoTypes.SubtitleSource & {file: string}];
         image: string;
     }[];
+    on: (event: string, cb: () => void) => void;
+    isSetup: boolean;
 }
-function getJWPlayers() {
-    if((<any>window)['jwplayer'] == undefined) {
-        return null;
+class JWPlayerSearcher extends VideoSearcher {
+    canFindVideos() {
+        return !!(window as any)["jwplayer"];
     }
-    console.log("JWPLAYER FOUND");
-    var arr = [];
-    for(var i=0, player=(<any>window)['jwplayer'](0);player.on;player=(<any>window)['jwplayer'](++i)) {
-        arr.push(player);
+    private getSrces(player : JWPlayer) : VideoTypes.VideoSource[] {
+        return player.getPlaylist()[0].sources.map(function(src){
+            return {
+                src: src.file,
+                type: src.type == "hls" ? "application/x-mpegURL" : "video/"+src.type,
+                label: src.label || "SD"
+            };
+        });
     }
-    return arr;
-}
-function isPlayerLibrary() {
-    return (<any>window)['jwplayer'] != null || (<any>window)['videojs'] != null;
-}
-function getJWPlayerSrces(player : JWPlayer) : VideoTypes.VideoSource[] {
-    return player.getPlaylist()[0].sources.map(function(src){
-        return {
-            src: src.file,
-            type: src.type == "hls" ? "application/x-mpegURL" : "video/"+src.type,
-            label: src.label || "SD"
-        };
-    });
-}
-function getJWPlayerCaptions(player : JWPlayer) : VideoTypes.SubtitleSource[] {
-    return player.getPlaylist()[0].tracks.map(function(track){
-        return {
-            src: track.file,
-            label: track.label,
-            kind: track.kind,
-            language: track.language,
-            default: track.default,
-            cues: track.cues
-        };
-    });
-}
-function getSrc(videoNode : HTMLVideoElement) {
-    var srces : VideoTypes.VideoSource[] = [];
-    for(let source of videoNode.getElementsByTagName("source")){
-        let hash: VideoTypes.VideoSource = { src: source.src, type: source.type, label: "SD" };
-        if(source.hasAttribute("label")) {
-            hash.label = source.getAttribute("label");
-        }
-        else if(source.dataset.res) {
-            hash.label = source.dataset.res;
-        }
-        if(source.hasAttribute("default")) {
-            hash.default = true;
-            srces.unshift(hash);
-        }
-        else {
-            srces.push(hash);
-        }
-    };
-    if(srces.length == 0) {
-        VideoPopup.addVideoToPopup({ src: [{ src: videoNode.src, type: "video/mp4", label: "SD" }], tracks: [], poster: videoNode.poster, title: "", origin: "" });
+    private getTracks(player : JWPlayer) : VideoTypes.SubtitleSource[] {
+        return player.getPlaylist()[0].tracks.map(function(track){
+            return {
+                src: track.file,
+                label: track.label,
+                kind: track.kind,
+                language: track.language,
+                default: track.default,
+                cues: track.cues
+            };
+        });
     }
-    else {
-        VideoPopup.addVideoToPopup({ src: srces, tracks: [], poster: videoNode.poster, title: "", origin: "" });
+    private getPlayers() {
+        var arr = [];
+        for(var i=0, player=(window as any)['jwplayer'](0);player.on;player=(window as any)['jwplayer'](++i)) {
+            arr.push(player);
+        }
+        return arr as JWPlayer[];
     }
+    private extractData(player : JWPlayer) {
+        this.sendVideoData({
+            src: this.getSrces(player),
+            tracks: this.getTracks(player),
+            poster: player.getPlaylist()[0].image,
+            title: document.title
+        });
+    }
+    private setupPlayer(player : JWPlayer) {
+        let this_= this;
+        player.on('meta', function(){
+            this_.extractData(player);
+        });
+        this_.extractData(player);
+        player.isSetup = true;
+    }
+    protected doSearch() {
+        for(let player of this.getPlayers()) {
+            this.setupPlayer(player);
+        }
+        let this_ = this;
+        Page.onNodeInserted(document, function(target){
+            if(target instanceof HTMLElement) {
+                if(target instanceof HTMLVideoElement || target.getElementsByTagName("video").length > 0) {
+                    for(let player of this_.getPlayers()) {
+                        if(!player.isSetup) {
+                            this_.setupPlayer(player);
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+class HTMLVideoSearcher extends VideoSearcher {
+
+    canFindVideos() {
+        return true;
+    }
+    private getSrces(videoNode: HTMLVideoElement) {
+        var srces : VideoTypes.VideoSource[] = [];
+        for(let source of videoNode.getElementsByTagName("source")){
+            let hash: VideoTypes.VideoSource = { src: source.src, type: source.type, label: "SD" };
+            if(source.hasAttribute("label")) {
+                hash.label = source.getAttribute("label")!;
+            }
+            else if(source.dataset.res) {
+                hash.label = source.dataset.res;
+            }
+            if(source.hasAttribute("default")) {
+                hash.default = true;
+                srces.unshift(hash);
+            }
+            else {
+                srces.push(hash);
+            }
+        }
+        if(srces.length == 0 && videoNode.src) {
+            srces = [{
+                src: videoNode.src,
+                type: "video/mp4",
+                label: "SD"
+            }];
+        }
+        return srces;
+    }
+    private getTracks(videoNode: HTMLVideoElement) {
+        var tracks : VideoTypes.SubtitleSource[] = [];
+        for(let track of videoNode.getElementsByTagName("track")){
+            if(track.src) {
+                tracks.push({
+                    src: track.src,
+                    kind: track.kind,
+                    label: track.label,
+                    default: track.default,
+                    language: track.lang
+                })
+            }
+        }
+        return tracks;
+    }
+    private extractVideoData(videoNode: HTMLVideoElement) {
+        this.sendVideoData({
+            src: this.getSrces(videoNode),
+            tracks: this.getTracks(videoNode),
+            poster: videoNode.poster,
+            title: document.title
+        });
+    }
+    private setupPlayer(videoNode: HTMLVideoElement) {
+        this.extractVideoData(videoNode);
+        let this_ = this;
+        videoNode.addEventListener("loadedmetadata", function(){
+            this_.extractVideoData(videoNode);
+        });
+    }
+    protected doSearch() {
+        let this_ = this;
+        for(let video of document.getElementsByTagName("video")) {
+            this.setupPlayer(video);
+        }
+        Page.onNodeInserted(document, function(target){
+            if(target instanceof HTMLElement) {
+                if(target instanceof HTMLVideoElement) {
+                    this_.setupPlayer(target as HTMLVideoElement);
+                }
+                else {
+                    let videos = target.getElementsByTagName("video");
+                    for(let video of videos) {
+                        this_.setupPlayer(video);
+                    }
+                }
+            }
+        });
+    }
+
 }
 
 
 console.log("OpenVideo Search is here!", location.href);
-
-/*var videoArr = document.getElementsByTagName("video");
-OV.tools.forEach(videoArr, function(videoNode){
-    SetupVideo(videoNode);
-});*/
-var videoJSPlayers = getVideoJSPlayers();
-console.log(videoJSPlayers)
-if(videoJSPlayers) {
-    function extractVJSVideoData(player : videojs.Player) {
-        VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-        player.on('loadstart', function(){
-            VideoPopup.addVideoToPopup({ src: getVJSPlayerSrces(player), tracks: getVJSPlayerCaptions(player), poster: player.poster(), title: "", origin: "" });
-        });
-    }
-    for(var player of videoJSPlayers) {
-        extractVJSVideoData(player);
-    }
-    if(videojs.hook) {
-        videojs.hook('setup', function(player) {
-            extractVJSVideoData(player);
-        });
-    }
+let videojsSearcher = new VideoJSSearcher();
+let jwPlayerSearcher = new JWPlayerSearcher();
+if(!videojsSearcher.canFindVideos() && !jwPlayerSearcher.canFindVideos()) {
+    let videoNodeSearcher = new HTMLVideoSearcher();
+    videoNodeSearcher.search();
 }
-var jwPlayers = getJWPlayers();
-if(jwPlayers) {
-    for(let player of jwPlayers){
-        VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-        player.on('meta', function(){
-            VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-        });
-    }
+else {
+    videojsSearcher.search();
+    jwPlayerSearcher.search();
 }
-function setupPlainVideoListener(video : HTMLVideoElement) {
-    //video.play();
-    if(!isPlayerLibrary()) {
-        getSrc(video);
-        video.addEventListener('loadedmetadata', function(){
-            getSrc(video);
-        });
-    }
-    else {
-        var jwPlayers = getJWPlayers();
-        if(jwPlayers) {
-            for(let player of jwPlayers){
-                VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                player.on('meta', function(){
-                    VideoPopup.addVideoToPopup({ src: getJWPlayerSrces(player), tracks: getJWPlayerCaptions(player), poster: player.getPlaylist()[0].image, title: "", origin: "" });
-                });
-            }
-        }
-    }
-}
-for(let videoNode of document.getElementsByTagName("video")) {
-    setupPlainVideoListener(videoNode);
-};
-Page.onNodeInserted(document, function(tgt){
-    let target = tgt as HTMLElement;
-    if(target.tagName && target.tagName.toLowerCase() == "video") {
-        setupPlainVideoListener(target as HTMLVideoElement);
-    }
-});

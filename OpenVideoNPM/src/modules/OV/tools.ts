@@ -1,6 +1,31 @@
-import { StringMap } from "./types";
+import { StringMap, StdMap } from "./types";
 
-
+export function exportFunction(func : Function) {
+    (window as any)[func.name] = func;
+}
+export function exportVar(name : string, value: any) {
+    (window as any)[name] = value;
+}
+export function importVar(name : string) {
+    return (window as any)[name];
+}
+export function accessWindow<T>(initValues: T) {
+    return new Proxy<any>({},{
+        get: function(target, key){
+            let val = (window as any)[key];
+            if(val == undefined) {
+                return (initValues as any)[key];
+            }
+            else {
+                return val;
+            }
+        },
+        set: function(target, key, value){
+            (window as any)[key] = value;
+            return true;
+        }
+    }) as T;
+}
 export function generateHash(): string {
     var ts = Math.round(+new Date() / 1000.0);
     var rand = Math.round(Math.random() * 2147483647);
@@ -9,7 +34,7 @@ export function generateHash(): string {
 export function merge<T1, T2>(obj1: T1, obj2: T2): T1 & T2 {
     return (<any>Object).assign({}, obj1, obj2);
 }
-export function eventOne(elem: Node, type: string) {
+export async function eventOne(elem: Node, type: string) {
     return new Promise<Event>(function(resolve, reject) {
         elem.addEventListener(type, function one(e: Event) {
             elem.removeEventListener(type, one);
@@ -17,8 +42,22 @@ export function eventOne(elem: Node, type: string) {
         });
     });
 }
+export async function sleep(ms : number) {
+    return new Promise(function(resolve, reject) {
+        window.setTimeout(function(){
+            resolve();
+        }, ms);
+    });
+}
 export function matchNull(str: string, regexp: RegExp, index?: number) {
     return (str.match(regexp) || [])[index || 1] || "";
+}
+export function matchError(str: string, regexp: RegExp) {
+    let match = str.match(regexp);
+    if(!match) {
+        throw Error("No match found for '"+regexp+"'!");
+    }
+    return match;
 }
 export function objToHash(obj: Object): string {
     if (obj) {
@@ -29,7 +68,7 @@ export function objToHash(obj: Object): string {
     }
 }
 export function hashToObj(hashStr: string): Object | null {
-    var hash = parseUrlQuery(hashStr).hash;
+    var hash = parseURL(hashStr).query.hash;
     if (hash == "" || hash == undefined) {
         return null;
     }
@@ -59,7 +98,7 @@ export function unpackJS(source: string): string {
             }
         };
     }
-    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/);
+    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
 
     // Payload
     var payload = out[1];
@@ -87,65 +126,33 @@ export function unpackJS(source: string): string {
     result = result.replace(/\\/g, '');
     return result;
 }
-let parseUrlOptions = {
-    strictMode: false,
-    key: ["source", "protocol", "authority", "userInfo", "user", "password", "host", "port", "relative", "path", "directory", "file", "query", "anchor"],
-    q: {
-        name: "queryKey",
-        parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-    },
-    parser: {
-        strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-        loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-    }
-};
 export interface URL {
-    source?: string;
-    protocol?: string;
-    host?: string;
-    port?: string;
-    path?: string;
-    query?: StringMap;
-    queryStr?: string;
+    url: string;
+    protocol: string;
+    host: string;
+    port: string;
+    path: string;
+    query: StringMap;
+    queryStr: string;
 }
-export function parseUrl(str: string): URL {
-    var o: any = parseUrlOptions,
-        m: any = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
-        uri: any = {},
-        i = 14;
-
-    while (i--) uri[o.key[i]] = m[i] || "";
-
-    uri[o.q.name] = {};
-    uri[o.key[12]].replace(o.q.parser, function($0: any, $1: any, $2: any) {
-        if ($1) uri[o.q.name][$1] = $2;
-    });
-    (<any>uri).queryString = (<any>uri).query;
-    (<any>uri).query = parseUrlQuery(str);
-    return uri;
+let urlParser = document.createElement("a");
+export function parseURL(url: string): URL {
+    urlParser.href = url;
+    return {
+        url: url,
+        protocol: urlParser.protocol,
+        host: urlParser.host,
+        port: urlParser.port,
+        path: urlParser.pathname,
+        queryStr: urlParser.search,
+        query: parseURLQuery(urlParser.search),
+    };
 }
-export function parseUrlQuery(url: string): StringMap {
-    if (url.indexOf("?") == -1) {
-        return {};
-    }
-    var query_string: any = {};
-    var query = url.substr(url.indexOf("?") + 1);
-    var vars = query.split("&");
-    for (var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split("=");
-        // If first entry with this name
-        if (typeof query_string[pair[0]] === "undefined") {
-            query_string[pair[0]] = decodeURIComponent(pair[1]);
-            // If second entry with this name
-        } else if (typeof query_string[pair[0]] === "string") {
-            var arr = [query_string[pair[0]], decodeURIComponent(pair[1])];
-            query_string[pair[0]] = arr;
-            // If third or later entry with this name
-        } else {
-            query_string[pair[0]].push(decodeURIComponent(pair[1]));
-        }
-    }
-    return query_string;
+function parseURLQuery(url: string): StringMap {
+    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function(el){
+    	let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
+    	return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
+    }).concat({}) as any);
 }
 export async function getUrlFileName(url: string): Promise<string> {
     let xhr = await createRequest({ url: url, type: HTTPMethods.HEAD });
@@ -165,7 +172,6 @@ function objToURLParams(url: string, obj: StringMap): string {
     var str = "";
     for (var key in obj) {
         if (!isParamInURL(url, key)) {
-            console.log(url);
             str += "&" + key + "=" + encodeURIComponent(obj[key]);
         }
     }
@@ -204,7 +210,7 @@ export function getParamFromURL(url: string, param: string) {
     }
 }
 export function addRefererToURL(url: string, referer: string) {
-    return addParamsToURL(url, { OVReferer: encodeURIComponent(btoa(referer)) });
+    return addParamsToURL(url, { OVReferer: btoa(referer) });
 }
 export function getRefererFromURL(url: string) {
     var param = getParamFromURL(url, "OVReferer");
@@ -236,15 +242,9 @@ export interface Request {
     data?: StringMap;
     beforeSend?: (xhr: XMLHttpRequest) => void;
 }
-export function createRequest(args: Request): Promise<XMLHttpRequest> {
+export async function createRequest(args: Request): Promise<XMLHttpRequest> {
     return new Promise<XMLHttpRequest>((resolve, reject) => {
-        let xmlHttpObj: XMLHttpRequest = null;
-        if (args.xmlHttpObj) {
-            xmlHttpObj = args.xmlHttpObj;
-        }
-        else {
-            xmlHttpObj = new XMLHttpRequest();
-        }
+        let xmlHttpObj: XMLHttpRequest = args.xmlHttpObj  || new XMLHttpRequest();
         var type = args.type || HTTPMethods.GET;
         var protocol = args.protocol || "https://";
         if (args.referer) {
@@ -253,7 +253,7 @@ export function createRequest(args: Request): Promise<XMLHttpRequest> {
         else if (args.hideRef) {
             args.data = merge(args.data, { isOV: "true" });
         }
-        var url = addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
+        var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
 
         xmlHttpObj.open(type, url, true);
         xmlHttpObj.onload = function() {
@@ -275,7 +275,7 @@ export function createRequest(args: Request): Promise<XMLHttpRequest> {
                 xmlHttpObj.setRequestHeader(key, args.headers[key]);
             }
         }
-        let formData: FormData = null;
+        let formData: FormData|null = null;
         if (args.formData) {
             formData = new FormData();
             for (var key in args.formData) {

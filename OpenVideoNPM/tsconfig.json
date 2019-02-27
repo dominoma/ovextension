@@ -6,15 +6,15 @@
     "moduleResolution": "node",
     "outDir": "./tmp",
     "declaration": false,
-   
+
     "strict": true,
     "noImplicitAny": true,
-    "strictNullChecks": false,
-    
+    "strictNullChecks": true,
+
     "downlevelIteration": true,
-	
+
 	"baseUrl": "src/modules/"
-	
-    
+
+
   }
 }

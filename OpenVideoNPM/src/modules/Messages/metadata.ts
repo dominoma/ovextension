@@ -7,19 +7,21 @@ import * as Tools from "OV/tools";
 
 import * as Background from "./background";
 
-function toDataURL(url: string): Promise<string> {
-    return Tools.createRequest({
+async function toDataURL(url: string) {
+    let xhr = await Tools.createRequest({
         url: url, beforeSend: function(xhr) {
             xhr.responseType = 'blob';
         }
-    }).then(function(xhr) {
-        return new Promise<string>(function(resolve, reject) {
-            var reader = new FileReader();
-            reader.onloadend = function() {
-                resolve("url(" + reader.result + ")");
-            }
-            reader.readAsDataURL(xhr.response);
-        });
+    });
+    return new Promise<string>(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onloadend = function() {
+            resolve("url(" + reader.result + ")");
+        }
+        reader.onerror = function() {
+            reject(reader.error);
+        }
+        reader.readAsDataURL(xhr.response);
     });
 }
 export interface PlayerStyle {
@@ -28,44 +30,38 @@ export interface PlayerStyle {
     playimage: string;
     playhoverimage: string;
 }
-export function requestPlayerCSS() {
-    return Background.toTopWindow({ func: "requestPlayerCSS", data: {} }).then(function(response) {
-        return response.data as PlayerStyle;
-    });
+export async function requestPlayerCSS() {
+    let response = await Background.toTopWindow({ func: "metadata_requestPlayerCSS", data: {} });
+    return response.data as PlayerStyle | null;
 }
-export function setup() {
-    Page.isReady().then(function(event) {
-        let ovtags = document.getElementsByTagName("openvideo");
-        if (ovtags.length > 0) {
-            let ovtag = ovtags[0] as HTMLElement;
-            ovtag.innerText = Environment.getManifest().version;
-
-
-            /*var reloadimage = null;
-        if(ovtag.attributes.reloadimage) {
-            reloadimage = "url(data:image/png;base64,"+btoa(OV.tools.ajax({url: ovtag.attributes.reloadimage.value, async: false}).response)+")";
-        }
-        var reloadhoverimage = null;
-        if(ovtag.attributes.reloadhoverimage) {
-            reloadhoverimage = "url(data:image/png;base64,"+btoa(OV.tools.ajax({url: ovtag.attributes.reloadhoverimage.value, async: false}).response)+")";
-        }*/
-
-            let metadata: PlayerStyle = null;
-            Messages.addListener({
-                requestPlayerCSS: function(request, sendResponse) {
-                    if (metadata) {
-                        sendResponse(metadata);
-                    }
-                    else {
-                        Promise.all([toDataURL(ovtag.getAttribute("playimage")), toDataURL(ovtag.getAttribute("playhoverimage"))]).then(function(dataURLs) {
-                            metadata = { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
-                            sendResponse(metadata);
-                        });
-                    }
+export async function setup() {
+    await Page.isReady();
+    let ovtags = document.getElementsByTagName("openvideo");
+    let metadata: PlayerStyle | null = null;
+    Messages.addListener({
+        metadata_requestPlayerCSS: async function(request) {
+            if (ovtags.length > 0) {
+                if (metadata) {
+                    return metadata;
                 }
-            });
-            //alert("W2")
-            ovtag.dispatchEvent(new Event("ov-metadata-received"));
+                else {
+                    let ovtag = ovtags[0] as HTMLElement;
+                    if(!ovtag.hasAttribute("playimage") || !ovtag.hasAttribute("playhoverimage")) {
+                        throw Error("The openvideo tag has a wrong format!");
+                    }
+                    let dataURLs = await Promise.all([toDataURL(ovtag.getAttribute("playimage")!), toDataURL(ovtag.getAttribute("playhoverimage")!)]);
+                    return { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
+                }
+            }
+            else {
+                return null;
+            }
         }
     });
+    if (ovtags.length > 0) {
+        let ovtag = ovtags[0] as HTMLElement;
+        ovtag.innerText = Environment.getManifest().version;
+        ovtag.dispatchEvent(new Event("ov-metadata-received"));
+    }
+
 }

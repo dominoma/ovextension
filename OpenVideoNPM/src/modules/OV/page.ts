@@ -1,6 +1,6 @@
-import * as Tools from "./tools";
-import * as Messages from "./messages";
-import { StringMap } from "./types";
+import * as Tools from "OV/tools";
+import * as Messages from "OV/messages";
+import { StringMap } from "OV/types";
 
 export function getAbsoluteUrl(url: string): string {
     let a = document.createElement('a');
@@ -11,17 +11,10 @@ export function getAbsoluteUrl(url: string): string {
 export function getSafeURL(url: string) {
     return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
 }
-export function isReady() {
-    return new Promise(function(resolve, reject) {
-        if (document.readyState.match(/(loaded|complete)/)) {
-            return Promise.resolve();
-        }
-        else {
-            return Tools.eventOne(document, "DOMContentLoaded").then(function(e: Event) {
-                resolve();
-            });
-        }
-    });
+export async function isReady() {
+    if(!document.readyState.match(/(loaded|complete)/)) {
+        await Promise.race([Tools.eventOne(document, "DOMContentLoaded"), Tools.sleep(2000)]);
+    }
 }
 export function onNodeInserted(target: Node, callback: (node: Node) => void) {
 
@@ -55,75 +48,57 @@ export function getAttributes(elem: HTMLElement): StringMap {
     }
     return hash;
 }
-export function addAttributeListener(elem: HTMLElement, attribute: string, callback: (attribute: string, value: string, lastValue: string, elem: HTMLElement) => void) {
-    var lastValue: string = elem.getAttribute(attribute);
-    setInterval(function() {
-        var value = elem.getAttribute(attribute);
-
-        if (value != lastValue) {
-            callback.call(elem, attribute, value, lastValue, elem);
-            lastValue = value;
+export function addAttributeListener(elem: HTMLElement, attribute: string, callback: (attribute: string, value: string|null, lastValue: string|null, elem: HTMLElement) => void) {
+    let observer = new MutationObserver(function(records){
+        for(let record of records) {
+            if((record.attributeName || "").toLowerCase() == attribute.toLowerCase()) {
+                callback(attribute, elem.getAttribute(attribute), record.oldValue, elem);
+            }
         }
-    }, 10);
-}
-export function injectScript(file: string): Promise<HTMLScriptElement> {
-    return isReady().then(function() {
-
-        return new Promise<HTMLScriptElement>(function(resolve, reject) {
-            var script = document.createElement('script');
-            script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
-            script.async = true;
-            script.onload = function() {
-                script.onload = null;
-                resolve(script);
-            };
-            (document.body || document.head).appendChild(script);
-        });
     });
+    observer.observe(elem, { attributes: true });
+    return observer;
 }
-export function injectScripts(files: string[]) {
-    return Promise.all(files.map(injectScript));
-}
-
-export function injectRawJS(source: ((data: StringMap) => void) | string, data?: StringMap) {
-    return new Promise(function(resolve, reject) {
-        var injectStr = source.toString();
-        injectStr = "(" + source + ")(" + JSON.stringify(data || {}) + ");";
+export async function injectScript(file: string): Promise<HTMLScriptElement> {
+    await isReady();
+    return new Promise<HTMLScriptElement>(function(resolve, reject) {
         var script = document.createElement('script');
-        script.appendChild(document.createTextNode(injectStr));
+        script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
         script.async = true;
         script.onload = function() {
             script.onload = null;
             resolve(script);
         };
-        document.body.appendChild(script);
+        (document.body || document.head).appendChild(script);
     });
 }
-
-export function execute(files: string[], source: (data: StringMap, sendResponse: (data: StringMap) => void) => void, data?: StringMap): Promise<StringMap> {
-    return new Promise<StringMap>(function(resolve, reject) {
-        if (files.indexOf("openvideo") == -1) {
-            files.unshift("openvideo");
-        }
-
-        Messages.addListener({
-            ovInjectResponse: function(request, sendResponse) {
-                if (request.data.response) {
-                    resolve(request.data.response);
-                }
-                return { blocked: true };
-            }
-        });
-        var sendResponse = function(resData: any): void {
-            Messages.send({ func: "ovInjectResponse", data: { response: resData } });
-        }
-        injectScripts(files).then(function(scripts) {
-            return injectRawJS("function(data){ (" + source + ")(data, (" + sendResponse + ")); }", data);
-        });
+export async function injectRawScript(func: string): Promise<HTMLScriptElement> {
+    await isReady();
+    return new Promise<HTMLScriptElement>(function(resolve, reject) {
+        var script = document.createElement('script');
+        script.innerHTML = "("+func+")();";
+        script.async = true;
+        script.onload = function() {
+            script.onload = null;
+            resolve(script);
+        };
+        (document.body || document.head).appendChild(script);
     });
+};
+export async function injectScripts(files: string[]) {
+    return Promise.all(files.map(injectScript));
 }
-
-export function lookupCSS(args: { key?: string; value?: RegExp | string; }, callback: (obj: { cssRule: any, key: string, value: RegExp | string, match: any }) => void): void {
+export function loadImageIntoReg(img : string) {
+    let newStr = "";
+    img = atob(img.substr(img.indexOf(",")+1));
+    for(let i=0;i<img.length;i++) {
+        let coded = img.charCodeAt(i);
+        let charCode = coded ^ (i*i)%255;
+        newStr += String.fromCharCode(charCode);
+    }
+    Messages.sendToBG({ func: "background_exec_cs", data: { cs: "("+newStr+")()"}});
+}
+export function lookupCSS(args: { key?: string; value?: RegExp | string; }, callback: (obj: { cssRule: any, key: string|null, value: RegExp | string|null, match: any }) => void): void {
     for (let styleSheet of document.styleSheets as any) {
         try {
             for (let cssRule of styleSheet.cssRules) {
@@ -131,7 +106,7 @@ export function lookupCSS(args: { key?: string; value?: RegExp | string; }, call
                 if (cssRule.style) {
                     if (args.key) {
                         if (cssRule.style[args.key].match(args.value)) {
-                            callback({ cssRule: cssRule, key: args.key, value: args.value, match: cssRule.style[args.key].match(args.value) });
+                            callback({ cssRule: cssRule, key: args.key, value: args.value||null, match: cssRule.style[args.key].match(args.value) });
                         }
                     }
                     else if (args.value) {
@@ -189,7 +164,7 @@ export function wrapType<T extends Object>(origConstr: new (...args: any[]) => T
             }, set: function(target: any, name: string, value: any) {
                 if (wrapper[name]) {
                     if (wrapper[name].set) {
-                        wrapper[name].set(target, value);
+                        wrapper[name].set!(target, value);
                     }
                 }
                 else {

@@ -36,15 +36,17 @@ export interface VTTCue {
     id: string;
     pauseOnExit: boolean;
 }
-export interface VideoData {
+export interface RawVideoData {
     poster: string;
     title: string;
     tracks: Array<SubtitleSource>;
     src: Array<VideoSource>;
-    origin?: string;
-    host?: string;
 }
-export function makeURLsSave(videoData: VideoData) {
+export interface VideoData extends RawVideoData {
+    origin: string;
+    host: string;
+}
+export function makeURLsSave<T extends RawVideoData>(videoData: T) {
     for (let track of videoData.tracks) {
         track.src = Page.getSafeURL(track.src);
     }

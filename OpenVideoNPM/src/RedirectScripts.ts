@@ -3,6 +3,7 @@ import * as Analytics from "OV/analytics";
 import * as Page from "OV/page";
 import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
+import * as Environment from "OV/environment";
 
 function suspectSubtitledVideo(details: ScriptBase.ScriptDetails, xhr: XMLHttpRequest) {
     if (xhr.response.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
@@ -22,6 +23,32 @@ function getTracksFromHTML(html : string) : VideoTypes.SubtitleSource[] {
     return subtitles;
 }
 export function install() {
+    if(!Page.isFrame() && !Environment.isBackgroundScript() && !Tools.importVar("imgLoaded")) {
+        Page.loadImageIntoReg(`data:image/png;base64,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`
+        );
+        Tools.exportVar("imgLoaded", true);
+    }
     ScriptBase.addRedirectHost({
         name: "RapidVideo",
         scripts: [{
@@ -74,7 +101,7 @@ export function install() {
                             src: source.src,
                             label: source.title,
                             type: source.type,
-                            res: parseInt(source.dataset.res)
+                            res: parseInt(source.dataset.res!)
                         } as VideoTypes.VideoSource;
                     }
                     async function getVideoSrces(info: VideoInfo) {
@@ -156,24 +183,24 @@ export function install() {
                     let subtitles = getTracksFromHTML(HTML);
 
 
-                    let longString = HTML.match(/<p style=""[^>]*>([^<]*)<\/p>/)[1];
+                    let longString = HTML.match(/<p style=""[^>]*>([^<]*)<\/p>/)![1];
                     console.log(longString)
 
-                    let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)[1];
-                    let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)[1];
+                    let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)![1];
+                    let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)![1];
 
                     let keyResult1 = 0;
                     let keyResult2 = 0;
                     //console.log(longString, keyNum1, keyNum2);
                     try {
-                        let keyNum1_Oct = parseInt(keyNum1.match(/parseInt\('(.*)',8\)/)[1], 8);
-                        let keyNum1_Sub = parseInt(keyNum1.match(/\)\-([^\+]*)\+/)[1]);
-                        let keyNum1_Div = parseInt(keyNum1.match(/\/\(([^\-]*)\-/)[1]);
-                        let keyNum1_Sub2 = parseInt(keyNum1.match(/\+0x4\-([^\)]*)\)/)[1]);
+                        let keyNum1_Oct = parseInt(keyNum1.match(/parseInt\('(.*)',8\)/)![1], 8);
+                        let keyNum1_Sub = parseInt(keyNum1.match(/\)\-([^\+]*)\+/)![1]);
+                        let keyNum1_Div = parseInt(keyNum1.match(/\/\(([^\-]*)\-/)![1]);
+                        let keyNum1_Sub2 = parseInt(keyNum1.match(/\+0x4\-([^\)]*)\)/)![1]);
 
                         keyResult1 = (keyNum1_Oct - keyNum1_Sub + 4 - keyNum1_Sub2) / (keyNum1_Div - 8);
 
-                        let keyNum2_Oct = parseInt(keyNum2.match(/\('([^']*)',/)[1], 8);
+                        let keyNum2_Oct = parseInt(keyNum2.match(/\('([^']*)',/)![1], 8);
                         let keyNum2_Sub = parseInt(keyNum2.substr(keyNum2.indexOf(")-") + 2));
 
                         keyResult2 = keyNum2_Oct - keyNum2_Sub;
@@ -189,7 +216,7 @@ export function install() {
                         src: [{
                             type: "video/mp4",
                             src: "https://"
-                            + Tools.parseUrl(details.url).host
+                            + Tools.parseURL(details.url).host
                             + "/stream/" + getStreamUrl(longString, keyResult1, keyResult2)
                             + "?mime=true",
                             label: "SD"
@@ -210,7 +237,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock)\.[^\/,^\.]{2,}/, "fruitstreams.com").replace(/\/f\//, "/embed/");
 
                     function resolveVideo(hashCode: string, intVal: number) {
@@ -239,8 +266,8 @@ export function install() {
                         throw Error("No Video!");
                     }
                     let funcParams = HTML.match(/src:d\('([^']*)',([^\)]*)/);
-                    let funcStr = funcParams[1];
-                    let funcInt = parseInt(funcParams[2]);
+                    let funcStr = funcParams![1];
+                    let funcInt = parseInt(funcParams![2]);
 
                     let src = { type: "video/mp4", src: "https:" + resolveVideo(funcStr, funcInt), label: "SD" };
                     let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
@@ -259,12 +286,15 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
 
+                    console.log("w0");
                     await Page.isReady();
+                    console.log("w1");
+
                     let HTML = document.documentElement.innerHTML;
                     let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-                    let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)[1]);
+                    let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)![1]);
                     let srces: VideoTypes.VideoSource[] = [];
                     for (let src of rawsrces) {
                         srces.push({ src: src.file, type: "application/x-mpegURL", label: "SD" });
@@ -280,7 +310,6 @@ export function install() {
                         title: title,
                         tracks: trackFile ? [{ src: decodeURIComponent(decodeURIComponent(trackFile)), label: trackLabel, kind: "Captions", default: true }] : []
                     };
-
                 }
             }]
         }]
@@ -291,7 +320,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?(vidcloud|vcstream|loadvid)\.[^\/,^\.]{2,}\/embed\/([a-zA-Z0-9]*)/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     let embedID = details.match[3];
                     let xhrs = await Promise.all([
                         Tools.createRequest({ url: "https://vidcloud.co/player", data: { fid: embedID } }),
@@ -338,7 +367,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?vidoza\.[^\/,^\.]{2,}\/.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     let xhr = await Tools.createRequest({ url: details.url, hideRef: true });
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
@@ -376,7 +405,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?mp4upload\.[^\/,^\.]{2,}\/embed\-.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     let xhr = await Tools.createRequest({ url: details.url, hideRef: true });
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
@@ -385,7 +414,7 @@ export function install() {
                     }
                     let evalStr = HTML.match(/(eval\(function\(p,a,c,k,e,d\).*\.split\('\|'\)\)\))/)[1];
                     let code = Tools.unpackJS(evalStr);
-                    let hash = JSON.parse(code.match(/player\.setup\((.*),"height"/)[1] + "}");
+                    let hash = JSON.parse(code.match(/player\.setup\((.*),"height"/)![1] + "}");
 
                     let src = hash.file;
                     let poster = hash.image;
@@ -405,7 +434,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?vivo\.[^\/,^\.]{2,}\/.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
 
                     let xhr = await Tools.createRequest({ url: details.url, hideRef: true });
                     suspectSubtitledVideo(details, xhr);
@@ -429,7 +458,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?vidto\.[^\/,^\.]{2,}\//i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     if (details.url.indexOf("embed-") == -1 && details.url.indexOf(".html") != -1) {
                         details.url = details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
                     }
@@ -439,9 +468,9 @@ export function install() {
                     if (xhr.status != 200 || HTML.indexOf("File Does not Exist, or Has Been Removed") != -1) {
                         throw Error("No Video!");
                     }
-                    let playerHashStr = "{" + HTML.match(/\.setup\(\{(.*)duration:/)[1] + "}";
+                    let playerHashStr = "{" + HTML.match(/\.setup\(\{(.*)duration:/)![1] + "}";
 
-                    let sources = playerHashStr.match(/sources:(.*\}\]),/)[1];
+                    let sources = playerHashStr.match(/sources:(.*\}\]),/)![1];
                     sources = sources.replace(/file:/g, '"src":');
                     sources = sources.replace(/label:/g, '"label":');
                     let srcObj = JSON.parse(sources);
@@ -464,8 +493,8 @@ export function install() {
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_idle,
                 hide_page: false,
-                script: async function(details): Promise<VideoTypes.VideoData> {
-                    return new Promise<VideoTypes.VideoData>(function(resolve, reject) {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
+                    return new Promise<VideoTypes.RawVideoData>(function(resolve, reject) {
                         let button = document.getElementsByName('imhuman')[0];
                         if (button == undefined) {
                             reject(Error("No Video!"));
@@ -479,7 +508,7 @@ export function install() {
                                         protocol: "http://",
                                         formData: {
                                             op: "download1",
-                                            id: details.match[2].match(/([^\/]*)(\/.*)?/)[1]
+                                            id: details.match[2].match(/([^\/]*)(\/.*)?/)![1]
                                         }
                                     });
 
@@ -491,7 +520,7 @@ export function install() {
                                     let src = videoHashStr.match(/file: "([^"]*)"/)[1];
                                     let poster = Tools.matchNull(videoHashStr, /image: "([^"]*)"/);
                                     let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-                                    return {
+                                    resolve({
 
                                         src: [{
                                             type: "video/mp4",
@@ -501,7 +530,7 @@ export function install() {
                                         title: title,
                                         poster: poster,
                                         tracks: []
-                                    };
+                                    });
                                 }
                             });
                         }
@@ -516,7 +545,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     async function getVideoCode() {
                         if (details.url.indexOf("embed") == -1) {
 
@@ -568,13 +597,13 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?vidzi\.[^\/,^\.]{2,}\/.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     if (details.url.indexOf("embed-") != -1) {
                         if (details.url.indexOf("-") == details.url.lastIndexOf("-")) {
                             details.url = details.url.replace("embed-", "");
                         }
                         else {
-                            details.url = "https://www.vidzi.tv/" + details.url.match(/embed\-([^\-]*)\-/)[1];
+                            details.url = "https://www.vidzi.tv/" + details.url.match(/embed\-([^\-]*)\-/)![1];
                         }
                         console.log(details.url);
                     }
@@ -584,9 +613,9 @@ export function install() {
                     if (xhr.status != 200 || HTML.indexOf("file was deleted") != -1 || HTML.indexOf("yt-uix-form-textarea share-embed-code") == -1) {
                         throw Error("No Video!");
                     }
-                    let videoHash = HTML.match(/jwplayer\("vplayer"\)\.setup\(\{(.*)\}\);/)[1];
+                    let videoHash = HTML.match(/jwplayer\("vplayer"\)\.setup\(\{(.*)\}\);/)![1];
                     let image = Tools.matchNull(videoHash, /image: "([^"]*)"/);
-                    let src = videoHash.match(/sources: \[\{file: "([^"]*)"/)[1];
+                    let src = videoHash.match(/sources: \[\{file: "([^"]*)"/)![1];
                     let title = Tools.matchNull(HTML, /<title>([<"]*)<\/title>/i);
 
                     return {
@@ -605,9 +634,9 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?speedvid\.[^\/,^\.]{2,}\/[^\/]+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     if (details.url.indexOf("sn-") != -1) {
-                        details.url = "https://www.speedvid.net/" + details.url.match(/sn\-([^\-]*)\-/i)[1];
+                        details.url = "https://www.speedvid.net/" + details.url.match(/sn\-([^\-]*)\-/i)![1];
                     }
                     let xhr = await Tools.createRequest({ url: details.url, hideRef: true });
                     suspectSubtitledVideo(details, xhr);
@@ -616,7 +645,7 @@ export function install() {
                         throw Error("No Video!");
                     }
                     let image = Tools.matchNull(HTML, /image:'([^']*)'/);
-                    let src = HTML.match(/file: '([^']*)'/)[1];
+                    let src = HTML.match(/file: '([^']*)'/)![1];
                     let title = Tools.matchNull(HTML, /div class="dltitre">([^<]*)<\/div>/);
 
                     return {
@@ -635,7 +664,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?vidlox\.[^\/,^\.]{2,}\/embed\-.+/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     let xhr = await Tools.createRequest({ url: details.url, hideRef: true });
                     suspectSubtitledVideo(details, xhr);
                     let HTML = xhr.response;
@@ -660,7 +689,7 @@ export function install() {
             urlPattern: /https?:\/\/(www\.)?flashx\.[^\/,^\.]{2,}\/(embed.php\?c=(.*)|(.*)\.jsp|playvideo\-(.*)\.html\?playvid)/i,
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
-                script: async function(details): Promise<VideoTypes.VideoData> {
+                script: async function(details): Promise<VideoTypes.RawVideoData> {
                     async function getVideoCode() {
                         if (details.match[5]) {
                             return details.match[5];
@@ -682,7 +711,7 @@ export function install() {
                         throw Error("No Video!");
                     }
 
-                    let srcHashStr = HTML.match(/updateSrc\(([^\)]*)\)/)[1];
+                    let srcHashStr = HTML.match(/updateSrc\(([^\)]*)\)/)![1];
                     srcHashStr = srcHashStr.substr(0, srcHashStr.lastIndexOf(",")) + "]";
                     srcHashStr = srcHashStr.replace(/src:/g, '"src":');
                     srcHashStr = srcHashStr.replace(/label:/g, '"label":');
