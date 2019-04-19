@@ -81,37 +81,12 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 29);
+/******/ 	return __webpack_require__(__webpack_require__.s = 150);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 11:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-function makeURLsSave(videoData) {
-    for (let track of videoData.tracks) {
-        track.src = Page.getSafeURL(track.src);
-    }
-    for (let src of videoData.src) {
-        src.src = Page.getSafeURL(src.src);
-        if (src.dlsrc) {
-            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
-        }
-    }
-    videoData.poster = Page.getSafeURL(videoData.poster);
-    return videoData;
-}
-exports.makeURLsSave = makeURLsSave;
-
-
-/***/ }),
-
-/***/ 2:
+/***/ 132:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -125,293 +100,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-var State;
-(function (State) {
-    State["EvToMdw"] = "EvToMdw";
-    State["MdwToBG"] = "MdwToBG";
-    State["BGToMdw"] = "BGToMdw";
-    State["MdwToEv"] = "MdwToEv";
-    State["EvToMdwRsp"] = "EvToMdwRsp";
-    State["MdwToBGRsp"] = "MdwToBGRsp";
-    State["BGToMdwRsp"] = "BGToMdwRsp";
-    State["MdwToEvRsp"] = "MdwToEvRsp";
-})(State = exports.State || (exports.State = {}));
-var Status;
-(function (Status) {
-    Status["Request"] = "Request";
-    Status["Response"] = "Response";
-})(Status || (Status = {}));
-let windowVars = Tools.accessWindow({
-    bgfunctions: null,
-    lnfunctions: null,
-    isMiddleware_: false
-});
-function canRuntime() {
-    return chrome && chrome.runtime && chrome.runtime.id != undefined;
-}
-exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
-function getErrorData(e) {
-    if (e) {
-        return { message: e.message, stack: e.stack, name: e.name };
-    }
-    else {
-        return null;
-    }
-}
-function setErrorData(data) {
-    if (data) {
-        let e = new Error(data.message);
-        e.stack = data.stack;
-        e.name = data.name;
-        return e;
-    }
-    else {
-        return null;
-    }
-}
-function toErrorData(e) {
-    return getErrorData(convertToError(e));
-}
-function sendMsgByEvent(data, toBG) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            if (!toBG) {
-                data.bgdata = null;
-            }
-            let hash = Tools.generateHash();
-            document.addEventListener('ovmessage', function one(ev) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    let data = ev.detail;
-                    if (data.status == Status.Response && data.hash == hash) {
-                        document.removeEventListener("ovmessage", one);
-                        if (data.data.error) {
-                            reject(setErrorData(data.data.error));
-                        }
-                        else {
-                            resolve(data.data);
-                        }
-                    }
-                });
-            });
-            let event = new CustomEvent('ovmessage', {
-                detail: {
-                    status: Status.Request,
-                    hash: hash,
-                    data: data,
-                    error: null,
-                    toBG: toBG || data.bgdata != null
-                }
-            });
-            document.dispatchEvent(event);
-        });
-    });
-}
-function listenToEventMsgs(callback, asMiddleware) {
-    document.addEventListener('ovmessage', function (ev) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let data = ev.detail;
-            if (data.status == Status.Request && asMiddleware == data.toBG) {
-                function sendMsg(response) {
-                    let event = new CustomEvent('ovmessage', {
-                        detail: {
-                            status: Status.Response,
-                            hash: data.hash,
-                            data: response,
-                            toBG: data.toBG
-                        }
-                    });
-                    document.dispatchEvent(event);
-                }
-                try {
-                    let response = yield callback(data.data);
-                    response.call = data.data;
-                    sendMsg(response);
-                }
-                catch (e) {
-                    sendMsg({ call: data.data, data: null, error: toErrorData(e) });
-                }
-            }
-        });
-    });
-}
-function sendMsgByRuntime(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            chrome.runtime.sendMessage(data, function (response) {
-                if (response.error) {
-                    reject(setErrorData(response.error));
-                }
-                else {
-                    resolve(response);
-                }
-            });
-        });
-    });
-}
-function listenToRuntimeMsgs(callback) {
-    return __awaiter(this, void 0, void 0, function* () {
-        //Nicht async, da return true
-        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if (msg) {
-                msg.sender = sender;
-                callback(msg).then(function (response) {
-                    response.sender = sender;
-                    response.call = msg;
-                    sendResponse(response);
-                }).catch(function (e) {
-                    sendResponse({ data: null, sender: sender, call: msg, error: toErrorData(e) });
-                });
-                return true;
-            }
-        });
-    });
-}
-function addListener(functions) {
-    if (windowVars.lnfunctions) {
-        windowVars.lnfunctions = Tools.merge(windowVars.lnfunctions, functions);
-    }
-    else {
-        windowVars.lnfunctions = functions;
-        listenToEventMsgs(function (request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (!windowVars.lnfunctions[request.func]) {
-                    throw new Error("Listener-Function '" + request.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.lnfunctions).join(", "));
-                }
-                let data = yield windowVars.lnfunctions[request.func](request);
-                return { data: data, call: request };
-            });
-        }, false);
-    }
-}
-exports.addListener = addListener;
-function send(request, toBG) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return sendMsgByEvent(request, toBG || request.bgdata != null);
-    });
-}
-exports.send = send;
-function sendToBG(request) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return send({ func: "NO_FUNC", data: null, bgdata: request });
-    });
-}
-exports.sendToBG = sendToBG;
-function isMiddleware() {
-    return windowVars.isMiddleware_;
-}
-exports.isMiddleware = isMiddleware;
-function setupMiddleware() {
-    if (windowVars.isMiddleware_) {
-        console.log("Middleware already set up!");
-    }
-    else if (!canRuntime()) {
-        throw Error("Middleware needs access to chrome.runtime!");
-    }
-    else {
-        windowVars.isMiddleware_ = true;
-        listenToEventMsgs(function (request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                return sendMsgByRuntime(request);
-            });
-        }, true);
-        listenToRuntimeMsgs(function (request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                return sendMsgByEvent(request, false);
-            });
-        });
-    }
-}
-exports.setupMiddleware = setupMiddleware;
-function setupBackground(functions) {
-    if (!canRuntime()) {
-        throw Error("Background needs access to chrome.runtime!");
-    }
-    if (windowVars.bgfunctions) {
-        windowVars.bgfunctions = Tools.merge(windowVars.bgfunctions, functions);
-    }
-    else {
-        windowVars.bgfunctions = functions;
-        listenToRuntimeMsgs(function (request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (!windowVars.bgfunctions[request.bgdata.func]) {
-                    throw new Error("Background-Function '" + request.bgdata.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.bgfunctions).join(", "));
-                }
-                let data = yield windowVars.bgfunctions[request.bgdata.func](request, request.bgdata.data, request.sender);
-                return { data: data, call: request };
-            });
-        });
-    }
-}
-exports.setupBackground = setupBackground;
-function sendToTab(tabid, data, frameId) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            data.bgdata = null;
-            let options = {};
-            if (!frameId) {
-                options.frameId = 0;
-            }
-            else if (frameId >= 0) {
-                options.frameId = frameId;
-            }
-            delete data.bgdata;
-            chrome.tabs.sendMessage(tabid, data, options, function (response) {
-                if (response.error) {
-                    reject(setErrorData(response.error));
-                }
-                else {
-                    resolve(response);
-                }
-            });
-        });
-    });
-}
-exports.sendToTab = sendToTab;
-
-
-/***/ }),
-
-/***/ 20:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(11);
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
-const Page = __webpack_require__(6);
-const Background = __webpack_require__(8);
+const VideoTypes = __webpack_require__(133);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const Page = __webpack_require__(21);
+const Background = __webpack_require__(23);
+const VideoHistory = __webpack_require__(25);
 let videoArr = [];
 let newVideos = 0;
 function getPopupFrame() {
@@ -432,26 +127,33 @@ function isPopupCreated() {
     return document.getElementById("videoPopup") != undefined;
 }
 function _addVideoToPopup(videoData) {
-    let src = videoData.src;
-    let videoListEntry = videoArr.find(function (arrElem) {
-        return arrElem.src[0].src == src[0].src;
-    });
-    if (videoListEntry == null) {
-        videoArr.push(Tools.merge(videoData, {
-            title: document.title,
-            origin: location.href,
-            host: "Popup"
-        }));
-        newVideos++;
-        if (!isPopupCreated()) {
-            getPopupFrame().hidden = true;
-            getPopupFrame().style.setProperty("display", "none", "important");
-        }
-        getPopupFrame().src = Environment.getVidPopupSiteUrl({
-            videos: videoArr,
-            options: { autoplay: _isPopupVisible() }
+    return __awaiter(this, void 0, void 0, function* () {
+        let src = videoData.src;
+        let origin = yield VideoHistory.getPageRefData();
+        let videoListEntry = videoArr.find(function (arrElem) {
+            return arrElem.src[0].src == src[0].src;
         });
-    }
+        if (videoListEntry == null) {
+            videoArr.push(Tools.merge(videoData, {
+                title: document.title,
+                origin: origin,
+                parent: {
+                    url: "POPUP",
+                    name: "POPUP",
+                    icon: "POPUP"
+                }
+            }));
+            newVideos++;
+            if (!isPopupCreated()) {
+                getPopupFrame().hidden = true;
+                getPopupFrame().style.setProperty("display", "none", "important");
+            }
+            getPopupFrame().src = Environment.getVidPopupSiteUrl({
+                videos: videoArr,
+                options: { autoplay: _isPopupVisible() }
+            });
+        }
+    });
 }
 function setupCS() {
     Messages.addListener({
@@ -538,14 +240,39 @@ exports.setup = setup;
 
 /***/ }),
 
-/***/ 29:
+/***/ 133:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-const VideoPopup = __webpack_require__(20);
+const Page = __webpack_require__(21);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
+
+
+/***/ }),
+
+/***/ 150:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+const VideoPopup = __webpack_require__(132);
 class VideoSearcher {
     sendVideoData(videoData) {
         if (videoData.src.length > 0) {
@@ -824,7 +551,457 @@ else {
 
 /***/ }),
 
-/***/ 3:
+/***/ 18:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(19);
+function canStorage() {
+    return chrome.storage != undefined;
+}
+exports.canStorage = canStorage;
+function setupBG() {
+    let scopes = {
+        "local": chrome.storage.local,
+        "sync": chrome.storage.sync
+    };
+    Messages.setupBackground({
+        storage_getData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].get(bgdata.name, function (item) {
+                        resolve(item[bgdata.name]);
+                    });
+                });
+            });
+        },
+        storage_setData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
+                        resolve({ success: true });
+                    });
+                });
+            });
+        }
+    });
+}
+exports.setupBG = setupBG;
+function getValue(name, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
+            return new Promise(function (resolve, reject) {
+                scope.get(name, function (item) {
+                    resolve(item[name]);
+                });
+            });
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
+            return response.data;
+        }
+    });
+}
+function setValue(name, value, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
+            return new Promise(function (resolve, reject) {
+                scope.set({ [name]: value }, function () {
+                    resolve({ success: true });
+                });
+            });
+        }
+        else {
+            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
+            return { success: true };
+        }
+    });
+}
+var local;
+(function (local) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.local);
+        });
+    }
+    local.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.local);
+        });
+    }
+    local.set = set;
+})(local = exports.local || (exports.local = {}));
+var sync;
+(function (sync) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.sync);
+        });
+    }
+    sync.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.sync);
+        });
+    }
+    sync.set = set;
+})(sync = exports.sync || (exports.sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+function getPlaylistByID(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return (yield local.get("library_playlist_" + id)) || [];
+        }
+        return (yield sync.get("library_playlist_" + id)) || [];
+    });
+}
+exports.getPlaylistByID = getPlaylistByID;
+function setPlaylistByID(id, playlist) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return local.set("library_playlist_" + id, playlist);
+        }
+        return sync.set("library_playlist_" + id, playlist);
+    });
+}
+exports.setPlaylistByID = setPlaylistByID;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
+
+
+/***/ }),
+
+/***/ 19:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+var Status;
+(function (Status) {
+    Status["Request"] = "Request";
+    Status["Response"] = "Response";
+})(Status || (Status = {}));
+let windowVars = Tools.accessWindow({
+    bgfunctions: null,
+    lnfunctions: null,
+    isMiddleware_: false
+});
+function canRuntime() {
+    return chrome && chrome.runtime && chrome.runtime.id != undefined;
+}
+exports.canRuntime = canRuntime;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+function getErrorData(e) {
+    if (e) {
+        return { message: e.message, stack: e.stack, name: e.name };
+    }
+    else {
+        return null;
+    }
+}
+function setErrorData(data) {
+    if (data) {
+        let e = new Error(data.message);
+        e.stack = data.stack;
+        e.name = data.name;
+        return e;
+    }
+    else {
+        return null;
+    }
+}
+function toErrorData(e) {
+    return getErrorData(convertToError(e));
+}
+function sendMsgByEvent(data, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            if (!toBG) {
+                data.bgdata = null;
+            }
+            let hash = Tools.generateHash();
+            document.addEventListener('ovmessage', function one(ev) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let data = ev.detail;
+                    if (data.status == Status.Response && data.hash == hash) {
+                        document.removeEventListener("ovmessage", one);
+                        if (data.data.error) {
+                            reject(setErrorData(data.data.error));
+                        }
+                        else {
+                            resolve(data.data);
+                        }
+                    }
+                });
+            });
+            let event = new CustomEvent('ovmessage', {
+                detail: {
+                    status: Status.Request,
+                    hash: hash,
+                    data: data,
+                    error: null,
+                    toBG: toBG || data.bgdata != null
+                }
+            });
+            document.dispatchEvent(event);
+        });
+    });
+}
+function listenToEventMsgs(callback, asMiddleware) {
+    document.addEventListener('ovmessage', function (ev) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = ev.detail;
+            if (data.status == Status.Request && asMiddleware == data.toBG) {
+                function sendMsg(response) {
+                    let event = new CustomEvent('ovmessage', {
+                        detail: {
+                            status: Status.Response,
+                            hash: data.hash,
+                            data: response,
+                            toBG: data.toBG
+                        }
+                    });
+                    document.dispatchEvent(event);
+                }
+                try {
+                    let response = yield callback(data.data);
+                    response.call = data.data;
+                    sendMsg(response);
+                }
+                catch (e) {
+                    sendMsg({ call: data.data, data: null, error: toErrorData(e) });
+                }
+            }
+        });
+    });
+}
+function sendMsgByRuntime(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            chrome.runtime.sendMessage(data, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+function listenToRuntimeMsgs(callback) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //Nicht async, da return true
+        chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+            if (msg) {
+                msg.sender = sender;
+                callback(msg).then(function (response) {
+                    response.sender = sender;
+                    response.call = msg;
+                    sendResponse(response);
+                }).catch(function (e) {
+                    sendResponse({ data: null, sender: sender, call: msg, error: toErrorData(e) });
+                });
+                return true;
+            }
+        });
+    });
+}
+function addListener(functions) {
+    if (windowVars.lnfunctions) {
+        windowVars.lnfunctions = Tools.merge(windowVars.lnfunctions, functions);
+    }
+    else {
+        windowVars.lnfunctions = functions;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.lnfunctions[request.func]) {
+                    throw new Error("Listener-Function '" + request.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.lnfunctions).join(", "));
+                }
+                let data = yield windowVars.lnfunctions[request.func](request);
+                return { data: data, call: request };
+            });
+        }, false);
+    }
+}
+exports.addListener = addListener;
+function send(request, toBG) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sendMsgByEvent(request, toBG || request.bgdata != null);
+    });
+}
+exports.send = send;
+function sendToBG(request) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return send({ func: "NO_FUNC", data: null, bgdata: request });
+    });
+}
+exports.sendToBG = sendToBG;
+function isMiddleware() {
+    return windowVars.isMiddleware_;
+}
+exports.isMiddleware = isMiddleware;
+function setupMiddleware() {
+    if (windowVars.isMiddleware_) {
+        console.log("Middleware already set up!");
+    }
+    else if (!canRuntime()) {
+        throw Error("Middleware needs access to chrome.runtime!");
+    }
+    else {
+        windowVars.isMiddleware_ = true;
+        listenToEventMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByRuntime(request);
+            });
+        }, true);
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return sendMsgByEvent(request, false);
+            });
+        });
+    }
+}
+exports.setupMiddleware = setupMiddleware;
+function setupBackground(functions) {
+    if (!canRuntime()) {
+        throw Error("Background needs access to chrome.runtime!");
+    }
+    if (windowVars.bgfunctions) {
+        windowVars.bgfunctions = Tools.merge(windowVars.bgfunctions, functions);
+    }
+    else {
+        windowVars.bgfunctions = functions;
+        listenToRuntimeMsgs(function (request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!windowVars.bgfunctions[request.bgdata.func]) {
+                    throw new Error("Background-Function '" + request.bgdata.func + "' doesn't exist!\nFunctions: " + Object.keys(windowVars.bgfunctions).join(", "));
+                }
+                let data = yield windowVars.bgfunctions[request.bgdata.func](request, request.bgdata.data, request.sender);
+                return { data: data, call: request };
+            });
+        });
+    }
+}
+exports.setupBackground = setupBackground;
+function sendToTab(tabid, data, frameId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            data.bgdata = null;
+            let options = {};
+            if (!frameId) {
+                options.frameId = 0;
+            }
+            else if (frameId >= 0) {
+                options.frameId = frameId;
+            }
+            delete data.bgdata;
+            chrome.tabs.sendMessage(tabid, data, options, function (response) {
+                if (response.error) {
+                    reject(setErrorData(response.error));
+                }
+                else {
+                    resolve(response);
+                }
+            });
+        });
+    });
+}
+exports.sendToTab = sendToTab;
+
+
+/***/ }),
+
+/***/ 20:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1139,104 +1316,7 @@ exports.createRequest = createRequest;
 
 /***/ }),
 
-/***/ 5:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-let _isBGPage = false;
-function declareBGPage() {
-    _isBGPage = true;
-}
-exports.declareBGPage = declareBGPage;
-function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
-function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
-function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
-}
-exports.getOptionsSiteUrl = getOptionsSiteUrl;
-function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
-}
-exports.getLibrarySiteUrl = getLibrarySiteUrl;
-function getPatreonUrl() {
-    return "https://www.patreon.com/join/openvideo?";
-}
-exports.getPatreonUrl = getPatreonUrl;
-function getHostSuggestionUrl() {
-    return "https://youtu.be/rbeUGOkKt0o";
-}
-exports.getHostSuggestionUrl = getHostSuggestionUrl;
-function getErrorMsg(data) {
-    return {
-        version: getManifest().version,
-        browser: browser(),
-        data: data
-    };
-}
-exports.getErrorMsg = getErrorMsg;
-function isExtensionPage(url) {
-    if (browser() == "chrome" /* Chrome */) {
-        return url.indexOf("chrome-extension://") != -1;
-    }
-    else {
-        return url.indexOf("moz-extension://") != -1;
-    }
-}
-exports.isExtensionPage = isExtensionPage;
-function getRoot() {
-    return chrome.extension.getURL("");
-}
-exports.getRoot = getRoot;
-function isBackgroundScript() {
-    return _isBGPage;
-}
-exports.isBackgroundScript = isBackgroundScript;
-function isContentScript() {
-    return !isPageScript() && !isBackgroundScript();
-}
-exports.isContentScript = isContentScript;
-function isPageScript() {
-    return chrome.storage == undefined;
-}
-exports.isPageScript = isPageScript;
-function getManifest() {
-    return chrome.runtime.getManifest();
-}
-exports.getManifest = getManifest;
-function getID() {
-    return chrome.runtime.id;
-}
-exports.getID = getID;
-function browser() {
-    if (navigator.userAgent.search("Firefox") != -1) {
-        return "firefox" /* Firefox */;
-    }
-    else if (navigator.userAgent.search("Chrome") != -1) {
-        return "chrome" /* Chrome */;
-    }
-    else {
-        throw Error("User agent is neither chrome nor Firefox");
-    }
-}
-exports.browser = browser;
-
-
-/***/ }),
-
-/***/ 6:
+/***/ 21:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1250,8 +1330,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
 function getAbsoluteUrl(url) {
     let a = document.createElement('a');
     a.href = url;
@@ -1445,7 +1525,7 @@ exports.wrapType = wrapType;
 
 /***/ }),
 
-/***/ 8:
+/***/ 23:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1459,8 +1539,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
 function toTopWindow(msg) {
     return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
 }
@@ -1523,6 +1603,15 @@ function prompt(data) {
     });
 }
 exports.prompt = prompt;
+function tabQuery(query) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
+            chrome.tabs.query(query, function (tabs) {
+                resolve(tabs[0].id);
+            });
+        });
+    });
+}
 function setup() {
     Messages.setupBackground({
         background_toTopWindow: function (msg, bgdata, sender) {
@@ -1531,34 +1620,28 @@ function setup() {
                     throw new Error("Can't send to top window. Tab id is unknown!");
                 }
                 var tabid = sender.tab.id;
-                return Messages.sendToTab(tabid, msg, bgdata);
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_toActiveTab: function (msg, bgdata, sender) {
             return __awaiter(this, void 0, void 0, function* () {
-                chrome.tabs.query({ active: true }, function (tabs) {
-                    if (!tabs[0].id) {
-                        throw Error("No active tab found!");
-                    }
-                    return Messages.sendToTab(tabs[0].id, msg, bgdata);
-                });
+                let tabid = yield tabQuery({ active: true });
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_toTab: function (msg, bgdata, sender) {
             return __awaiter(this, void 0, void 0, function* () {
-                chrome.tabs.query(bgdata, function (tabs) {
-                    if (!tabs[0].id) {
-                        throw Error("No active tab found!");
-                    }
-                    chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                        if (resData.error) {
-                            throw resData.error;
-                        }
-                        else {
-                            return resData.data;
-                        }
-                    });
-                });
+                let tabid = yield tabQuery(bgdata);
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_openTab: function (msg, bgdata, sender) {
@@ -1631,6 +1714,197 @@ function setup() {
     });
 }
 exports.setup = setup;
+
+
+/***/ }),
+
+/***/ 24:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+let _isBGPage = false;
+function declareBGPage() {
+    _isBGPage = true;
+}
+exports.declareBGPage = declareBGPage;
+function getVidPlaySiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
+function getVideoSearchUrl() {
+    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
+}
+exports.getVideoSearchUrl = getVideoSearchUrl;
+function getVidPopupSiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
+function getOptionsSiteUrl() {
+    return chrome.extension.getURL("/pages/options/options.html");
+}
+exports.getOptionsSiteUrl = getOptionsSiteUrl;
+function getLibrarySiteUrl() {
+    return chrome.extension.getURL("/pages/library/library.html");
+}
+exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getErrorMsg(data) {
+    return {
+        version: getManifest().version,
+        browser: browser(),
+        data: data
+    };
+}
+exports.getErrorMsg = getErrorMsg;
+function isExtensionPage(url) {
+    if (browser() == "chrome" /* Chrome */) {
+        return url.indexOf("chrome-extension://") != -1;
+    }
+    else {
+        return url.indexOf("moz-extension://") != -1;
+    }
+}
+exports.isExtensionPage = isExtensionPage;
+function getRoot() {
+    return chrome.extension.getURL("");
+}
+exports.getRoot = getRoot;
+function isBackgroundScript() {
+    return _isBGPage;
+}
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
+function getManifest() {
+    return chrome.runtime.getManifest();
+}
+exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
+function browser() {
+    if (navigator.userAgent.search("Firefox") != -1) {
+        return "firefox" /* Firefox */;
+    }
+    else if (navigator.userAgent.search("Chrome") != -1) {
+        return "chrome" /* Chrome */;
+    }
+    else {
+        throw Error("User agent is neither chrome nor Firefox");
+    }
+}
+exports.browser = browser;
+
+
+/***/ }),
+
+/***/ 25:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+const Messages = __webpack_require__(19);
+const Background = __webpack_require__(23);
+const Storage = __webpack_require__(18);
+const Environment = __webpack_require__(24);
+function _getPageRefData() {
+    if (Environment.isExtensionPage(location.href)) {
+        return null;
+    }
+    let host = location.href.match(/:\/\/(www\.)?([^/]*)\/?/)[2];
+    let link = document.querySelector("link[rel='shortcut icon']");
+    if (link) {
+        return { url: location.href, icon: Page.getAbsoluteUrl(link.href), name: host };
+    }
+    else {
+        return { url: location.href, icon: "", name: host };
+    }
+}
+function setup() {
+    Messages.addListener({
+        getPageRefData: function () {
+            return __awaiter(this, void 0, void 0, function* () {
+                return _getPageRefData();
+            });
+        }
+    });
+}
+exports.setup = setup;
+function getPageRefData() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Page.isFrame()) {
+            let response = yield Background.toTopWindow({ data: null, func: "getPageRefData" });
+            return response.data;
+        }
+        else {
+            return _getPageRefData();
+        }
+    });
+}
+exports.getPageRefData = getPageRefData;
+window["getPageRefData"] = getPageRefData;
+function convertOldPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let oldfav = yield Storage.local.get("OpenVideoFavorites");
+        let oldhist = yield Storage.local.get("OpenVideoHistory");
+        let mapping = (el) => {
+            return {
+                title: el.title,
+                poster: el.poster,
+                origin: {
+                    url: el.origin,
+                    name: "",
+                    icon: ""
+                },
+                parent: {
+                    url: "CONVERTED_FROM_OLD",
+                    name: "CONVERTED_FROM_OLD",
+                    icon: "CONVERTED_FROM_OLD"
+                },
+                watched: el.stoppedTime,
+                duration: 0
+            };
+        };
+        if (oldfav) {
+            let newfav = oldfav.map(mapping);
+            yield Storage.setPlaylistByID(Storage.fixed_playlists.favorites.id, newfav);
+            yield Storage.local.set("OpenVideoFavorites", null);
+        }
+        if (oldhist) {
+            let newhist = oldhist.map(mapping);
+            yield Storage.setPlaylistByID(Storage.fixed_playlists.history.id, newhist);
+            yield Storage.local.set("OpenVideoHistory", null);
+        }
+    });
+}
+exports.convertOldPlaylists = convertOldPlaylists;
 
 
 /***/ })

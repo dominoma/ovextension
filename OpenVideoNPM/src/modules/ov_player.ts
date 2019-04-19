@@ -16,6 +16,9 @@ import videojs_raw from "video.js";
 
 declare var videojs: typeof videojs_raw;
 
+
+
+
 (window as any)["Worker"] = undefined;
 Messages.setupMiddleware();
 Page.wrapType(XMLHttpRequest, {
@@ -118,7 +121,7 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
         CaptionsButton.show();
         console.log("player is ready");
         player!.on("ratechange", function() {
-            Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin);
+            Analytics.fireEvent("PlaybackRate", "PlayerEvent", videoData.origin.url);
         });
         FullscreenToggle.on("click", function() {
             window.setTimeout(function() {
@@ -152,7 +155,7 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
     player.setVideoData = function(videoData: VideoTypes.VideoData) {
 
 
-        player!.poster(Tools.addParamsToURL(videoData.poster, { OVReferer: encodeURIComponent(btoa(videoData.origin)) }));
+        player!.poster(videoData.poster);
         var srces = videoData.src;
 
         var checkedSrces = [];
@@ -184,45 +187,42 @@ export function initPlayer(playerId: string, options: Object, videoData: VideoTy
 
     //player.aspectRatio("0:0");
     player.saveToHistory = async function() {
-        let isDisabled = await Storage.sync.get("disableHistory");
-        if (!isDisabled) {
-            let history = await Storage.local.get("OpenVideoHistory") as Array<VideoTypes.HistoryEntry>;
-            if (!history) {
-                history = [];
-            }
-            var itemIndex = history.findIndex(function(arrElem: VideoTypes.HistoryEntry) {
-                return arrElem.origin == videoData.origin;
+        let isEnabled = await Storage.isHistoryEnabled();
+        if (isEnabled) {
+            let history = await Storage.getPlaylistByID(Storage.fixed_playlists.history.id);
+            var itemIndex = history.findIndex((arrElem) => {
+                return arrElem.origin.url == videoData.origin.url;
             });
             if (itemIndex != -1) {
                 history.splice(itemIndex, 1);
             }
-            var histHash: VideoTypes.HistoryEntry = {
+            var histHash: VideoTypes.VideoRefData = {
                 poster: videoData.poster,
                 title: videoData.title,
                 origin: videoData.origin,
-                stoppedTime: player!.currentTime() == player!.duration() ? 0 : player!.currentTime()
+                parent: videoData.parent || history[itemIndex].parent,
+                watched: player!.currentTime() == player!.duration() ? 0 : player!.currentTime(),
+                duration: player!.duration()
             };
 
-
-            //player.getVideoFileHash(function(fileHash){
-            //HistHash.fileHash = fileHash;
             history.unshift(histHash);
-            Storage.local.set("OpenVideoHistory", history);
+            if(history.length > 100) {
+                history = history.slice(0, 99);
+            }
+            Storage.setPlaylistByID(Storage.fixed_playlists.history.id, history);
             //});
         }
     };
     player.loadFromHistory = async function() {
-        let history = await Storage.local.get("OpenVideoHistory") as Array<VideoTypes.HistoryEntry>;
-        if (history) {
-            //player.getVideoFileHash(function(fileHash){
-            var item = history.find(function(arrElem) {
-                return arrElem.origin == videoData.origin;
-            });
-            if (item) {
-                player!.currentTime(item.stoppedTime);
-            }
-            //});
+        let history = await Storage.getPlaylistByID(Storage.fixed_playlists.history.id);
+
+        var item = history.find(function(arrElem) {
+            return arrElem.origin.url == videoData.origin.url;
+        });
+        if (item) {
+            player!.currentTime(item.watched);
         }
+
     };
 
 

@@ -10,6 +10,22 @@ function suspectSubtitledVideo(details: ScriptBase.ScriptDetails, xhr: XMLHttpRe
         Analytics.fireEvent(details.hostname, "TracksFound", details.url)
     }
 }
+async function getHTML() {
+    return new Promise<string>((resolve, reject) => {
+        if(document.readyState == "interactive" || document.readyState == "complete") {
+            resolve(document.documentElement.innerHTML);
+        }
+        else {
+            document.addEventListener('readystatechange', function one(event) {
+                if(document.readyState == "interactive" || document.readyState == "complete") {
+                    document.removeEventListener('readystatechange', one);
+                    resolve(document.documentElement.innerHTML);
+                }
+            });
+        }
+    })
+
+}
 function getTracksFromHTML(html : string) : VideoTypes.SubtitleSource[] {
     let subtitleTags = html.match(/<track(.*)\/>/g) || [];
     let subtitles = [];
@@ -183,9 +199,9 @@ export function install() {
                     let subtitles = getTracksFromHTML(HTML);
 
 
-                    let longString = HTML.match(/<p style=""[^>]*>([^<]*)<\/p>/)![1];
+                    let longString = HTML.match(/<p[^>]*>([^<]*)<\/p>/)![1];
                     console.log(longString)
-
+                    console.log(HTML);
                     let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)![1];
                     let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)![1];
 
@@ -204,7 +220,7 @@ export function install() {
                         let keyNum2_Sub = parseInt(keyNum2.substr(keyNum2.indexOf(")-") + 2));
 
                         keyResult2 = keyNum2_Oct - keyNum2_Sub;
-                        console.log(keyNum1, keyNum2);
+                        //console.log(keyNum1, keyNum2);
 
                     }
                     catch (e) {
@@ -238,7 +254,7 @@ export function install() {
             runScopes: [{
                 run_at: ScriptBase.RunScopes.document_start,
                 script: async function(details): Promise<VideoTypes.RawVideoData> {
-                    details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock)\.[^\/,^\.]{2,}/, "fruitstreams.com").replace(/\/f\//, "/embed/");
+                    //details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}/, "streamango.com").replace(/\/f\//, "/embed/");
 
                     function resolveVideo(hashCode: string, intVal: number) {
                         let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";

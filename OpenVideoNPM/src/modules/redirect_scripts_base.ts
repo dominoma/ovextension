@@ -5,6 +5,8 @@ import * as Analytics from "./OV/analytics";
 import * as Environment from "./OV/environment";
 import * as Messages from "./OV/messages";
 import * as Storage from "./OV/storage";
+import * as VideoHistory from "Messages/videohistory";
+import * as Page from "OV/page";
 
 let redirectHosts: Array<RedirectHost> = [];
 
@@ -49,6 +51,16 @@ export function isUrlRedirecting(url: string) {
         return false;
     }
 }
+function getFavicon() {
+    let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+    if(link) {
+        let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
+        if(favicon) {
+            return favicon[1];
+        }
+    }
+    return "";
+}
 export async function startScripts(scope: RunScopes, onScriptExecute: () => Promise<void>, onScriptExecuted: (videoData : VideoTypes.VideoData) => Promise<void> ){
     if (Tools.parseURL(location.href).query["ovignore"] != "true") {
         for (let host of redirectHosts) {
@@ -65,9 +77,18 @@ export async function startScripts(scope: RunScopes, onScriptExecute: () => Prom
                                     await onScriptExecute();
                                     console.log("script executed");
                                     let rawVideoData = await runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
+                                    let parent = null;
+                                    console.log(Page.isFrame())
+                                    if(Page.isFrame()) {
+                                        parent = await VideoHistory.getPageRefData();
+                                    }
                                     let videoData = Tools.merge(rawVideoData, {
-                                        origin: location.href,
-                                        host: host.name
+                                        origin: {
+                                            name: host.name,
+                                            url: location.href,
+                                            icon: getFavicon()
+                                        },
+                                        parent: parent
                                     });
                                     videoData = VideoTypes.makeURLsSave(videoData);
                                     await onScriptExecuted(videoData);

@@ -1,6 +1,19 @@
 import * as Page from "OV/page";
 
+export interface PageRefData {
+    url: string;
+    icon: string;
+    name: string;
+}
 
+export interface VideoRefData {
+    poster: string;
+    watched: number;
+    duration: number;
+    title: string;
+    origin: PageRefData;
+    parent: PageRefData | null;
+}
 
 export interface HistoryEntry {
     poster: string;
@@ -43,8 +56,8 @@ export interface RawVideoData {
     src: Array<VideoSource>;
 }
 export interface VideoData extends RawVideoData {
-    origin: string;
-    host: string;
+    origin: PageRefData;
+    parent: PageRefData | null;
 }
 export function makeURLsSave<T extends RawVideoData>(videoData: T) {
     for (let track of videoData.tracks) {

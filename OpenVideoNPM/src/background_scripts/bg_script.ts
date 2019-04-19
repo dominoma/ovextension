@@ -7,7 +7,7 @@ import * as Messages from "OV/messages";
 import * as ScriptBase from "redirect_scripts_base";
 import * as RedirectScripts from "../RedirectScripts";
 import * as Analytics from "OV/analytics";
-import * as Page from "OV/page";
+import * as VideoHistory from "Messages/videohistory";
 
 async function LoadBGScripts() {
     //OV.proxy.addHostsFromScripts(ScriptBase.getRedirectHosts());
@@ -30,6 +30,8 @@ Analytics.setupBG();
 RedirectScripts.install();
 
 Proxy.loadFromStorage();
+
+VideoHistory.convertOldPlaylists();
 
 LoadBGScripts();
 chrome.runtime.setUninstallURL("https://goo.gl/forms/conIBydrACtZQR0A2");
@@ -96,34 +98,40 @@ chrome.webRequest.onHeadersReceived.addListener(function(details) {
     },
     ['blocking', 'responseHeaders']
 );
+function beforeSendHeaders(details : chrome.webRequest.WebRequestHeadersDetails) {
+
+    var referer = Tools.getRefererFromURL(details.url);
+    if (referer) {
+
+        setHeader(details.requestHeaders!, "Referer", referer);
+        setHeader(details.requestHeaders!, "Origin", "https://"+Tools.parseURL(referer).host);
+        return { requestHeaders: details.requestHeaders }
+
+    }
+    else if (details.url.match(/[\?&]isOV=true/i)) {
+        console.log(details.requestHeaders, details.url)
+        removeHeader(details.requestHeaders!, "Origin");
+        removeHeader(details.requestHeaders!, "Referer");
+        return { requestHeaders: details.requestHeaders }
+
+    }
+    return null;
+
+
+}
 try {
-    chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
-
-        var referer = Tools.getRefererFromURL(details.url);
-        if (referer) {
-
-            setHeader(details.requestHeaders!, "Referer", referer);
-            setHeader(details.requestHeaders!, "Origin", "https://"+Tools.parseURL(referer).host);
-            return { requestHeaders: details.requestHeaders }
-
-        }
-        else if (details.url.match(/[\?&]isOV=true/i)) {
-            console.log(details.requestHeaders, details.url)
-            removeHeader(details.requestHeaders!, "Origin");
-            removeHeader(details.requestHeaders!, "Referer");
-            return { requestHeaders: details.requestHeaders }
-
-        }
-        return null;
-
-
-    },
+    chrome.webRequest.onBeforeSendHeaders.addListener(beforeSendHeaders,
         {
             urls: ["*://*/*OVReferer=*", "*://*/*isOV*", "*://*/*ovreferer=*", "*://*/*isov*"]
         },
-        Environment.browser() == Environment.Browsers.Chrome ? ['blocking', 'requestHeaders', 'extraHeaders'] : ['blocking', 'requestHeaders']
+        (Environment.browser() == Environment.Browsers.Chrome) ? ['blocking', 'requestHeaders', 'extraHeaders'] : ['blocking', 'requestHeaders']
     );
 }
 catch(e) {
-    alert("Please update your chrome browser to the latest version!\nOpenVideo will not work otherwise.")
+    chrome.webRequest.onBeforeSendHeaders.addListener(beforeSendHeaders,
+        {
+            urls: ["*://*/*OVReferer=*", "*://*/*isOV*", "*://*/*ovreferer=*", "*://*/*isov*"]
+        },
+        ['blocking', 'requestHeaders']
+    );
 }

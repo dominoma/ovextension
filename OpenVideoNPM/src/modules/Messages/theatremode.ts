@@ -16,7 +16,7 @@ interface IFrameEntry {
 type IFrameEntries = Array<IFrameEntry>;
 
 let iframes: IFrameEntries = [];
-let activeEntry: { oldCSS: string; entry: IFrameEntry; }|null = null;
+let activeEntry: { oldStyle: { css: string, width: string, height: string }; entry: IFrameEntry; }|null = null;
 
 function checkCleanup(entry: IFrameEntry) {
     if (entry == null) {
@@ -45,14 +45,16 @@ export function isFrameActive() {
     }
     return activeEntry != null;
 }
-
-export function getEntry(frameid: string) {
+function checkIFrameBounds(iframe: HTMLIFrameElement, width: number, height: number) {
+    return Math.abs(iframe.clientWidth - width) <= 1 && Math.abs(iframe.clientHeight - height) <= 1;
+}
+export function getEntry(width : number, height: number) {
     for (let i = 0; i < iframes.length; i++) {
         if (checkCleanup(iframes[i])) {
             iframes.splice(i, 1);
             i--;
         }
-        else if (iframes[i].iframe.name === frameid) {
+        else if (checkIFrameBounds(iframes[i].iframe, width, height)) {
             return iframes[i];
         }
     }
@@ -133,37 +135,18 @@ export async function nameIFrames() {
                 return true;
             }
         }
-        if (!iframe.hasAttribute("name") && (checkBounds(iframe) || (iframe.hasAttribute("allow") && iframe.getAttribute("allow")!.indexOf("fullscreen") != -1))) {
-            console.log(iframe);
-            iframe.name = Tools.generateHash();
-            if (iframe.width) {
-                iframe.style.width = iframe.width + (iframe.width.indexOf("%") == -1 ? "px" : "");
-                iframe.removeAttribute("width");
-            }
-            if (iframe.height) {
-                iframe.style.height = iframe.height + (iframe.height.indexOf("%") == -1 ? "px" : "");
-                iframe.removeAttribute("height");
-            }
+        if (iframe.hasAttribute("allow") && iframe.getAttribute("allow")!.indexOf("fullscreen") != -1) {
             if (iframe.hasAttribute("allow")) {
                 iframe.setAttribute("allow", iframe.getAttribute("allow")!.replace(/fullscreen[^;]*;?/i, "fullscreen *;"));//fullscreen *;
             }
-            iframe.allowFullscreen = true;
-            let sibling = iframe.nextElementSibling;
-            let parent = iframe.parentElement;
-            if(!parent) {
-                throw Error("IFrame is not part of the page!");
-            }
-            iframe.remove();
-            parent.insertBefore(iframe, sibling);
         }
     }
-    Page.onNodeInserted(document, function(tgt) {
+    Page.onNodeInserted(document, function(target) {
 
-        let target = tgt as HTMLIFrameElement;
-        if (target.getElementsByTagName) {
+        if (target instanceof HTMLElement) {
             let iframes = target.getElementsByTagName("iframe");
 
-            if (target.nodeName.toLowerCase() === "iframe") {
+            if (target instanceof HTMLIFrameElement) {
                 nameIFrame(target);
             }
             for (let iframe of iframes) {
@@ -186,7 +169,14 @@ export async function activateEntry(entry: IFrameEntry) {
     }
     else {
         document.body.style.overflow = "hidden";
-        activeEntry = { oldCSS: entry.iframe.style.cssText, entry: entry };
+        activeEntry = {
+            oldStyle: {
+                css: entry.iframe.style.cssText,
+                width: entry.iframe.width,
+                height: entry.iframe.height
+            },
+            entry: entry
+        };
         let frameWidth = await Storage.sync.get("TheatreModeFrameWidth");
         setWrapperStyle(entry, frameWidth || 70);
         entry.shadow.style.opacity = "1";
@@ -206,7 +196,9 @@ export function deactivateEntry() {
     entry!.entry.shadow.style.opacity = "0";
     entry!.entry.shadow.style.removeProperty("pointer-events");
     window.setTimeout(function() {
-        entry!.entry.iframe.style.cssText = entry!.oldCSS;
+        entry!.entry.iframe.style.cssText = entry!.oldStyle.css;
+        entry!.entry.iframe.width = entry!.oldStyle.width;
+        entry!.entry.iframe.height = entry!.oldStyle.height;
         document.body.style.removeProperty("overflow");
     }, 150);
 }
@@ -215,30 +207,57 @@ export function deactivateEntry() {
 function setWrapperStyle(entry: IFrameEntry, width: number): void {
     width = width > 100 ? 100 : width;
     width = width < 50 ? 50 : width;
+    entry.iframe.removeAttribute("width");
+    entry.iframe.removeAttribute("height");
     entry.iframe.style.cssText = "padding-right:5px;padding-bottom:5px;display:block;overflow: hidden; resize: both;position: fixed !important;width: " + width + "vw !important;height: calc(( 9/ 16)*" + width + "vw) !important;top: calc((100vh - ( 9/ 16)*" + width + "vw)/2) !important;left: calc((100vw - " + width + "vw)/2) !important;z-index:2147483647 !important; border: 0px !important; max-width:100vw !important; min-width: 50vw !important; max-height: 100vh !important; min-height: 50vh !important";
 }
-function getIFrameByID(frameid: string): HTMLIFrameElement {
+function getIFrameByID(width: number, height: number): HTMLIFrameElement {
 
-    let iframe = document.getElementsByName(frameid)[0] as HTMLIFrameElement;
+    //let iframe = document.getElementsByName(frameid)[0] as HTMLIFrameElement;
+    let iframe = null;
+    for(let frame of document.getElementsByTagName("iframe")) {
+        if(checkIFrameBounds(frame, width, height)) {
+            iframe = frame;
+            break;
+        }
+    }
     if (iframe) {
         return iframe;
     }
     else {
-        throw Error("Could not find iframe with id '" + frameid + "'!");
+        throw Error("Could not find iframe with!");
     }
 }
 export interface SetupIFrame {
-    frameID: string;
+    //frameID: string;
+    width: number;
+    height: number;
     url: string;
 }
 export interface SetTheatreMode extends SetupIFrame {
     enabled: boolean;
 }
 export function setTheatreMode(enabled: boolean) {
-    Background.toTopWindow({ data: { enabled: enabled, frameID: window.name } as SetTheatreMode, func: "theatremode_setTheatreMode" });
+    Background.toTopWindow({
+        data: {
+            enabled: enabled,
+            width: window.innerWidth,
+            height: window.innerHeight
+            /*frameID: window.name*/
+        } as SetTheatreMode,
+        func: "theatremode_setTheatreMode"
+    });
 }
 export function setupIframe() {
-    Background.toTopWindow({ data: { frameID: window.name, url: location.href } as SetupIFrame, func: "theatremode_setupIframe" });
+    Background.toTopWindow({
+        data: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            /*frameID: window.name*/
+            url: location.href
+        } as SetupIFrame,
+        func: "theatremode_setupIframe"
+    });
 }
 export function setup() {
     nameIFrames();
@@ -246,9 +265,9 @@ export function setup() {
         theatremode_setTheatreMode: async function(request) {
             var data = request.data as SetTheatreMode;
             if (data.enabled) {
-                var entry = getEntry(data.frameID);
+                var entry = getEntry(data.width, data.height);
                 if(!entry) {
-                    throw new Error("No IFrame with id '"+data.frameID+"' found!");
+                    throw new Error("No IFrame with found!");
                 }
                 activateEntry(entry);
             }
@@ -258,9 +277,9 @@ export function setup() {
         },
         theatremode_setupIframe: async function(request) {
             let data = request.data as SetupIFrame;
-            var entry = getEntry(data.frameID);
+            var entry = getEntry(data.width, data.height);
             if (!entry) {
-                let iframe = getIFrameByID(data.frameID);
+                let iframe = getIFrameByID(data.width, data.height);
                 //iframe.src = data.url;
                 entry = registerIFrame(iframe);
             }

@@ -81,11 +81,12 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ 	return __webpack_require__(__webpack_require__.s = 134);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */
+/******/ ({
+
+/***/ 134:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -99,14 +100,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Storage = __webpack_require__(1);
-const Analytics = __webpack_require__(4);
-const Page = __webpack_require__(6);
-const Environment = __webpack_require__(5);
-const Languages = __webpack_require__(7);
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Background = __webpack_require__(8);
+const Storage = __webpack_require__(18);
+const Analytics = __webpack_require__(50);
+const Page = __webpack_require__(21);
+const Environment = __webpack_require__(24);
+const Languages = __webpack_require__(51);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
+const Background = __webpack_require__(23);
 Messages.setupMiddleware();
 function createLibraryElem(href, heading, iconUrl, picUrl, canDelete, closeEvent) {
     var LibMovie = document.createElement("a");
@@ -224,7 +225,8 @@ Page.isReady().then(function () {
 
 
 /***/ }),
-/* 1 */
+
+/***/ 18:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -238,7 +240,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
+const Messages = __webpack_require__(19);
 function canStorage() {
     return chrome.storage != undefined;
 }
@@ -330,10 +332,81 @@ var sync;
     }
     sync.set = set;
 })(sync = exports.sync || (exports.sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+function getPlaylistByID(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return (yield local.get("library_playlist_" + id)) || [];
+        }
+        return (yield sync.get("library_playlist_" + id)) || [];
+    });
+}
+exports.getPlaylistByID = getPlaylistByID;
+function setPlaylistByID(id, playlist) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return local.set("library_playlist_" + id, playlist);
+        }
+        return sync.set("library_playlist_" + id, playlist);
+    });
+}
+exports.setPlaylistByID = setPlaylistByID;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
 
 
 /***/ }),
-/* 2 */
+
+/***/ 19:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -347,18 +420,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-var State;
-(function (State) {
-    State["EvToMdw"] = "EvToMdw";
-    State["MdwToBG"] = "MdwToBG";
-    State["BGToMdw"] = "BGToMdw";
-    State["MdwToEv"] = "MdwToEv";
-    State["EvToMdwRsp"] = "EvToMdwRsp";
-    State["MdwToBGRsp"] = "MdwToBGRsp";
-    State["BGToMdwRsp"] = "BGToMdwRsp";
-    State["MdwToEvRsp"] = "MdwToEvRsp";
-})(State = exports.State || (exports.State = {}));
+const Tools = __webpack_require__(20);
 var Status;
 (function (Status) {
     Status["Request"] = "Request";
@@ -613,7 +675,8 @@ exports.sendToTab = sendToTab;
 
 
 /***/ }),
-/* 3 */
+
+/***/ 20:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -927,7 +990,8 @@ exports.createRequest = createRequest;
 
 
 /***/ }),
-/* 4 */
+
+/***/ 21:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -941,188 +1005,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
-const Storage = __webpack_require__(1);
-function getCID() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let cid = yield Storage.sync.get("AnalyticsCID");
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
-    });
-}
-exports.getCID = getCID;
-function postData(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
-        if (isEnabled || isEnabled == undefined) {
-            let cid = yield getCID();
-            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
-            return Tools.createRequest({
-                url: "https://www.google-analytics.com/collect",
-                type: "POST" /* POST */,
-                data: data
-            });
-        }
-        throw Error("Analytics is disabled!");
-    });
-}
-function send(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Environment.isBackgroundScript()) {
-            yield postData(data);
-            return { success: true };
-        }
-        else {
-            yield Messages.sendToBG({ func: "analytics_send", data: data });
-            return { success: true };
-        }
-    });
-}
-function setupBG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        Messages.setupBackground({
-            analytics_send: function (msg, bgdata, sender) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
-                        if (!sender.tab || !sender.tab.url) {
-                            throw new Error("Can't replace Page URL. Tab url is unknown!");
-                        }
-                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-                    }
-                    console.log(bgdata);
-                    send(bgdata);
-                });
-            }
-        });
-    });
-}
-exports.setupBG = setupBG;
-function fireEvent(category, action, label) {
-    return __awaiter(this, void 0, void 0, function* () {
-        yield send({ t: "event", ec: category, ea: action, el: label });
-    });
-}
-exports.fireEvent = fireEvent;
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-let _isBGPage = false;
-function declareBGPage() {
-    _isBGPage = true;
-}
-exports.declareBGPage = declareBGPage;
-function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
-function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
-function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
-}
-exports.getOptionsSiteUrl = getOptionsSiteUrl;
-function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
-}
-exports.getLibrarySiteUrl = getLibrarySiteUrl;
-function getPatreonUrl() {
-    return "https://www.patreon.com/join/openvideo?";
-}
-exports.getPatreonUrl = getPatreonUrl;
-function getHostSuggestionUrl() {
-    return "https://youtu.be/rbeUGOkKt0o";
-}
-exports.getHostSuggestionUrl = getHostSuggestionUrl;
-function getErrorMsg(data) {
-    return {
-        version: getManifest().version,
-        browser: browser(),
-        data: data
-    };
-}
-exports.getErrorMsg = getErrorMsg;
-function isExtensionPage(url) {
-    if (browser() == "chrome" /* Chrome */) {
-        return url.indexOf("chrome-extension://") != -1;
-    }
-    else {
-        return url.indexOf("moz-extension://") != -1;
-    }
-}
-exports.isExtensionPage = isExtensionPage;
-function getRoot() {
-    return chrome.extension.getURL("");
-}
-exports.getRoot = getRoot;
-function isBackgroundScript() {
-    return _isBGPage;
-}
-exports.isBackgroundScript = isBackgroundScript;
-function isContentScript() {
-    return !isPageScript() && !isBackgroundScript();
-}
-exports.isContentScript = isContentScript;
-function isPageScript() {
-    return chrome.storage == undefined;
-}
-exports.isPageScript = isPageScript;
-function getManifest() {
-    return chrome.runtime.getManifest();
-}
-exports.getManifest = getManifest;
-function getID() {
-    return chrome.runtime.id;
-}
-exports.getID = getID;
-function browser() {
-    if (navigator.userAgent.search("Firefox") != -1) {
-        return "firefox" /* Firefox */;
-    }
-    else if (navigator.userAgent.search("Chrome") != -1) {
-        return "chrome" /* Chrome */;
-    }
-    else {
-        throw Error("User agent is neither chrome nor Firefox");
-    }
-}
-exports.browser = browser;
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
 function getAbsoluteUrl(url) {
     let a = document.createElement('a');
     a.href = url;
@@ -1315,26 +1199,8 @@ exports.wrapType = wrapType;
 
 
 /***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function getMsg(msgName, args) {
-    var msg = chrome.i18n.getMessage(msgName);
-    if (args) {
-        for (var key in args) {
-            msg = msg.replace("{" + key + "}", args[key]);
-        }
-    }
-    return msg;
-}
-exports.getMsg = getMsg;
-
-
-/***/ }),
-/* 8 */
+/***/ 23:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1348,8 +1214,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
 function toTopWindow(msg) {
     return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
 }
@@ -1412,6 +1278,15 @@ function prompt(data) {
     });
 }
 exports.prompt = prompt;
+function tabQuery(query) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
+            chrome.tabs.query(query, function (tabs) {
+                resolve(tabs[0].id);
+            });
+        });
+    });
+}
 function setup() {
     Messages.setupBackground({
         background_toTopWindow: function (msg, bgdata, sender) {
@@ -1420,34 +1295,28 @@ function setup() {
                     throw new Error("Can't send to top window. Tab id is unknown!");
                 }
                 var tabid = sender.tab.id;
-                return Messages.sendToTab(tabid, msg, bgdata);
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_toActiveTab: function (msg, bgdata, sender) {
             return __awaiter(this, void 0, void 0, function* () {
-                chrome.tabs.query({ active: true }, function (tabs) {
-                    if (!tabs[0].id) {
-                        throw Error("No active tab found!");
-                    }
-                    return Messages.sendToTab(tabs[0].id, msg, bgdata);
-                });
+                let tabid = yield tabQuery({ active: true });
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_toTab: function (msg, bgdata, sender) {
             return __awaiter(this, void 0, void 0, function* () {
-                chrome.tabs.query(bgdata, function (tabs) {
-                    if (!tabs[0].id) {
-                        throw Error("No active tab found!");
-                    }
-                    chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                        if (resData.error) {
-                            throw resData.error;
-                        }
-                        else {
-                            return resData.data;
-                        }
-                    });
-                });
+                let tabid = yield tabQuery(bgdata);
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_openTab: function (msg, bgdata, sender) {
@@ -1522,6 +1391,209 @@ function setup() {
 exports.setup = setup;
 
 
+/***/ }),
+
+/***/ 24:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+let _isBGPage = false;
+function declareBGPage() {
+    _isBGPage = true;
+}
+exports.declareBGPage = declareBGPage;
+function getVidPlaySiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
+function getVideoSearchUrl() {
+    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
+}
+exports.getVideoSearchUrl = getVideoSearchUrl;
+function getVidPopupSiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
+function getOptionsSiteUrl() {
+    return chrome.extension.getURL("/pages/options/options.html");
+}
+exports.getOptionsSiteUrl = getOptionsSiteUrl;
+function getLibrarySiteUrl() {
+    return chrome.extension.getURL("/pages/library/library.html");
+}
+exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getErrorMsg(data) {
+    return {
+        version: getManifest().version,
+        browser: browser(),
+        data: data
+    };
+}
+exports.getErrorMsg = getErrorMsg;
+function isExtensionPage(url) {
+    if (browser() == "chrome" /* Chrome */) {
+        return url.indexOf("chrome-extension://") != -1;
+    }
+    else {
+        return url.indexOf("moz-extension://") != -1;
+    }
+}
+exports.isExtensionPage = isExtensionPage;
+function getRoot() {
+    return chrome.extension.getURL("");
+}
+exports.getRoot = getRoot;
+function isBackgroundScript() {
+    return _isBGPage;
+}
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
+function getManifest() {
+    return chrome.runtime.getManifest();
+}
+exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
+function browser() {
+    if (navigator.userAgent.search("Firefox") != -1) {
+        return "firefox" /* Firefox */;
+    }
+    else if (navigator.userAgent.search("Chrome") != -1) {
+        return "chrome" /* Chrome */;
+    }
+    else {
+        throw Error("User agent is neither chrome nor Firefox");
+    }
+}
+exports.browser = browser;
+
+
+/***/ }),
+
+/***/ 50:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const Storage = __webpack_require__(18);
+function getCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield Storage.sync.get("AnalyticsCID");
+        if (!cid) {
+            cid = Tools.generateHash();
+            Storage.sync.set("AnalyticsCID", cid);
+        }
+        return cid;
+    });
+}
+exports.getCID = getCID;
+function postData(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
+        if (isEnabled || isEnabled == undefined) {
+            let cid = yield getCID();
+            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
+            return Tools.createRequest({
+                url: "https://www.google-analytics.com/collect",
+                type: "POST" /* POST */,
+                data: data
+            });
+        }
+        throw Error("Analytics is disabled!");
+    });
+}
+function send(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            yield postData(data);
+            return { success: true };
+        }
+        else {
+            yield Messages.sendToBG({ func: "analytics_send", data: data });
+            return { success: true };
+        }
+    });
+}
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            analytics_send: function (msg, bgdata, sender) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
+                        if (!sender.tab || !sender.tab.url) {
+                            throw new Error("Can't replace Page URL. Tab url is unknown!");
+                        }
+                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+                    }
+                    console.log(bgdata);
+                    send(bgdata);
+                });
+            }
+        });
+    });
+}
+exports.setupBG = setupBG;
+function fireEvent(category, action, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield send({ t: "event", ec: category, ea: action, el: label });
+    });
+}
+exports.fireEvent = fireEvent;
+
+
+/***/ }),
+
+/***/ 51:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function getMsg(msgName, args) {
+    var msg = chrome.i18n.getMessage(msgName);
+    if (args) {
+        for (var key in args) {
+            msg = msg.replace("{" + key + "}", args[key]);
+        }
+    }
+    return msg;
+}
+exports.getMsg = getMsg;
+
+
 /***/ })
-/******/ ]);
+
+/******/ });
 //# sourceMappingURL=library.js.map

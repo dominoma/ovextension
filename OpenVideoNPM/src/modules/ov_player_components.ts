@@ -162,13 +162,13 @@ export function register() {
                 this.addClass('vjs-favbutton-disabled');
             }
             var _this = this;
-            if (!dontSet) {
-                let favorites = await Storage.local.get("OpenVideoFavorites") as VideoTypes.HistoryEntry[];
+            if (!dontSet) { //Storage.local.get("OpenVideoFavorites") OpenVideoHistory
+                let favorites = await Storage.getPlaylistByID(Storage.fixed_playlists.favorites.id);
                 if (!favorites) {
                     favorites = [];
                 }
                 var entryIndex = favorites.findIndex(function(arrElem) {
-                    return arrElem.origin == (_this.player_ as Player).getVideoData().origin;
+                    return arrElem.origin.url == (_this.player_ as Player).getVideoData().origin.url;
                 });
                 if (entryIndex != -1) {
                     favorites.splice(entryIndex, 1);
@@ -176,15 +176,15 @@ export function register() {
                 if (value) {
                     favorites.unshift((_this.player_ as Player).getVideoData() as any);
                 }
-                await Storage.local.set("OpenVideoFavorites", favorites);
+                await Storage.setPlaylistByID(Storage.fixed_playlists.favorites.id, favorites);
             }
         },
         updateDesign: async function() {
             var _this = this;
-            let favorites = await Storage.local.get("OpenVideoFavorites") as VideoTypes.HistoryEntry[];
+            let favorites = await Storage.getPlaylistByID(Storage.fixed_playlists.favorites.id);
             if (favorites) {
                 _this.setFavorite(favorites.findIndex(function(arrElem) {
-                    return arrElem.origin == (_this.player_ as Player).getVideoData().origin;
+                    return arrElem.origin.url == (_this.player_ as Player).getVideoData().origin.url;
                 }) != -1, true);
             }
         }

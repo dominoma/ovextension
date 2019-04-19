@@ -81,12 +81,12 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 21);
+/******/ 	return __webpack_require__(__webpack_require__.s = 142);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */,
-/* 1 */
+/******/ ({
+
+/***/ 142:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -100,7 +100,433 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
+const Page = __webpack_require__(21);
+const Messages = __webpack_require__(19);
+const Storage = __webpack_require__(18);
+const Tools = __webpack_require__(20);
+const Analytics = __webpack_require__(50);
+const combobox_1 = __webpack_require__(143);
+Messages.setupMiddleware();
+function getWebsiteIcon(host) {
+    return Tools.createRequest({ url: host }).then(function (xhr) {
+        let matches = xhr.response.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+        if (matches) {
+            let favicon = matches[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
+            if (favicon) {
+                let url = favicon[1];
+                if (!url.match(/https?:/)) {
+                    url = host + url;
+                }
+                return url;
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    });
+}
+Page.isReady().then(function () {
+    Analytics.fireEvent("VideoSearch", "PlayerEvent", "");
+    class WebsiteEntry extends combobox_1.ComboBoxEntry {
+        constructor() {
+            super(...arguments);
+            this.deleteBtn_ = null;
+        }
+        get icon() {
+            return this.el.style.backgroundImage == null ? "" : (this.el.style.backgroundImage.match(/url\('([^']*)'\)/) || ["", ""])[1];
+        }
+        set icon(url) {
+            this.el.style.backgroundImage = "url('" + url + "')";
+        }
+        get isWebsite() {
+            return (this.data.host).indexOf("$$") != 0;
+        }
+        repaint() {
+            this.text = this.data.name;
+            this.icon = this.data.favicon;
+            if (!this.isDisplay && this.isWebsite && !this.deleteBtn_) {
+                let this_ = this;
+                this.deleteBtn_ = document.createElement("span");
+                this.deleteBtn_.addEventListener("click", function (e) {
+                    this_.remove();
+                    this_.comboBox.saveWebsites();
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                this.el.appendChild(this.deleteBtn_);
+            }
+        }
+    }
+    class WebsiteBox extends combobox_1.ComboBox {
+        constructor(id, defaultEntry) {
+            super(id, defaultEntry);
+            this.display.el.appendChild(document.createElement("span"));
+        }
+        createEntry(data) {
+            return new WebsiteEntry(this, data);
+        }
+        get websiteEntries() {
+            return this.entries.filter((el) => { return el.host.indexOf("$$") != 0; });
+        }
+        loadWebsites() {
+            return __awaiter(this, void 0, void 0, function* () {
+                let sites = yield Storage.sync.get("VideoSearchWebsites");
+                if (sites == null) {
+                    sites = yield resolveFavicons([
+                        { name: "9Anime", host: "9anime.to" },
+                        { name: "StreamCR", host: "scr.cr" },
+                        { name: "KimCartoon", host: "kimcartoon.to" }
+                    ]);
+                    Storage.sync.set("VideoSearchWebsites", sites);
+                }
+                this.entries = [
+                    { name: "Add Site to search", host: "$$AddSite", favicon: "" },
+                    { name: "All listed Sites", host: "$$AllSites", favicon: "" }
+                ].concat(sites);
+                this.select(1);
+            });
+        }
+        saveWebsites() {
+            Storage.sync.set("VideoSearchWebsites", this.websiteEntries);
+        }
+        onSelected() {
+            if (this.selected.data.host == "$$AddSite") {
+                let name = prompt("Please enter the name of the website you want to add. (eg. YouTube)", "");
+                if (name) {
+                    let host = prompt("Please enter the url of the website you want to add. (eg. youtube.com)", "");
+                    if (host) {
+                        let hostmatch = host.match(/(https?:\/\/)?([^:\/]*\.[a-zA-Z]{2,})/i);
+                        if (hostmatch) {
+                            host = hostmatch[2];
+                            Analytics.fireEvent(name, "VideoSearchSiteAdded", host);
+                            this.select(1);
+                            let this_ = this;
+                            getWebsiteIcon("https://" + host).then(function (favicon) {
+                                let newentry = { name: name, host: host, favicon: favicon };
+                                this_.addItem(newentry);
+                                this_.select(this_.items.length);
+                                this_.saveWebsites();
+                            });
+                        }
+                        else {
+                            this.select(1);
+                            alert("Your input ('" + host + "') is not a valid url!");
+                        }
+                    }
+                    else {
+                        this.select(1);
+                    }
+                }
+                else {
+                    this.select(1);
+                }
+            }
+            else {
+                let search = document.getElementById("search");
+                if (search.value) {
+                    location.href = Page.getObjUrl({ q: search.value, site: this.selected.data });
+                }
+            }
+        }
+    }
+    function resolveFavicons(sites) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let favicons = yield Promise.all(sites.map(function (site) {
+                return getWebsiteIcon("https://" + site.host);
+            }));
+            return favicons.map(function (icon, index) {
+                return { name: sites[index].name, host: sites[index].host, favicon: icon };
+            });
+        });
+    }
+    function setup() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let searchBar = document.getElementById("searchBar");
+            let search = document.getElementById("search");
+            let websites = new WebsiteBox("websites", { name: "All Sites", host: "$$AllSites", favicon: "" });
+            let searchresults = document.getElementById("searchresults");
+            searchBar.insertBefore(websites.el, searchresults);
+            search.addEventListener("keypress", function (e) {
+                if (e.keyCode == 13 && websites.selected != null) {
+                    location.href = Page.getObjUrl({ q: search.value, site: websites.selected.data });
+                    return false;
+                }
+                return true;
+            });
+            yield websites.loadWebsites();
+            return { websites: websites };
+        });
+    }
+    setup().then(function (vars) {
+        let websites = vars.websites;
+        function startSearch(input, selected) {
+            let hosts = [];
+            if (selected.host == "$$AllSites") {
+                hosts = websites.websiteEntries.map(function (el) {
+                    return el.host;
+                });
+            }
+            else {
+                hosts.push(selected.host);
+            }
+            let searchq = (input + " " + hosts.map(function (el) {
+                return "site:" + el;
+            }).join(" OR ")).split(" ").map(function (el) {
+                return encodeURIComponent(el.trim());
+            }).filter(function (el) {
+                return el != "";
+            }).join("+");
+            let url = "https://www.google.com/search?q=" + searchq;
+            console.log(url);
+            Tools.createRequest({ url: url }).then(function (xhr) {
+                let html = (new DOMParser()).parseFromString(xhr.response, "text/html");
+                let results = html.querySelectorAll(".g");
+                let data = [];
+                for (let result of results) {
+                    if (result.querySelector("h3") && result.querySelector("span.st")) {
+                        let title = result.querySelector("h3").innerText;
+                        let url = result.querySelector("a").href;
+                        let description = result.querySelector("span.st").innerHTML;
+                        data.push({ title: title, url: url, description: description });
+                    }
+                }
+                displayResults(data);
+            });
+        }
+        function createSearchEntry(data) {
+            let wrapper = document.createElement("div");
+            let title = document.createElement("div");
+            let description = document.createElement("div");
+            let websiteEntry = websites.websiteEntries.find(function (entry) {
+                return data.url.indexOf(entry.host) != -1;
+            });
+            wrapper.className = "search-entry";
+            title.className = "title";
+            description.className = "description";
+            title.innerHTML = data.title;
+            if (websiteEntry) {
+                title.style.backgroundImage = "url('" + websiteEntry.favicon + "')";
+            }
+            description.innerHTML = data.description;
+            wrapper.appendChild(title);
+            wrapper.appendChild(description);
+            wrapper.addEventListener("click", function () {
+                location.href = data.url;
+            });
+            return wrapper;
+        }
+        function createNoResults() {
+            let noresults = document.createElement("div");
+            noresults.className = "no-results";
+            noresults.innerText = "No Results";
+            return noresults;
+        }
+        function displayResults(data) {
+            let searchresults = document.getElementById("searchresults");
+            searchresults.innerHTML = "";
+            let container = document.getElementById("container");
+            container.style.verticalAlign = "top";
+            searchresults.style.removeProperty("display");
+            console.log(data);
+            for (let result of data) {
+                searchresults.appendChild(createSearchEntry(result));
+            }
+            if (data.length == 0) {
+                searchresults.appendChild(createNoResults());
+            }
+        }
+        let urlobj = Page.getUrlObj();
+        if (urlobj) {
+            let search = document.getElementById("search");
+            websites.select(websites.items.findIndex(function (item) {
+                return item.data.host == urlobj["site"].host;
+            }));
+            search.value = urlobj["q"];
+            startSearch(urlobj["q"], urlobj["site"]);
+        }
+    });
+});
+
+
+/***/ }),
+
+/***/ 143:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+class ComboBoxEntry {
+    constructor(comboBox, data) {
+        this.comboBox_ = comboBox;
+        this.el_ = document.createElement("div");
+        this.textNode_ = document.createTextNode("");
+        this.el_.appendChild(this.textNode_);
+        this.data_ = data;
+        this.repaint();
+    }
+    get index() {
+        return this.comboBox_.items.indexOf(this);
+    }
+    get comboBox() {
+        return this.comboBox_;
+    }
+    get text() {
+        return this.textNode_.data;
+    }
+    set text(newText) {
+        this.textNode_.data = newText;
+    }
+    get data() {
+        return this.data_;
+    }
+    set data(data) {
+        this.data_ = data;
+        this.repaint();
+    }
+    get isDisplay() {
+        return this.el_.classList.contains("display");
+    }
+    get isSelected() {
+        return this.comboBox_.selected == this;
+    }
+    get el() {
+        return this.el_;
+    }
+    remove() {
+        this.comboBox_.removeItem(this.index);
+        this.onRemoved();
+    }
+    onRemoved() {
+    }
+    onSelected() {
+    }
+}
+exports.ComboBoxEntry = ComboBoxEntry;
+class ComboBox {
+    constructor(id, defaultData) {
+        this.items_ = [];
+        this.selected_ = null;
+        this.defaultData_ = defaultData;
+        let el = document.createElement("div");
+        el.id = id;
+        el.className = "dropdown";
+        this.dropdown_ = document.createElement("div");
+        this.dropdown_.className = "dropdown-content";
+        this.display_ = this.createEntry(defaultData);
+        this.display_.el.classList.add("display");
+        el.appendChild(this.display_.el);
+        el.appendChild(this.dropdown_);
+        this.el_ = el;
+    }
+    get el() {
+        return this.el_;
+    }
+    get items() {
+        return this.items_;
+    }
+    get entries() {
+        return this.items_.map(function (el) {
+            return el.data;
+        });
+    }
+    set entries(entries) {
+        let this_ = this;
+        this.clear();
+        entries.forEach(function (el) { this_.addItem(el); });
+    }
+    get selected() {
+        return this.selected_;
+    }
+    get display() {
+        return this.display_;
+    }
+    get defaultData() {
+        return this.defaultData_;
+    }
+    select(index) {
+        this.selected_ = this.items_[index] || null;
+        if (this.selected_) {
+            this.display_.data = this.selected_.data;
+        }
+        else {
+            this.display_.data = this.defaultData_;
+        }
+    }
+    addItem(entry) {
+        let item = this.createEntry(entry);
+        this.dropdown_.appendChild(item.el);
+        this.items_.push(item);
+        let this_ = this;
+        item.el.addEventListener("click", function () {
+            this_.display_.data = item.data;
+            this_.selected_ = item;
+            this_.onSelected();
+            item.onSelected();
+        });
+        return item;
+    }
+    insertItem(entry, index) {
+        if (index < 0) {
+            index = 0;
+        }
+        if (index >= this.dropdown_.children.length) {
+            return this.addItem(entry);
+        }
+        else {
+            let item = this.createEntry(entry);
+            let this_ = this;
+            item.el.addEventListener("click", function () {
+                this_.display_.data = item.data;
+                this_.selected_ = item;
+                this_.onSelected();
+                item.onSelected();
+            });
+            this.dropdown_.insertBefore(item.el, this.dropdown_.children[index]);
+            this.items_.splice(index, 0, item);
+            return item;
+        }
+    }
+    removeItem(index) {
+        let item = this.items_[index];
+        item.el.remove();
+        this.items_.splice(index, 1);
+        return item.data;
+    }
+    clear() {
+        for (let item of this.items_) {
+            item.el.remove();
+        }
+        this.selected_ = null;
+        this.display_.data = this.defaultData_;
+        this.items_ = [];
+    }
+    onSelected() {
+    }
+}
+exports.ComboBox = ComboBox;
+
+
+/***/ }),
+
+/***/ 18:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(19);
 function canStorage() {
     return chrome.storage != undefined;
 }
@@ -192,10 +618,81 @@ var sync;
     }
     sync.set = set;
 })(sync = exports.sync || (exports.sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+function getPlaylistByID(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return (yield local.get("library_playlist_" + id)) || [];
+        }
+        return (yield sync.get("library_playlist_" + id)) || [];
+    });
+}
+exports.getPlaylistByID = getPlaylistByID;
+function setPlaylistByID(id, playlist) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return local.set("library_playlist_" + id, playlist);
+        }
+        return sync.set("library_playlist_" + id, playlist);
+    });
+}
+exports.setPlaylistByID = setPlaylistByID;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
 
 
 /***/ }),
-/* 2 */
+
+/***/ 19:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -209,18 +706,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-var State;
-(function (State) {
-    State["EvToMdw"] = "EvToMdw";
-    State["MdwToBG"] = "MdwToBG";
-    State["BGToMdw"] = "BGToMdw";
-    State["MdwToEv"] = "MdwToEv";
-    State["EvToMdwRsp"] = "EvToMdwRsp";
-    State["MdwToBGRsp"] = "MdwToBGRsp";
-    State["BGToMdwRsp"] = "BGToMdwRsp";
-    State["MdwToEvRsp"] = "MdwToEvRsp";
-})(State = exports.State || (exports.State = {}));
+const Tools = __webpack_require__(20);
 var Status;
 (function (Status) {
     Status["Request"] = "Request";
@@ -475,7 +961,8 @@ exports.sendToTab = sendToTab;
 
 
 /***/ }),
-/* 3 */
+
+/***/ 20:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -789,7 +1276,8 @@ exports.createRequest = createRequest;
 
 
 /***/ }),
-/* 4 */
+
+/***/ 21:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -803,188 +1291,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
-const Storage = __webpack_require__(1);
-function getCID() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let cid = yield Storage.sync.get("AnalyticsCID");
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
-    });
-}
-exports.getCID = getCID;
-function postData(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
-        if (isEnabled || isEnabled == undefined) {
-            let cid = yield getCID();
-            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
-            return Tools.createRequest({
-                url: "https://www.google-analytics.com/collect",
-                type: "POST" /* POST */,
-                data: data
-            });
-        }
-        throw Error("Analytics is disabled!");
-    });
-}
-function send(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Environment.isBackgroundScript()) {
-            yield postData(data);
-            return { success: true };
-        }
-        else {
-            yield Messages.sendToBG({ func: "analytics_send", data: data });
-            return { success: true };
-        }
-    });
-}
-function setupBG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        Messages.setupBackground({
-            analytics_send: function (msg, bgdata, sender) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
-                        if (!sender.tab || !sender.tab.url) {
-                            throw new Error("Can't replace Page URL. Tab url is unknown!");
-                        }
-                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-                    }
-                    console.log(bgdata);
-                    send(bgdata);
-                });
-            }
-        });
-    });
-}
-exports.setupBG = setupBG;
-function fireEvent(category, action, label) {
-    return __awaiter(this, void 0, void 0, function* () {
-        yield send({ t: "event", ec: category, ea: action, el: label });
-    });
-}
-exports.fireEvent = fireEvent;
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-let _isBGPage = false;
-function declareBGPage() {
-    _isBGPage = true;
-}
-exports.declareBGPage = declareBGPage;
-function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
-function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
-function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
-}
-exports.getOptionsSiteUrl = getOptionsSiteUrl;
-function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
-}
-exports.getLibrarySiteUrl = getLibrarySiteUrl;
-function getPatreonUrl() {
-    return "https://www.patreon.com/join/openvideo?";
-}
-exports.getPatreonUrl = getPatreonUrl;
-function getHostSuggestionUrl() {
-    return "https://youtu.be/rbeUGOkKt0o";
-}
-exports.getHostSuggestionUrl = getHostSuggestionUrl;
-function getErrorMsg(data) {
-    return {
-        version: getManifest().version,
-        browser: browser(),
-        data: data
-    };
-}
-exports.getErrorMsg = getErrorMsg;
-function isExtensionPage(url) {
-    if (browser() == "chrome" /* Chrome */) {
-        return url.indexOf("chrome-extension://") != -1;
-    }
-    else {
-        return url.indexOf("moz-extension://") != -1;
-    }
-}
-exports.isExtensionPage = isExtensionPage;
-function getRoot() {
-    return chrome.extension.getURL("");
-}
-exports.getRoot = getRoot;
-function isBackgroundScript() {
-    return _isBGPage;
-}
-exports.isBackgroundScript = isBackgroundScript;
-function isContentScript() {
-    return !isPageScript() && !isBackgroundScript();
-}
-exports.isContentScript = isContentScript;
-function isPageScript() {
-    return chrome.storage == undefined;
-}
-exports.isPageScript = isPageScript;
-function getManifest() {
-    return chrome.runtime.getManifest();
-}
-exports.getManifest = getManifest;
-function getID() {
-    return chrome.runtime.id;
-}
-exports.getID = getID;
-function browser() {
-    if (navigator.userAgent.search("Firefox") != -1) {
-        return "firefox" /* Firefox */;
-    }
-    else if (navigator.userAgent.search("Chrome") != -1) {
-        return "chrome" /* Chrome */;
-    }
-    else {
-        throw Error("User agent is neither chrome nor Firefox");
-    }
-}
-exports.browser = browser;
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
 function getAbsoluteUrl(url) {
     let a = document.createElement('a');
     a.href = url;
@@ -1177,21 +1485,105 @@ exports.wrapType = wrapType;
 
 
 /***/ }),
-/* 7 */,
-/* 8 */,
-/* 9 */,
-/* 10 */,
-/* 11 */,
-/* 12 */,
-/* 13 */,
-/* 14 */,
-/* 15 */,
-/* 16 */,
-/* 17 */,
-/* 18 */,
-/* 19 */,
-/* 20 */,
-/* 21 */
+
+/***/ 24:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+let _isBGPage = false;
+function declareBGPage() {
+    _isBGPage = true;
+}
+exports.declareBGPage = declareBGPage;
+function getVidPlaySiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
+function getVideoSearchUrl() {
+    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
+}
+exports.getVideoSearchUrl = getVideoSearchUrl;
+function getVidPopupSiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
+function getOptionsSiteUrl() {
+    return chrome.extension.getURL("/pages/options/options.html");
+}
+exports.getOptionsSiteUrl = getOptionsSiteUrl;
+function getLibrarySiteUrl() {
+    return chrome.extension.getURL("/pages/library/library.html");
+}
+exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getErrorMsg(data) {
+    return {
+        version: getManifest().version,
+        browser: browser(),
+        data: data
+    };
+}
+exports.getErrorMsg = getErrorMsg;
+function isExtensionPage(url) {
+    if (browser() == "chrome" /* Chrome */) {
+        return url.indexOf("chrome-extension://") != -1;
+    }
+    else {
+        return url.indexOf("moz-extension://") != -1;
+    }
+}
+exports.isExtensionPage = isExtensionPage;
+function getRoot() {
+    return chrome.extension.getURL("");
+}
+exports.getRoot = getRoot;
+function isBackgroundScript() {
+    return _isBGPage;
+}
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
+function getManifest() {
+    return chrome.runtime.getManifest();
+}
+exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
+function browser() {
+    if (navigator.userAgent.search("Firefox") != -1) {
+        return "firefox" /* Firefox */;
+    }
+    else if (navigator.userAgent.search("Chrome") != -1) {
+        return "chrome" /* Chrome */;
+    }
+    else {
+        throw Error("User agent is neither chrome nor Firefox");
+    }
+}
+exports.browser = browser;
+
+
+/***/ }),
+
+/***/ 50:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1205,415 +1597,76 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-const Messages = __webpack_require__(2);
-const Storage = __webpack_require__(1);
-const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(4);
-const combobox_1 = __webpack_require__(22);
-Messages.setupMiddleware();
-function getWebsiteIcon(host) {
-    return Tools.createRequest({ url: host }).then(function (xhr) {
-        let matches = xhr.response.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
-        if (matches) {
-            let favicon = matches[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
-            if (favicon) {
-                let url = favicon[1];
-                if (!url.match(/https?:/)) {
-                    url = host + url;
-                }
-                return url;
-            }
-            else {
-                return null;
-            }
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const Storage = __webpack_require__(18);
+function getCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield Storage.sync.get("AnalyticsCID");
+        if (!cid) {
+            cid = Tools.generateHash();
+            Storage.sync.set("AnalyticsCID", cid);
+        }
+        return cid;
+    });
+}
+exports.getCID = getCID;
+function postData(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
+        if (isEnabled || isEnabled == undefined) {
+            let cid = yield getCID();
+            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
+            return Tools.createRequest({
+                url: "https://www.google-analytics.com/collect",
+                type: "POST" /* POST */,
+                data: data
+            });
+        }
+        throw Error("Analytics is disabled!");
+    });
+}
+function send(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            yield postData(data);
+            return { success: true };
         }
         else {
-            return null;
+            yield Messages.sendToBG({ func: "analytics_send", data: data });
+            return { success: true };
         }
     });
 }
-Page.isReady().then(function () {
-    Analytics.fireEvent("VideoSearch", "PlayerEvent", "");
-    class WebsiteEntry extends combobox_1.ComboBoxEntry {
-        constructor() {
-            super(...arguments);
-            this.deleteBtn_ = null;
-        }
-        get icon() {
-            return this.el.style.backgroundImage == null ? "" : (this.el.style.backgroundImage.match(/url\('([^']*)'\)/) || ["", ""])[1];
-        }
-        set icon(url) {
-            this.el.style.backgroundImage = "url('" + url + "')";
-        }
-        get isWebsite() {
-            return (this.data.host).indexOf("$$") != 0;
-        }
-        repaint() {
-            this.text = this.data.name;
-            this.icon = this.data.favicon;
-            if (!this.isDisplay && this.isWebsite && !this.deleteBtn_) {
-                let this_ = this;
-                this.deleteBtn_ = document.createElement("span");
-                this.deleteBtn_.addEventListener("click", function (e) {
-                    this_.remove();
-                    this_.comboBox.saveWebsites();
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-                this.el.appendChild(this.deleteBtn_);
-            }
-        }
-    }
-    class WebsiteBox extends combobox_1.ComboBox {
-        constructor(id, defaultEntry) {
-            super(id, defaultEntry);
-            this.display.el.appendChild(document.createElement("span"));
-        }
-        createEntry(data) {
-            return new WebsiteEntry(this, data);
-        }
-        get websiteEntries() {
-            return this.entries.filter((el) => { return el.host.indexOf("$$") != 0; });
-        }
-        loadWebsites() {
-            return __awaiter(this, void 0, void 0, function* () {
-                let sites = yield Storage.sync.get("VideoSearchWebsites");
-                if (sites == null) {
-                    sites = yield resolveFavicons([
-                        { name: "9Anime", host: "9anime.to" },
-                        { name: "StreamCR", host: "scr.cr" },
-                        { name: "KimCartoon", host: "kimcartoon.to" }
-                    ]);
-                    Storage.sync.set("VideoSearchWebsites", sites);
-                }
-                this.entries = [
-                    { name: "Add Site to search", host: "$$AddSite", favicon: "" },
-                    { name: "All listed Sites", host: "$$AllSites", favicon: "" }
-                ].concat(sites);
-                this.select(1);
-            });
-        }
-        saveWebsites() {
-            Storage.sync.set("VideoSearchWebsites", this.websiteEntries);
-        }
-        onSelected() {
-            if (this.selected.data.host == "$$AddSite") {
-                let name = prompt("Please enter the name of the website you want to add. (eg. YouTube)", "");
-                if (name) {
-                    let host = prompt("Please enter the url of the website you want to add. (eg. youtube.com)", "");
-                    if (host) {
-                        let hostmatch = host.match(/(https?:\/\/)?([^:\/]*\.[a-zA-Z]{2,})/i);
-                        if (hostmatch) {
-                            host = hostmatch[2];
-                            Analytics.fireEvent(name, "VideoSearchSiteAdded", host);
-                            this.select(1);
-                            let this_ = this;
-                            getWebsiteIcon("https://" + host).then(function (favicon) {
-                                let newentry = { name: name, host: host, favicon: favicon };
-                                this_.addItem(newentry);
-                                this_.select(this_.items.length);
-                                this_.saveWebsites();
-                            });
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            analytics_send: function (msg, bgdata, sender) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
+                        if (!sender.tab || !sender.tab.url) {
+                            throw new Error("Can't replace Page URL. Tab url is unknown!");
                         }
-                        else {
-                            this.select(1);
-                            alert("Your input ('" + host + "') is not a valid url!");
-                        }
+                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
                     }
-                    else {
-                        this.select(1);
-                    }
-                }
-                else {
-                    this.select(1);
-                }
-            }
-            else {
-                let search = document.getElementById("search");
-                if (search.value) {
-                    location.href = Page.getObjUrl({ q: search.value, site: this.selected.data });
-                }
-            }
-        }
-    }
-    function resolveFavicons(sites) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let favicons = yield Promise.all(sites.map(function (site) {
-                return getWebsiteIcon("https://" + site.host);
-            }));
-            return favicons.map(function (icon, index) {
-                return { name: sites[index].name, host: sites[index].host, favicon: icon };
-            });
-        });
-    }
-    function setup() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let searchBar = document.getElementById("searchBar");
-            let search = document.getElementById("search");
-            let websites = new WebsiteBox("websites", { name: "All Sites", host: "$$AllSites", favicon: "" });
-            let searchresults = document.getElementById("searchresults");
-            searchBar.insertBefore(websites.el, searchresults);
-            search.addEventListener("keypress", function (e) {
-                if (e.keyCode == 13 && websites.selected != null) {
-                    location.href = Page.getObjUrl({ q: search.value, site: websites.selected.data });
-                    return false;
-                }
-                return true;
-            });
-            yield websites.loadWebsites();
-            return { websites: websites };
-        });
-    }
-    setup().then(function (vars) {
-        let websites = vars.websites;
-        function startSearch(input, selected) {
-            let hosts = [];
-            if (selected.host == "$$AllSites") {
-                hosts = websites.websiteEntries.map(function (el) {
-                    return el.host;
+                    console.log(bgdata);
+                    send(bgdata);
                 });
             }
-            else {
-                hosts.push(selected.host);
-            }
-            let searchq = (input + " " + hosts.map(function (el) {
-                return "site:" + el;
-            }).join(" OR ")).split(" ").map(function (el) {
-                return encodeURIComponent(el.trim());
-            }).filter(function (el) {
-                return el != "";
-            }).join("+");
-            let url = "https://www.google.com/search?q=" + searchq;
-            console.log(url);
-            Tools.createRequest({ url: url }).then(function (xhr) {
-                let html = (new DOMParser()).parseFromString(xhr.response, "text/html");
-                let results = html.querySelectorAll(".g");
-                let data = [];
-                for (let result of results) {
-                    if (result.querySelector("h3") && result.querySelector("span.st")) {
-                        let title = result.querySelector("h3").innerText;
-                        let url = result.querySelector("a").href;
-                        let description = result.querySelector("span.st").innerHTML;
-                        data.push({ title: title, url: url, description: description });
-                    }
-                }
-                displayResults(data);
-            });
-        }
-        function createSearchEntry(data) {
-            let wrapper = document.createElement("div");
-            let title = document.createElement("div");
-            let description = document.createElement("div");
-            let websiteEntry = websites.websiteEntries.find(function (entry) {
-                return data.url.indexOf(entry.host) != -1;
-            });
-            wrapper.className = "search-entry";
-            title.className = "title";
-            description.className = "description";
-            title.innerHTML = data.title;
-            if (websiteEntry) {
-                title.style.backgroundImage = "url('" + websiteEntry.favicon + "')";
-            }
-            description.innerHTML = data.description;
-            wrapper.appendChild(title);
-            wrapper.appendChild(description);
-            wrapper.addEventListener("click", function () {
-                location.href = data.url;
-            });
-            return wrapper;
-        }
-        function createNoResults() {
-            let noresults = document.createElement("div");
-            noresults.className = "no-results";
-            noresults.innerText = "No Results";
-            return noresults;
-        }
-        function displayResults(data) {
-            let searchresults = document.getElementById("searchresults");
-            searchresults.innerHTML = "";
-            let container = document.getElementById("container");
-            container.style.verticalAlign = "top";
-            searchresults.style.removeProperty("display");
-            console.log(data);
-            for (let result of data) {
-                searchresults.appendChild(createSearchEntry(result));
-            }
-            if (data.length == 0) {
-                searchresults.appendChild(createNoResults());
-            }
-        }
-        let urlobj = Page.getUrlObj();
-        if (urlobj) {
-            let search = document.getElementById("search");
-            websites.select(websites.items.findIndex(function (item) {
-                return item.data.host == urlobj["site"].host;
-            }));
-            search.value = urlobj["q"];
-            startSearch(urlobj["q"], urlobj["site"]);
-        }
+        });
     });
-});
-
-
-/***/ }),
-/* 22 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-class ComboBoxEntry {
-    constructor(comboBox, data) {
-        this.comboBox_ = comboBox;
-        this.el_ = document.createElement("div");
-        this.textNode_ = document.createTextNode("");
-        this.el_.appendChild(this.textNode_);
-        this.data_ = data;
-        this.repaint();
-    }
-    get index() {
-        return this.comboBox_.items.indexOf(this);
-    }
-    get comboBox() {
-        return this.comboBox_;
-    }
-    get text() {
-        return this.textNode_.data;
-    }
-    set text(newText) {
-        this.textNode_.data = newText;
-    }
-    get data() {
-        return this.data_;
-    }
-    set data(data) {
-        this.data_ = data;
-        this.repaint();
-    }
-    get isDisplay() {
-        return this.el_.classList.contains("display");
-    }
-    get isSelected() {
-        return this.comboBox_.selected == this;
-    }
-    get el() {
-        return this.el_;
-    }
-    remove() {
-        this.comboBox_.removeItem(this.index);
-        this.onRemoved();
-    }
-    onRemoved() {
-    }
-    onSelected() {
-    }
 }
-exports.ComboBoxEntry = ComboBoxEntry;
-class ComboBox {
-    constructor(id, defaultData) {
-        this.items_ = [];
-        this.selected_ = null;
-        this.defaultData_ = defaultData;
-        let el = document.createElement("div");
-        el.id = id;
-        el.className = "dropdown";
-        this.dropdown_ = document.createElement("div");
-        this.dropdown_.className = "dropdown-content";
-        this.display_ = this.createEntry(defaultData);
-        this.display_.el.classList.add("display");
-        el.appendChild(this.display_.el);
-        el.appendChild(this.dropdown_);
-        this.el_ = el;
-    }
-    get el() {
-        return this.el_;
-    }
-    get items() {
-        return this.items_;
-    }
-    get entries() {
-        return this.items_.map(function (el) {
-            return el.data;
-        });
-    }
-    set entries(entries) {
-        let this_ = this;
-        this.clear();
-        entries.forEach(function (el) { this_.addItem(el); });
-    }
-    get selected() {
-        return this.selected_;
-    }
-    get display() {
-        return this.display_;
-    }
-    get defaultData() {
-        return this.defaultData_;
-    }
-    select(index) {
-        this.selected_ = this.items_[index] || null;
-        if (this.selected_) {
-            this.display_.data = this.selected_.data;
-        }
-        else {
-            this.display_.data = this.defaultData_;
-        }
-    }
-    addItem(entry) {
-        let item = this.createEntry(entry);
-        this.dropdown_.appendChild(item.el);
-        this.items_.push(item);
-        let this_ = this;
-        item.el.addEventListener("click", function () {
-            this_.display_.data = item.data;
-            this_.selected_ = item;
-            this_.onSelected();
-            item.onSelected();
-        });
-        return item;
-    }
-    insertItem(entry, index) {
-        if (index < 0) {
-            index = 0;
-        }
-        if (index >= this.dropdown_.children.length) {
-            return this.addItem(entry);
-        }
-        else {
-            let item = this.createEntry(entry);
-            let this_ = this;
-            item.el.addEventListener("click", function () {
-                this_.display_.data = item.data;
-                this_.selected_ = item;
-                this_.onSelected();
-                item.onSelected();
-            });
-            this.dropdown_.insertBefore(item.el, this.dropdown_.children[index]);
-            this.items_.splice(index, 0, item);
-            return item;
-        }
-    }
-    removeItem(index) {
-        let item = this.items_[index];
-        item.el.remove();
-        this.items_.splice(index, 1);
-        return item.data;
-    }
-    clear() {
-        for (let item of this.items_) {
-            item.el.remove();
-        }
-        this.selected_ = null;
-        this.display_.data = this.defaultData_;
-        this.items_ = [];
-    }
-    onSelected() {
-    }
+exports.setupBG = setupBG;
+function fireEvent(category, action, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield send({ t: "event", ec: category, ea: action, el: label });
+    });
 }
-exports.ComboBox = ComboBox;
+exports.fireEvent = fireEvent;
 
 
 /***/ })
-/******/ ]);
+
+/******/ });
 //# sourceMappingURL=videosearch.js.map

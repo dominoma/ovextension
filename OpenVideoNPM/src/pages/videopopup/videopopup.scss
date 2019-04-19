@@ -1,0 +1,41 @@
+body {
+    position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: rgba(0, 0, 0, 0.95);
+	transition: opacity 500ms;
+	z-index: 100000;
+    display: flex;
+}
+.ov-videopopup-content {
+    margin: auto;
+    padding: 20px;
+	background: #fff;
+	width: 60vw !important;
+    height: calc(( 9/ 16)*60vw) !important;
+    top: calc((100vh - ( 9/ 16)*60vw)/2) !important;
+    left: calc((100vw - 60vw)/2) !important;
+	position: absolute;
+	border: solid 1px #8dc73f;
+	border-radius: 5px;
+	-webkit-box-shadow: 0 0 5px 1px #8dc73f;
+	-moz-box-shadow: 0 0 5px 1px #8dc73f;
+	box-shadow: 0 0 5px 1px #8dc73f;
+
+    .ov-videopopup-close {
+    	position: absolute;
+    	top: 20px;
+    	right: 30px;
+    	transition: all 200ms;
+    	font-size: 30px;
+    	font-weight: bold;
+    	text-decoration: none;
+    	color: #333;
+    	cursor: pointer;
+        &:hover {
+        	color: #8dc73f;
+        }
+    }
+}

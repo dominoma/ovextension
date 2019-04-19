@@ -1,0 +1,42 @@
+@import "assets/css/vars.scss";
+.ov-lib-prompt-addsearchsite {
+	display: flex;
+	flex-direction: column;
+	user-select: none;
+
+	input {
+		margin-bottom: 0.5em;
+		font-size: 1.2em;
+	}
+	.ov-lib-prompt-header {
+
+	    text-align: center;
+	    font-size: 1.6em;
+	    margin-bottom: 0.5em;
+	    font-weight: bold;
+
+	}
+	.ov-lib-prompt-btns {
+		display: flex;
+		div {
+			width: 5em;
+			padding: 0.5em;
+			text-align: center;
+			font-weight: bold;
+			cursor: pointer;
+			border: solid 1px gainsboro;
+
+			&:hover {
+				color: white;
+				background: $OVPrimaryColor;
+			}
+		}
+		.ov-lib-prompt-btn-right {
+			margin: auto auto auto 0.5em;
+		}
+		.ov-lib-prompt-btn-left {
+			margin: auto 0.5em auto auto;
+		}
+
+	}
+}

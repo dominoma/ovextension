@@ -81,12 +81,121 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 9);
+/******/ 	return __webpack_require__(__webpack_require__.s = 135);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */,
-/* 1 */
+/******/ ({
+
+/***/ 133:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
+
+
+/***/ }),
+
+/***/ 135:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Storage = __webpack_require__(18);
+const Page = __webpack_require__(21);
+const Languages = __webpack_require__(51);
+const Messages = __webpack_require__(19);
+const ScriptBase = __webpack_require__(136);
+Messages.setupMiddleware();
+function createSwitch(labelText, tableRow, labelId) {
+    var switchCell = tableRow.insertCell();
+    var switchLabel = document.createElement('label');
+    var switchInput = document.createElement('input');
+    var switchSlider = document.createElement('div');
+    switchCell.appendChild(switchLabel);
+    switchLabel.appendChild(switchInput);
+    switchLabel.appendChild(switchSlider);
+    switchLabel.className = 'switch';
+    switchInput.type = 'checkbox';
+    switchInput.id = labelId ? labelId : labelText;
+    switchSlider.className = 'slider round';
+    var hostCell = tableRow.insertCell();
+    var hostSpan = document.createElement('span');
+    hostCell.appendChild(hostSpan);
+    hostSpan.innerHTML = labelText;
+    hostCell.style.paddingBottom = '5px';
+    return switchInput;
+}
+Page.isReady().then(function () {
+    document.getElementById("options_site_redirect_options_lbl").innerText = Languages.getMsg("options_site_redirect_options_lbl");
+    document.getElementById("options_site_redirections_lbl").innerText = Languages.getMsg("options_site_redirections_lbl");
+    document.getElementById("options_site_other_options_lbl").innerText = Languages.getMsg("options_site_other_options_lbl");
+    var SwitchesTable = document.getElementById("redirectSwitches");
+    ScriptBase.getRedirectHosts().then(function (redirectHosts) {
+        console.log(redirectHosts);
+        var row = 0;
+        for (let host of redirectHosts) {
+            ScriptBase.isScriptEnabled(host.name).then(function (enabled) {
+                createSwitch(host.name, SwitchesTable.rows[row]).checked = enabled;
+                row++;
+                if (row == SwitchesTable.rows.length) {
+                    row = 0;
+                }
+            });
+        }
+    });
+    SwitchesTable.onchange = function () {
+        for (let Switch of SwitchesTable.querySelectorAll("input[type=checkbox]")) {
+            ScriptBase.setScriptEnabled(Switch.id, Switch.checked);
+        }
+    };
+    /*var HostsTable = document.getElementById("blacklistHosts");
+    LoadList("popupHostBlacklist",HostsTable);
+    var HostsTable = document.getElementById("blacklistUrls");
+    LoadList("popupUrlBlacklist",HostsTable);
+    var HostsTable = document.getElementById("blacklistVideos");
+    LoadList("popupVideoUrlBlacklist",HostsTable);*/
+    var otherOptionsTable = document.getElementById("otherOptions");
+    Storage.sync.get("disableHistory").then(function (value) {
+        createSwitch(Languages.getMsg("options_site_enable_history_ckb"), otherOptionsTable.rows[0], "options_site_enable_history_ckb").checked = !value;
+    });
+    ScriptBase.isScriptEnabled("All videos").then(function (value) {
+        createSwitch(Languages.getMsg("options_site_enable_popup_ckb"), otherOptionsTable.rows[0], "options_site_enable_popup_ckb").checked = value;
+    });
+    Storage.sync.get("AnalyticsEnabled").then(function (value) {
+        createSwitch(Languages.getMsg("options_site_use_analytics_ckb"), otherOptionsTable.rows[0], "options_site_use_analytics_ckb").checked = value || value == undefined;
+    });
+    /*getSyncStorageItem("showPopupMinimized",function(value){
+        CreateSwitch("Show Popup minimized", otherOptionsTable.rows[0]).checked = value;
+    });*/
+    otherOptionsTable.onchange = function () {
+        Storage.sync.set("disableHistory", !document.getElementById("options_site_enable_history_ckb").checked);
+        ScriptBase.setScriptEnabled("All videos", document.getElementById("options_site_enable_popup_ckb").checked);
+        Storage.sync.set("AnalyticsEnabled", document.getElementById("options_site_use_analytics_ckb").checked);
+        //setSyncStorageItem("showPopupMinimized",document.getElementById("Show Popup minimized").checked);
+    };
+});
+
+
+/***/ }),
+
+/***/ 136:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -100,7 +209,156 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
+const VideoTypes = __webpack_require__(133);
+const Tools = __webpack_require__(20);
+const Analytics = __webpack_require__(50);
+const Environment = __webpack_require__(24);
+const Messages = __webpack_require__(19);
+const Storage = __webpack_require__(18);
+const VideoHistory = __webpack_require__(25);
+const Page = __webpack_require__(21);
+let redirectHosts = [];
+;
+;
+function addRedirectHost(redirectHost) {
+    redirectHosts.push(redirectHost);
+}
+exports.addRedirectHost = addRedirectHost;
+function isUrlRedirecting(url) {
+    if (Tools.parseURL(url).query["ovignore"] != "true") {
+        return false;
+    }
+    else {
+        for (let host of redirectHosts) {
+            for (let script of host.scripts) {
+                if (url.match(script.urlPattern)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+exports.isUrlRedirecting = isUrlRedirecting;
+function getFavicon() {
+    let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+    if (link) {
+        let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
+        if (favicon) {
+            return favicon[1];
+        }
+    }
+    return "";
+}
+function startScripts(scope, onScriptExecute, onScriptExecuted) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Tools.parseURL(location.href).query["ovignore"] != "true") {
+            for (let host of redirectHosts) {
+                let isEnabled = yield isScriptEnabled(host.name);
+                if (isEnabled) {
+                    for (let script of host.scripts) {
+                        let match = location.href.match(script.urlPattern);
+                        if (match) {
+                            console.log("Redirect with " + host.name);
+                            for (let runScope of script.runScopes) {
+                                if (runScope.run_at == scope) {
+                                    document.documentElement.hidden = runScope.hide_page !== false;
+                                    try {
+                                        yield onScriptExecute();
+                                        console.log("script executed");
+                                        let rawVideoData = yield runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
+                                        let parent = null;
+                                        console.log(Page.isFrame());
+                                        if (Page.isFrame()) {
+                                            parent = yield VideoHistory.getPageRefData();
+                                        }
+                                        let videoData = Tools.merge(rawVideoData, {
+                                            origin: {
+                                                name: host.name,
+                                                url: location.href,
+                                                icon: getFavicon()
+                                            },
+                                            parent: parent
+                                        });
+                                        videoData = VideoTypes.makeURLsSave(videoData);
+                                        yield onScriptExecuted(videoData);
+                                        console.log("script executed", videoData);
+                                        location.href = Environment.getVidPlaySiteUrl(videoData);
+                                    }
+                                    catch (error) {
+                                        document.documentElement.hidden = false;
+                                        console.error(error);
+                                        Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
+                                    }
+                                    ;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+exports.startScripts = startScripts;
+function isScriptEnabled(name) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let value = yield Storage.sync.get(name);
+        return value == true || value == undefined || value == null;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(name, enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Storage.sync.set(name, enabled);
+    });
+}
+exports.setScriptEnabled = setScriptEnabled;
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            redirect_script_base_getRedirectHosts: function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return redirectHosts;
+                });
+            }
+        });
+    });
+}
+exports.setupBG = setupBG;
+function getRedirectHosts() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            console.log(redirectHosts);
+            return redirectHosts;
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "redirect_script_base_getRedirectHosts", data: {} });
+            console.log(response);
+            return response.data;
+        }
+    });
+}
+exports.getRedirectHosts = getRedirectHosts;
+
+
+/***/ }),
+
+/***/ 18:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(19);
 function canStorage() {
     return chrome.storage != undefined;
 }
@@ -192,10 +450,81 @@ var sync;
     }
     sync.set = set;
 })(sync = exports.sync || (exports.sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+function getPlaylistByID(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return (yield local.get("library_playlist_" + id)) || [];
+        }
+        return (yield sync.get("library_playlist_" + id)) || [];
+    });
+}
+exports.getPlaylistByID = getPlaylistByID;
+function setPlaylistByID(id, playlist) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return local.set("library_playlist_" + id, playlist);
+        }
+        return sync.set("library_playlist_" + id, playlist);
+    });
+}
+exports.setPlaylistByID = setPlaylistByID;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
 
 
 /***/ }),
-/* 2 */
+
+/***/ 19:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -209,18 +538,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-var State;
-(function (State) {
-    State["EvToMdw"] = "EvToMdw";
-    State["MdwToBG"] = "MdwToBG";
-    State["BGToMdw"] = "BGToMdw";
-    State["MdwToEv"] = "MdwToEv";
-    State["EvToMdwRsp"] = "EvToMdwRsp";
-    State["MdwToBGRsp"] = "MdwToBGRsp";
-    State["BGToMdwRsp"] = "BGToMdwRsp";
-    State["MdwToEvRsp"] = "MdwToEvRsp";
-})(State = exports.State || (exports.State = {}));
+const Tools = __webpack_require__(20);
 var Status;
 (function (Status) {
     Status["Request"] = "Request";
@@ -475,7 +793,8 @@ exports.sendToTab = sendToTab;
 
 
 /***/ }),
-/* 3 */
+
+/***/ 20:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -789,7 +1108,8 @@ exports.createRequest = createRequest;
 
 
 /***/ }),
-/* 4 */
+
+/***/ 21:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -803,188 +1123,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
-const Storage = __webpack_require__(1);
-function getCID() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let cid = yield Storage.sync.get("AnalyticsCID");
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
-    });
-}
-exports.getCID = getCID;
-function postData(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
-        if (isEnabled || isEnabled == undefined) {
-            let cid = yield getCID();
-            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
-            return Tools.createRequest({
-                url: "https://www.google-analytics.com/collect",
-                type: "POST" /* POST */,
-                data: data
-            });
-        }
-        throw Error("Analytics is disabled!");
-    });
-}
-function send(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Environment.isBackgroundScript()) {
-            yield postData(data);
-            return { success: true };
-        }
-        else {
-            yield Messages.sendToBG({ func: "analytics_send", data: data });
-            return { success: true };
-        }
-    });
-}
-function setupBG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        Messages.setupBackground({
-            analytics_send: function (msg, bgdata, sender) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
-                        if (!sender.tab || !sender.tab.url) {
-                            throw new Error("Can't replace Page URL. Tab url is unknown!");
-                        }
-                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-                    }
-                    console.log(bgdata);
-                    send(bgdata);
-                });
-            }
-        });
-    });
-}
-exports.setupBG = setupBG;
-function fireEvent(category, action, label) {
-    return __awaiter(this, void 0, void 0, function* () {
-        yield send({ t: "event", ec: category, ea: action, el: label });
-    });
-}
-exports.fireEvent = fireEvent;
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-let _isBGPage = false;
-function declareBGPage() {
-    _isBGPage = true;
-}
-exports.declareBGPage = declareBGPage;
-function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
-function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
-function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
-}
-exports.getOptionsSiteUrl = getOptionsSiteUrl;
-function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
-}
-exports.getLibrarySiteUrl = getLibrarySiteUrl;
-function getPatreonUrl() {
-    return "https://www.patreon.com/join/openvideo?";
-}
-exports.getPatreonUrl = getPatreonUrl;
-function getHostSuggestionUrl() {
-    return "https://youtu.be/rbeUGOkKt0o";
-}
-exports.getHostSuggestionUrl = getHostSuggestionUrl;
-function getErrorMsg(data) {
-    return {
-        version: getManifest().version,
-        browser: browser(),
-        data: data
-    };
-}
-exports.getErrorMsg = getErrorMsg;
-function isExtensionPage(url) {
-    if (browser() == "chrome" /* Chrome */) {
-        return url.indexOf("chrome-extension://") != -1;
-    }
-    else {
-        return url.indexOf("moz-extension://") != -1;
-    }
-}
-exports.isExtensionPage = isExtensionPage;
-function getRoot() {
-    return chrome.extension.getURL("");
-}
-exports.getRoot = getRoot;
-function isBackgroundScript() {
-    return _isBGPage;
-}
-exports.isBackgroundScript = isBackgroundScript;
-function isContentScript() {
-    return !isPageScript() && !isBackgroundScript();
-}
-exports.isContentScript = isContentScript;
-function isPageScript() {
-    return chrome.storage == undefined;
-}
-exports.isPageScript = isPageScript;
-function getManifest() {
-    return chrome.runtime.getManifest();
-}
-exports.getManifest = getManifest;
-function getID() {
-    return chrome.runtime.id;
-}
-exports.getID = getID;
-function browser() {
-    if (navigator.userAgent.search("Firefox") != -1) {
-        return "firefox" /* Firefox */;
-    }
-    else if (navigator.userAgent.search("Chrome") != -1) {
-        return "chrome" /* Chrome */;
-    }
-    else {
-        throw Error("User agent is neither chrome nor Firefox");
-    }
-}
-exports.browser = browser;
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
 function getAbsoluteUrl(url) {
     let a = document.createElement('a');
     a.href = url;
@@ -1177,7 +1317,477 @@ exports.wrapType = wrapType;
 
 
 /***/ }),
-/* 7 */
+
+/***/ 23:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+function toTopWindow(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
+}
+exports.toTopWindow = toTopWindow;
+function toActiveTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toActiveTab", data: msg.frameId } });
+}
+exports.toActiveTab = toActiveTab;
+function toTab(msg) {
+    return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTab", data: msg.query } });
+}
+exports.toTab = toTab;
+function openTab(url) {
+    return Messages.sendToBG({ func: "background_openTab", data: { url: url } });
+}
+exports.openTab = openTab;
+function setIconPopup(url) {
+    return Messages.sendToBG({ func: "background_setIconPopup", data: { url: url } });
+}
+exports.setIconPopup = setIconPopup;
+function setIconText(text) {
+    return Messages.sendToBG({ func: "background_setIconText", data: { text: text } });
+}
+exports.setIconText = setIconText;
+function downloadFile(dl) {
+    return Messages.sendToBG({ func: "background_downloadFile", data: dl });
+}
+exports.downloadFile = downloadFile;
+function alert(msg) {
+    if (Environment.browser() == "chrome" /* Chrome */) {
+        Messages.sendToBG({ func: "background_alert", data: { msg: msg } });
+    }
+    else {
+        window.alert(msg);
+    }
+}
+exports.alert = alert;
+function confirm(msg) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.browser() == "chrome" /* Chrome */ && !Environment.isBackgroundScript()) {
+            let response = yield Messages.sendToBG({ func: "background_confirm", data: { msg: msg } });
+            return response.data;
+        }
+        else {
+            return window.confirm(msg);
+        }
+    });
+}
+exports.confirm = confirm;
+function prompt(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.browser() == "chrome" /* Chrome */ && !Environment.isBackgroundScript()) {
+            let response = yield Messages.sendToBG({ func: "background_prompt", data: data });
+            return { aborted: response.data.aborted, text: response.data.text };
+        }
+        else {
+            let value = window.prompt(data.msg, data.fieldText);
+            return Promise.resolve({ aborted: !value, text: value });
+        }
+    });
+}
+exports.prompt = prompt;
+function tabQuery(query) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
+            chrome.tabs.query(query, function (tabs) {
+                resolve(tabs[0].id);
+            });
+        });
+    });
+}
+function setup() {
+    Messages.setupBackground({
+        background_toTopWindow: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't send to top window. Tab id is unknown!");
+                }
+                var tabid = sender.tab.id;
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
+            });
+        },
+        background_toActiveTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let tabid = yield tabQuery({ active: true });
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
+            });
+        },
+        background_toTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let tabid = yield tabQuery(bgdata);
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
+            });
+        },
+        background_openTab: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.create({ url: bgdata.url });
+            });
+        },
+        background_setIconPopup: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't set icon popup. Tab id is unknown!");
+                }
+                chrome.browserAction.setPopup({ tabId: sender.tab.id, popup: (bgdata && bgdata.url) ? bgdata.url : "" });
+            });
+        },
+        background_setIconText: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!sender.tab || !sender.tab.id) {
+                    throw new Error("Can't set icon text. Tab id is unknown!");
+                }
+                chrome.browserAction.setBadgeText({ text: (bgdata && bgdata.text) ? bgdata.text : "", tabId: sender.tab.id });
+            });
+        },
+        background_downloadFile: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.downloads.download({ url: bgdata.url, saveAs: true, filename: bgdata.fileName });
+            });
+        },
+        background_alert: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                window.alert(bgdata.msg);
+            });
+        },
+        background_prompt: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var value = window.prompt(bgdata.msg, bgdata.fieldText);
+                if (value == null || value == "") {
+                    return { aborted: true, text: null };
+                }
+                else {
+                    return { aborted: false, text: value };
+                }
+            });
+        },
+        background_confirm: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return window.confirm(bgdata.msg);
+            });
+        },
+        background_exec: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let fn = bgdata.func.split(".").reduce(function (acc, el) {
+                    return acc[el];
+                }, window);
+                if (bgdata.cb) {
+                    return new Promise((resolve) => {
+                        fn(resolve);
+                    });
+                }
+                else {
+                    return fn(bgdata.arg);
+                }
+            });
+        },
+        background_exec_cs: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                chrome.tabs.executeScript(sender.tab.id, { code: bgdata.cs });
+            });
+        }
+    });
+}
+exports.setup = setup;
+
+
+/***/ }),
+
+/***/ 24:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+let _isBGPage = false;
+function declareBGPage() {
+    _isBGPage = true;
+}
+exports.declareBGPage = declareBGPage;
+function getVidPlaySiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
+function getVideoSearchUrl() {
+    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
+}
+exports.getVideoSearchUrl = getVideoSearchUrl;
+function getVidPopupSiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
+function getOptionsSiteUrl() {
+    return chrome.extension.getURL("/pages/options/options.html");
+}
+exports.getOptionsSiteUrl = getOptionsSiteUrl;
+function getLibrarySiteUrl() {
+    return chrome.extension.getURL("/pages/library/library.html");
+}
+exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getErrorMsg(data) {
+    return {
+        version: getManifest().version,
+        browser: browser(),
+        data: data
+    };
+}
+exports.getErrorMsg = getErrorMsg;
+function isExtensionPage(url) {
+    if (browser() == "chrome" /* Chrome */) {
+        return url.indexOf("chrome-extension://") != -1;
+    }
+    else {
+        return url.indexOf("moz-extension://") != -1;
+    }
+}
+exports.isExtensionPage = isExtensionPage;
+function getRoot() {
+    return chrome.extension.getURL("");
+}
+exports.getRoot = getRoot;
+function isBackgroundScript() {
+    return _isBGPage;
+}
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
+function getManifest() {
+    return chrome.runtime.getManifest();
+}
+exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
+function browser() {
+    if (navigator.userAgent.search("Firefox") != -1) {
+        return "firefox" /* Firefox */;
+    }
+    else if (navigator.userAgent.search("Chrome") != -1) {
+        return "chrome" /* Chrome */;
+    }
+    else {
+        throw Error("User agent is neither chrome nor Firefox");
+    }
+}
+exports.browser = browser;
+
+
+/***/ }),
+
+/***/ 25:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+const Messages = __webpack_require__(19);
+const Background = __webpack_require__(23);
+const Storage = __webpack_require__(18);
+const Environment = __webpack_require__(24);
+function _getPageRefData() {
+    if (Environment.isExtensionPage(location.href)) {
+        return null;
+    }
+    let host = location.href.match(/:\/\/(www\.)?([^/]*)\/?/)[2];
+    let link = document.querySelector("link[rel='shortcut icon']");
+    if (link) {
+        return { url: location.href, icon: Page.getAbsoluteUrl(link.href), name: host };
+    }
+    else {
+        return { url: location.href, icon: "", name: host };
+    }
+}
+function setup() {
+    Messages.addListener({
+        getPageRefData: function () {
+            return __awaiter(this, void 0, void 0, function* () {
+                return _getPageRefData();
+            });
+        }
+    });
+}
+exports.setup = setup;
+function getPageRefData() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Page.isFrame()) {
+            let response = yield Background.toTopWindow({ data: null, func: "getPageRefData" });
+            return response.data;
+        }
+        else {
+            return _getPageRefData();
+        }
+    });
+}
+exports.getPageRefData = getPageRefData;
+window["getPageRefData"] = getPageRefData;
+function convertOldPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let oldfav = yield Storage.local.get("OpenVideoFavorites");
+        let oldhist = yield Storage.local.get("OpenVideoHistory");
+        let mapping = (el) => {
+            return {
+                title: el.title,
+                poster: el.poster,
+                origin: {
+                    url: el.origin,
+                    name: "",
+                    icon: ""
+                },
+                parent: {
+                    url: "CONVERTED_FROM_OLD",
+                    name: "CONVERTED_FROM_OLD",
+                    icon: "CONVERTED_FROM_OLD"
+                },
+                watched: el.stoppedTime,
+                duration: 0
+            };
+        };
+        if (oldfav) {
+            let newfav = oldfav.map(mapping);
+            yield Storage.setPlaylistByID(Storage.fixed_playlists.favorites.id, newfav);
+            yield Storage.local.set("OpenVideoFavorites", null);
+        }
+        if (oldhist) {
+            let newhist = oldhist.map(mapping);
+            yield Storage.setPlaylistByID(Storage.fixed_playlists.history.id, newhist);
+            yield Storage.local.set("OpenVideoHistory", null);
+        }
+    });
+}
+exports.convertOldPlaylists = convertOldPlaylists;
+
+
+/***/ }),
+
+/***/ 50:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const Storage = __webpack_require__(18);
+function getCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield Storage.sync.get("AnalyticsCID");
+        if (!cid) {
+            cid = Tools.generateHash();
+            Storage.sync.set("AnalyticsCID", cid);
+        }
+        return cid;
+    });
+}
+exports.getCID = getCID;
+function postData(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
+        if (isEnabled || isEnabled == undefined) {
+            let cid = yield getCID();
+            data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
+            return Tools.createRequest({
+                url: "https://www.google-analytics.com/collect",
+                type: "POST" /* POST */,
+                data: data
+            });
+        }
+        throw Error("Analytics is disabled!");
+    });
+}
+function send(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            yield postData(data);
+            return { success: true };
+        }
+        else {
+            yield Messages.sendToBG({ func: "analytics_send", data: data });
+            return { success: true };
+        }
+    });
+}
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            analytics_send: function (msg, bgdata, sender) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
+                        if (!sender.tab || !sender.tab.url) {
+                            throw new Error("Can't replace Page URL. Tab url is unknown!");
+                        }
+                        bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
+                    }
+                    console.log(bgdata);
+                    send(bgdata);
+                });
+            }
+        });
+    });
+}
+exports.setupBG = setupBG;
+function fireEvent(category, action, label) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield send({ t: "event", ec: category, ea: action, el: label });
+    });
+}
+exports.fireEvent = fireEvent;
+
+
+/***/ }),
+
+/***/ 51:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1195,241 +1805,7 @@ function getMsg(msgName, args) {
 exports.getMsg = getMsg;
 
 
-/***/ }),
-/* 8 */,
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Storage = __webpack_require__(1);
-const Page = __webpack_require__(6);
-const Languages = __webpack_require__(7);
-const Messages = __webpack_require__(2);
-const ScriptBase = __webpack_require__(10);
-Messages.setupMiddleware();
-function createSwitch(labelText, tableRow, labelId) {
-    var switchCell = tableRow.insertCell();
-    var switchLabel = document.createElement('label');
-    var switchInput = document.createElement('input');
-    var switchSlider = document.createElement('div');
-    switchCell.appendChild(switchLabel);
-    switchLabel.appendChild(switchInput);
-    switchLabel.appendChild(switchSlider);
-    switchLabel.className = 'switch';
-    switchInput.type = 'checkbox';
-    switchInput.id = labelId ? labelId : labelText;
-    switchSlider.className = 'slider round';
-    var hostCell = tableRow.insertCell();
-    var hostSpan = document.createElement('span');
-    hostCell.appendChild(hostSpan);
-    hostSpan.innerHTML = labelText;
-    hostCell.style.paddingBottom = '5px';
-    return switchInput;
-}
-Page.isReady().then(function () {
-    document.getElementById("options_site_redirect_options_lbl").innerText = Languages.getMsg("options_site_redirect_options_lbl");
-    document.getElementById("options_site_redirections_lbl").innerText = Languages.getMsg("options_site_redirections_lbl");
-    document.getElementById("options_site_other_options_lbl").innerText = Languages.getMsg("options_site_other_options_lbl");
-    var SwitchesTable = document.getElementById("redirectSwitches");
-    ScriptBase.getRedirectHosts().then(function (redirectHosts) {
-        console.log(redirectHosts);
-        var row = 0;
-        for (let host of redirectHosts) {
-            ScriptBase.isScriptEnabled(host.name).then(function (enabled) {
-                createSwitch(host.name, SwitchesTable.rows[row]).checked = enabled;
-                row++;
-                if (row == SwitchesTable.rows.length) {
-                    row = 0;
-                }
-            });
-        }
-    });
-    SwitchesTable.onchange = function () {
-        for (let Switch of SwitchesTable.querySelectorAll("input[type=checkbox]")) {
-            ScriptBase.setScriptEnabled(Switch.id, Switch.checked);
-        }
-    };
-    /*var HostsTable = document.getElementById("blacklistHosts");
-    LoadList("popupHostBlacklist",HostsTable);
-    var HostsTable = document.getElementById("blacklistUrls");
-    LoadList("popupUrlBlacklist",HostsTable);
-    var HostsTable = document.getElementById("blacklistVideos");
-    LoadList("popupVideoUrlBlacklist",HostsTable);*/
-    var otherOptionsTable = document.getElementById("otherOptions");
-    Storage.sync.get("disableHistory").then(function (value) {
-        createSwitch(Languages.getMsg("options_site_enable_history_ckb"), otherOptionsTable.rows[0], "options_site_enable_history_ckb").checked = !value;
-    });
-    ScriptBase.isScriptEnabled("All videos").then(function (value) {
-        createSwitch(Languages.getMsg("options_site_enable_popup_ckb"), otherOptionsTable.rows[0], "options_site_enable_popup_ckb").checked = value;
-    });
-    Storage.sync.get("AnalyticsEnabled").then(function (value) {
-        createSwitch(Languages.getMsg("options_site_use_analytics_ckb"), otherOptionsTable.rows[0], "options_site_use_analytics_ckb").checked = value || value == undefined;
-    });
-    /*getSyncStorageItem("showPopupMinimized",function(value){
-        CreateSwitch("Show Popup minimized", otherOptionsTable.rows[0]).checked = value;
-    });*/
-    otherOptionsTable.onchange = function () {
-        Storage.sync.set("disableHistory", !document.getElementById("options_site_enable_history_ckb").checked);
-        ScriptBase.setScriptEnabled("All videos", document.getElementById("options_site_enable_popup_ckb").checked);
-        Storage.sync.set("AnalyticsEnabled", document.getElementById("options_site_use_analytics_ckb").checked);
-        //setSyncStorageItem("showPopupMinimized",document.getElementById("Show Popup minimized").checked);
-    };
-});
-
-
-/***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(11);
-const Tools = __webpack_require__(3);
-const Analytics = __webpack_require__(4);
-const Environment = __webpack_require__(5);
-const Messages = __webpack_require__(2);
-const Storage = __webpack_require__(1);
-let redirectHosts = [];
-;
-;
-function addRedirectHost(redirectHost) {
-    redirectHosts.push(redirectHost);
-}
-exports.addRedirectHost = addRedirectHost;
-function isUrlRedirecting(url) {
-    if (Tools.parseURL(url).query["ovignore"] != "true") {
-        return false;
-    }
-    else {
-        for (let host of redirectHosts) {
-            for (let script of host.scripts) {
-                if (url.match(script.urlPattern)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-exports.isUrlRedirecting = isUrlRedirecting;
-function startScripts(scope, onScriptExecute, onScriptExecuted) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Tools.parseURL(location.href).query["ovignore"] != "true") {
-            for (let host of redirectHosts) {
-                let isEnabled = yield isScriptEnabled(host.name);
-                if (isEnabled) {
-                    for (let script of host.scripts) {
-                        let match = location.href.match(script.urlPattern);
-                        if (match) {
-                            console.log("Redirect with " + host.name);
-                            for (let runScope of script.runScopes) {
-                                if (runScope.run_at == scope) {
-                                    document.documentElement.hidden = runScope.hide_page !== false;
-                                    try {
-                                        yield onScriptExecute();
-                                        console.log("script executed");
-                                        let rawVideoData = yield runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
-                                        let videoData = Tools.merge(rawVideoData, {
-                                            origin: location.href,
-                                            host: host.name
-                                        });
-                                        videoData = VideoTypes.makeURLsSave(videoData);
-                                        yield onScriptExecuted(videoData);
-                                        console.log("script executed", videoData);
-                                        location.href = Environment.getVidPlaySiteUrl(videoData);
-                                    }
-                                    catch (error) {
-                                        document.documentElement.hidden = false;
-                                        console.error(error);
-                                        Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                                    }
-                                    ;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-exports.startScripts = startScripts;
-function isScriptEnabled(name) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let value = yield Storage.sync.get(name);
-        return value == true || value == undefined || value == null;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(name, enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return Storage.sync.set(name, enabled);
-    });
-}
-exports.setScriptEnabled = setScriptEnabled;
-function setupBG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        Messages.setupBackground({
-            redirect_script_base_getRedirectHosts: function () {
-                return __awaiter(this, void 0, void 0, function* () {
-                    return redirectHosts;
-                });
-            }
-        });
-    });
-}
-exports.setupBG = setupBG;
-function getRedirectHosts() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Environment.isBackgroundScript()) {
-            console.log(redirectHosts);
-            return redirectHosts;
-        }
-        else {
-            let response = yield Messages.sendToBG({ func: "redirect_script_base_getRedirectHosts", data: {} });
-            console.log(response);
-            return response.data;
-        }
-    });
-}
-exports.getRedirectHosts = getRedirectHosts;
-
-
-/***/ }),
-/* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-function makeURLsSave(videoData) {
-    for (let track of videoData.tracks) {
-        track.src = Page.getSafeURL(track.src);
-    }
-    for (let src of videoData.src) {
-        src.src = Page.getSafeURL(src.src);
-        if (src.dlsrc) {
-            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
-        }
-    }
-    videoData.poster = Page.getSafeURL(videoData.poster);
-    return videoData;
-}
-exports.makeURLsSave = makeURLsSave;
-
-
 /***/ })
-/******/ ]);
+
+/******/ });
 //# sourceMappingURL=options.js.map

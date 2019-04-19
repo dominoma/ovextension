@@ -81,12 +81,118 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 12);
+/******/ 	return __webpack_require__(__webpack_require__.s = 137);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */,
-/* 1 */
+/******/ ({
+
+/***/ 137:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+const Languages = __webpack_require__(51);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const Proxy = __webpack_require__(52);
+const Background = __webpack_require__(23);
+console.log("test");
+Page.isReady().then(function () {
+    Messages.setupMiddleware();
+    document.getElementById('library').innerText = Languages.getMsg("popup_menu_library_btn");
+    document.getElementById('options').innerText = Languages.getMsg("popup_menu_options_btn");
+    document.getElementById('enableProxy').innerText = Languages.getMsg("popup_menu_proxy_btn_enable");
+    document.getElementById('disableProxy').innerText = Languages.getMsg("popup_menu_proxy_btn_disable");
+    document.getElementById('hostSuggest').innerText = Languages.getMsg("popup_menu_suggest_host_btn");
+    document.getElementById('movieSearch').appendChild(document.createTextNode(Languages.getMsg("popup_menu_search_movie_btn")));
+    document.getElementById('rate').innerHTML = Languages.getMsg("popup_menu_rating_btn");
+    document.getElementById('support').innerText = Languages.getMsg("popup_menu_support_btn");
+    document.getElementById('versionBox').innerText = Languages.getMsg("popup_menu_version_lbl");
+    document.getElementById('hostSuggest').addEventListener("click", function () {
+        Background.openTab(Environment.getHostSuggestionUrl());
+        window.close();
+    });
+    document.getElementById('patreon').addEventListener("click", function () {
+        Background.openTab(Environment.getPatreonUrl());
+        window.close();
+    });
+    document.getElementById('movieSearch').addEventListener("click", function () {
+        Background.openTab(Environment.getVideoSearchUrl());
+        window.close();
+    });
+    document.getElementById('library').addEventListener("click", function () {
+        Background.openTab(Environment.getLibrarySiteUrl());
+        window.close();
+    });
+    document.getElementById('options').addEventListener("click", function () {
+        chrome.runtime.openOptionsPage();
+        window.close();
+    });
+    document.getElementById('enableProxy').addEventListener("click", function () {
+        Proxy.newProxy().then(function (proxy) {
+            document.getElementById('proxyCountry').innerText = proxy.country || "Unknown";
+        });
+        document.getElementById('proxySettings').style.display = "flex";
+        document.getElementById('enableProxy').hidden = true;
+    });
+    document.getElementById('newProxy').addEventListener("click", function () {
+        Proxy.newProxy().then(function (proxy) {
+            document.getElementById('proxyCountry').innerText = proxy.country || "Unknown";
+        });
+    });
+    document.getElementById('proxyOptions').addEventListener("click", function () {
+        Proxy.getCurrentProxy().then(function (proxy) {
+            Background.prompt({
+                msg: "Please enter the proxy IP and port of  the proxy you want to use.",
+                fieldText: (proxy && proxy.country === "Custom" ? proxy.ip + ":" + proxy.port : "proxy-ip:port")
+            }).then(function (response) {
+                console.log(response);
+                if (response.aborted) {
+                    document.getElementById('proxyCountry').innerText = "Custom";
+                    var data = response.text.split(":");
+                    Proxy.setup({ ip: data[0], port: parseInt(data[1]), country: "Custom" });
+                }
+            });
+        });
+    });
+    document.getElementById('disableProxy').addEventListener("click", function () {
+        Proxy.remove();
+        document.getElementById('proxySettings').style.display = "none";
+        document.getElementById('enableProxy').hidden = false;
+    });
+    Proxy.getCurrentProxy().then(function (proxy) {
+        console.log(proxy);
+        if (proxy) {
+            document.getElementById('proxySettings').style.display = "flex";
+            document.getElementById('enableProxy').hidden = true;
+            document.getElementById('proxyCountry').innerText = proxy.country || "Unknown";
+        }
+    });
+    for (let elem of document.getElementsByClassName('links')) {
+        elem.addEventListener('click', function () {
+            Background.openTab(elem.dataset.href);
+            window.close();
+        });
+    }
+    ;
+    document.getElementById('rate').addEventListener("click", function () {
+        if (Environment.browser() == "chrome" /* Chrome */) {
+            Background.openTab("https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews");
+        }
+        else {
+            Background.openTab("https://addons.mozilla.org/firefox/addon/openvideo/");
+        }
+        window.close();
+    });
+    document.getElementById('versionBox').innerHTML = "Version " + Environment.getManifest().version;
+});
+
+
+/***/ }),
+
+/***/ 18:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -100,7 +206,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
+const Messages = __webpack_require__(19);
 function canStorage() {
     return chrome.storage != undefined;
 }
@@ -192,10 +298,81 @@ var sync;
     }
     sync.set = set;
 })(sync = exports.sync || (exports.sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+function getPlaylistByID(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return (yield local.get("library_playlist_" + id)) || [];
+        }
+        return (yield sync.get("library_playlist_" + id)) || [];
+    });
+}
+exports.getPlaylistByID = getPlaylistByID;
+function setPlaylistByID(id, playlist) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (id == exports.fixed_playlists.history.id) {
+            return local.set("library_playlist_" + id, playlist);
+        }
+        return sync.set("library_playlist_" + id, playlist);
+    });
+}
+exports.setPlaylistByID = setPlaylistByID;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
 
 
 /***/ }),
-/* 2 */
+
+/***/ 19:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -209,18 +386,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-var State;
-(function (State) {
-    State["EvToMdw"] = "EvToMdw";
-    State["MdwToBG"] = "MdwToBG";
-    State["BGToMdw"] = "BGToMdw";
-    State["MdwToEv"] = "MdwToEv";
-    State["EvToMdwRsp"] = "EvToMdwRsp";
-    State["MdwToBGRsp"] = "MdwToBGRsp";
-    State["BGToMdwRsp"] = "BGToMdwRsp";
-    State["MdwToEvRsp"] = "MdwToEvRsp";
-})(State = exports.State || (exports.State = {}));
+const Tools = __webpack_require__(20);
 var Status;
 (function (Status) {
     Status["Request"] = "Request";
@@ -475,7 +641,8 @@ exports.sendToTab = sendToTab;
 
 
 /***/ }),
-/* 3 */
+
+/***/ 20:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -789,104 +956,8 @@ exports.createRequest = createRequest;
 
 
 /***/ }),
-/* 4 */,
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-let _isBGPage = false;
-function declareBGPage() {
-    _isBGPage = true;
-}
-exports.declareBGPage = declareBGPage;
-function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
-function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
-}
-exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
-function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
-}
-exports.getOptionsSiteUrl = getOptionsSiteUrl;
-function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
-}
-exports.getLibrarySiteUrl = getLibrarySiteUrl;
-function getPatreonUrl() {
-    return "https://www.patreon.com/join/openvideo?";
-}
-exports.getPatreonUrl = getPatreonUrl;
-function getHostSuggestionUrl() {
-    return "https://youtu.be/rbeUGOkKt0o";
-}
-exports.getHostSuggestionUrl = getHostSuggestionUrl;
-function getErrorMsg(data) {
-    return {
-        version: getManifest().version,
-        browser: browser(),
-        data: data
-    };
-}
-exports.getErrorMsg = getErrorMsg;
-function isExtensionPage(url) {
-    if (browser() == "chrome" /* Chrome */) {
-        return url.indexOf("chrome-extension://") != -1;
-    }
-    else {
-        return url.indexOf("moz-extension://") != -1;
-    }
-}
-exports.isExtensionPage = isExtensionPage;
-function getRoot() {
-    return chrome.extension.getURL("");
-}
-exports.getRoot = getRoot;
-function isBackgroundScript() {
-    return _isBGPage;
-}
-exports.isBackgroundScript = isBackgroundScript;
-function isContentScript() {
-    return !isPageScript() && !isBackgroundScript();
-}
-exports.isContentScript = isContentScript;
-function isPageScript() {
-    return chrome.storage == undefined;
-}
-exports.isPageScript = isPageScript;
-function getManifest() {
-    return chrome.runtime.getManifest();
-}
-exports.getManifest = getManifest;
-function getID() {
-    return chrome.runtime.id;
-}
-exports.getID = getID;
-function browser() {
-    if (navigator.userAgent.search("Firefox") != -1) {
-        return "firefox" /* Firefox */;
-    }
-    else if (navigator.userAgent.search("Chrome") != -1) {
-        return "chrome" /* Chrome */;
-    }
-    else {
-        throw Error("User agent is neither chrome nor Firefox");
-    }
-}
-exports.browser = browser;
-
-
-/***/ }),
-/* 6 */
+/***/ 21:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -900,8 +971,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
 function getAbsoluteUrl(url) {
     let a = document.createElement('a');
     a.href = url;
@@ -1094,26 +1165,8 @@ exports.wrapType = wrapType;
 
 
 /***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function getMsg(msgName, args) {
-    var msg = chrome.i18n.getMessage(msgName);
-    if (args) {
-        for (var key in args) {
-            msg = msg.replace("{" + key + "}", args[key]);
-        }
-    }
-    return msg;
-}
-exports.getMsg = getMsg;
-
-
-/***/ }),
-/* 8 */
+/***/ 23:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1127,8 +1180,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
 function toTopWindow(msg) {
     return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
 }
@@ -1191,6 +1244,15 @@ function prompt(data) {
     });
 }
 exports.prompt = prompt;
+function tabQuery(query) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
+            chrome.tabs.query(query, function (tabs) {
+                resolve(tabs[0].id);
+            });
+        });
+    });
+}
 function setup() {
     Messages.setupBackground({
         background_toTopWindow: function (msg, bgdata, sender) {
@@ -1199,34 +1261,28 @@ function setup() {
                     throw new Error("Can't send to top window. Tab id is unknown!");
                 }
                 var tabid = sender.tab.id;
-                return Messages.sendToTab(tabid, msg, bgdata);
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_toActiveTab: function (msg, bgdata, sender) {
             return __awaiter(this, void 0, void 0, function* () {
-                chrome.tabs.query({ active: true }, function (tabs) {
-                    if (!tabs[0].id) {
-                        throw Error("No active tab found!");
-                    }
-                    return Messages.sendToTab(tabs[0].id, msg, bgdata);
-                });
+                let tabid = yield tabQuery({ active: true });
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_toTab: function (msg, bgdata, sender) {
             return __awaiter(this, void 0, void 0, function* () {
-                chrome.tabs.query(bgdata, function (tabs) {
-                    if (!tabs[0].id) {
-                        throw Error("No active tab found!");
-                    }
-                    chrome.tabs.sendMessage(tabs[0].id, msg, function (resData) {
-                        if (resData.error) {
-                            throw resData.error;
-                        }
-                        else {
-                            return resData.data;
-                        }
-                    });
-                });
+                let tabid = yield tabQuery(bgdata);
+                if (!tabid) {
+                    throw Error("No active tab found!");
+                }
+                let tabResponse = yield Messages.sendToTab(tabid, msg, bgdata);
+                return tabResponse.data;
             });
         },
         background_openTab: function (msg, bgdata, sender) {
@@ -1302,115 +1358,125 @@ exports.setup = setup;
 
 
 /***/ }),
-/* 9 */,
-/* 10 */,
-/* 11 */,
-/* 12 */
+
+/***/ 24:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(6);
-const Languages = __webpack_require__(7);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
-const Proxy = __webpack_require__(13);
-const Background = __webpack_require__(8);
-console.log("test");
-Page.isReady().then(function () {
-    Messages.setupMiddleware();
-    document.getElementById('library').innerText = Languages.getMsg("popup_menu_library_btn");
-    document.getElementById('options').innerText = Languages.getMsg("popup_menu_options_btn");
-    document.getElementById('enableProxy').innerText = Languages.getMsg("popup_menu_proxy_btn_enable");
-    document.getElementById('disableProxy').innerText = Languages.getMsg("popup_menu_proxy_btn_disable");
-    document.getElementById('hostSuggest').innerText = Languages.getMsg("popup_menu_suggest_host_btn");
-    document.getElementById('movieSearch').appendChild(document.createTextNode(Languages.getMsg("popup_menu_search_movie_btn")));
-    document.getElementById('rate').innerHTML = Languages.getMsg("popup_menu_rating_btn");
-    document.getElementById('support').innerText = Languages.getMsg("popup_menu_support_btn");
-    document.getElementById('versionBox').innerText = Languages.getMsg("popup_menu_version_lbl");
-    document.getElementById('hostSuggest').addEventListener("click", function () {
-        Background.openTab(Environment.getHostSuggestionUrl());
-        window.close();
-    });
-    document.getElementById('patreon').addEventListener("click", function () {
-        Background.openTab(Environment.getPatreonUrl());
-        window.close();
-    });
-    document.getElementById('movieSearch').addEventListener("click", function () {
-        Background.openTab(Environment.getVideoSearchUrl());
-        window.close();
-    });
-    document.getElementById('library').addEventListener("click", function () {
-        Background.openTab(Environment.getLibrarySiteUrl());
-        window.close();
-    });
-    document.getElementById('options').addEventListener("click", function () {
-        chrome.runtime.openOptionsPage();
-        window.close();
-    });
-    document.getElementById('enableProxy').addEventListener("click", function () {
-        Proxy.newProxy().then(function (proxy) {
-            document.getElementById('proxyCountry').innerText = proxy.country || "Unknown";
-        });
-        document.getElementById('proxySettings').style.display = "flex";
-        document.getElementById('enableProxy').hidden = true;
-    });
-    document.getElementById('newProxy').addEventListener("click", function () {
-        Proxy.newProxy().then(function (proxy) {
-            document.getElementById('proxyCountry').innerText = proxy.country || "Unknown";
-        });
-    });
-    document.getElementById('proxyOptions').addEventListener("click", function () {
-        Proxy.getCurrentProxy().then(function (proxy) {
-            Background.prompt({
-                msg: "Please enter the proxy IP and port of  the proxy you want to use.",
-                fieldText: (proxy && proxy.country === "Custom" ? proxy.ip + ":" + proxy.port : "proxy-ip:port")
-            }).then(function (response) {
-                console.log(response);
-                if (response.aborted) {
-                    document.getElementById('proxyCountry').innerText = "Custom";
-                    var data = response.text.split(":");
-                    Proxy.setup({ ip: data[0], port: parseInt(data[1]), country: "Custom" });
-                }
-            });
-        });
-    });
-    document.getElementById('disableProxy').addEventListener("click", function () {
-        Proxy.remove();
-        document.getElementById('proxySettings').style.display = "none";
-        document.getElementById('enableProxy').hidden = false;
-    });
-    Proxy.getCurrentProxy().then(function (proxy) {
-        console.log(proxy);
-        if (proxy) {
-            document.getElementById('proxySettings').style.display = "flex";
-            document.getElementById('enableProxy').hidden = true;
-            document.getElementById('proxyCountry').innerText = proxy.country || "Unknown";
-        }
-    });
-    for (let elem of document.getElementsByClassName('links')) {
-        elem.addEventListener('click', function () {
-            Background.openTab(elem.dataset.href);
-            window.close();
-        });
+const Tools = __webpack_require__(20);
+let _isBGPage = false;
+function declareBGPage() {
+    _isBGPage = true;
+}
+exports.declareBGPage = declareBGPage;
+function getVidPlaySiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
+function getVideoSearchUrl() {
+    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
+}
+exports.getVideoSearchUrl = getVideoSearchUrl;
+function getVidPopupSiteUrl(vidHash) {
+    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+}
+exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
+function getOptionsSiteUrl() {
+    return chrome.extension.getURL("/pages/options/options.html");
+}
+exports.getOptionsSiteUrl = getOptionsSiteUrl;
+function getLibrarySiteUrl() {
+    return chrome.extension.getURL("/pages/library/library.html");
+}
+exports.getLibrarySiteUrl = getLibrarySiteUrl;
+function getPatreonUrl() {
+    return "https://www.patreon.com/join/openvideo?";
+}
+exports.getPatreonUrl = getPatreonUrl;
+function getHostSuggestionUrl() {
+    return "https://youtu.be/rbeUGOkKt0o";
+}
+exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getErrorMsg(data) {
+    return {
+        version: getManifest().version,
+        browser: browser(),
+        data: data
+    };
+}
+exports.getErrorMsg = getErrorMsg;
+function isExtensionPage(url) {
+    if (browser() == "chrome" /* Chrome */) {
+        return url.indexOf("chrome-extension://") != -1;
     }
-    ;
-    document.getElementById('rate').addEventListener("click", function () {
-        if (Environment.browser() == "chrome" /* Chrome */) {
-            Background.openTab("https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews");
-        }
-        else {
-            Background.openTab("https://addons.mozilla.org/firefox/addon/openvideo/");
-        }
-        window.close();
-    });
-    document.getElementById('versionBox').innerHTML = "Version " + Environment.getManifest().version;
-});
+    else {
+        return url.indexOf("moz-extension://") != -1;
+    }
+}
+exports.isExtensionPage = isExtensionPage;
+function getRoot() {
+    return chrome.extension.getURL("");
+}
+exports.getRoot = getRoot;
+function isBackgroundScript() {
+    return _isBGPage;
+}
+exports.isBackgroundScript = isBackgroundScript;
+function isContentScript() {
+    return !isPageScript() && !isBackgroundScript();
+}
+exports.isContentScript = isContentScript;
+function isPageScript() {
+    return chrome.storage == undefined;
+}
+exports.isPageScript = isPageScript;
+function getManifest() {
+    return chrome.runtime.getManifest();
+}
+exports.getManifest = getManifest;
+function getID() {
+    return chrome.runtime.id;
+}
+exports.getID = getID;
+function browser() {
+    if (navigator.userAgent.search("Firefox") != -1) {
+        return "firefox" /* Firefox */;
+    }
+    else if (navigator.userAgent.search("Chrome") != -1) {
+        return "chrome" /* Chrome */;
+    }
+    else {
+        throw Error("User agent is neither chrome nor Firefox");
+    }
+}
+exports.browser = browser;
 
 
 /***/ }),
-/* 13 */
+
+/***/ 51:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function getMsg(msgName, args) {
+    var msg = chrome.i18n.getMessage(msgName);
+    if (args) {
+        for (var key in args) {
+            msg = msg.replace("{" + key + "}", args[key]);
+        }
+    }
+    return msg;
+}
+exports.getMsg = getMsg;
+
+
+/***/ }),
+
+/***/ 52:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1424,10 +1490,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(3);
-const Messages = __webpack_require__(2);
-const Environment = __webpack_require__(5);
-const Storage = __webpack_require__(1);
+const Tools = __webpack_require__(20);
+const Messages = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const Storage = __webpack_require__(18);
 function canProxy() {
     return chrome.proxy != undefined;
 }
@@ -1734,5 +1800,6 @@ function _addHostsToList(newHosts) {
 
 
 /***/ })
-/******/ ]);
+
+/******/ });
 //# sourceMappingURL=popupmenu.js.map

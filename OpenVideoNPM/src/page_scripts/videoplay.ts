@@ -52,7 +52,7 @@ Page.isReady().then(function() {
 
     var Hash = Page.getUrlObj() as VideoTypes.VideoData;
     document.title = Hash.title + " - OpenVideo"
-    Analytics.fireEvent(Hash.host, "HosterUsed", "");
+    Analytics.fireEvent(Hash.origin.name, "HosterUsed", "");
     OVPlayer.initPlayer('openVideo', {}, Hash);
     //document.body.style.display = 'none'
     //document.body.style.display = 'block'
@@ -74,13 +74,13 @@ Page.isReady().then(function() {
         if ((OVPlayer.getPlayer() as any).readyState() == 0) {
             //if(Response.status == 404 || Response.status == 400 || Response.status == 403) {
 
-            Analytics.fireEvent(Hash.host, "Error", JSON.stringify(Environment.getErrorMsg({ msg: OVPlayer.getPlayer().error()!.message, url: Hash.origin })));
+            Analytics.fireEvent(Hash.origin.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: OVPlayer.getPlayer().error()!.message, url: Hash.origin })));
             //}
             //document.location.replace(Hash.vidSiteUrl + (Hash.vidSiteUrl.indexOf("?") == -1 ? "?" : "&") + "ignoreRequestCheck=true");
         }
         else {
             OVPlayer.getPlayer().bigPlayButton.on("click", function() {
-                location.replace(OVPlayer.getPlayer().getVideoData().origin);
+                location.replace(OVPlayer.getPlayer().getVideoData().origin.url);
             });
             OVPlayer.getPlayer().bigPlayButton.addClass("reloadButton");
         }

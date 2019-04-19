@@ -1,0 +1,21 @@
+@import "assets/css/vars.scss";
+
+.ov-lib {
+	height: 100%;
+    display: grid;
+    grid: "head head" 5em
+          "nav body" 1fr
+          /20em  1fr;
+	min-height: 0;
+	min-width: 0;
+}
+
+
+
+
+body {
+	height: 100vh;
+	overflow: hidden;
+	font-family: "Open Sans", sans-serif;
+	margin: 0;
+}

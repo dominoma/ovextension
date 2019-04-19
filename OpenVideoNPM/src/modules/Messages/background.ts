@@ -76,7 +76,13 @@ export async function prompt(data: Promt) {
         return Promise.resolve({ aborted: !value, text: value });
     }
 }
-
+async function tabQuery(query : chrome.tabs.QueryInfo) {
+    return new Promise<number|null>((resolve)=>{
+        chrome.tabs.query(query, function(tabs) {
+            resolve(tabs[0].id);
+        });
+    });
+}
 export function setup() {
     Messages.setupBackground({
         background_toTopWindow: async function(msg, bgdata, sender) {
@@ -84,30 +90,24 @@ export function setup() {
                 throw new Error("Can't send to top window. Tab id is unknown!");
             }
             var tabid = sender.tab.id;
-            return Messages.sendToTab(tabid, msg, bgdata);
+            let tabResponse = await Messages.sendToTab(tabid, msg, bgdata);
+            return tabResponse.data;
         },
         background_toActiveTab: async function(msg, bgdata, sender) {
-            chrome.tabs.query({ active: true }, function(tabs) {
-                if(!tabs[0].id) {
-                    throw Error("No active tab found!");
-                }
-                return Messages.sendToTab(tabs[0].id, msg, bgdata);
-            });
+            let tabid = await tabQuery({ active: true });
+            if(!tabid) {
+                throw Error("No active tab found!");
+            }
+            let tabResponse = await Messages.sendToTab(tabid, msg, bgdata);
+            return tabResponse.data;
         },
         background_toTab: async function(msg, bgdata, sender) {
-            chrome.tabs.query(bgdata, function(tabs: chrome.tabs.Tab[]) {
-                if(!tabs[0].id) {
-                    throw Error("No active tab found!");
-                }
-                chrome.tabs.sendMessage(tabs[0].id, msg, function(resData: Messages.Response) {
-                    if(resData.error) {
-                        throw resData.error;
-                    }
-                    else {
-                        return resData.data;
-                    }
-                });
-            });
+            let tabid = await tabQuery(bgdata);
+            if(!tabid) {
+                throw Error("No active tab found!");
+            }
+            let tabResponse = await Messages.sendToTab(tabid, msg, bgdata);
+            return tabResponse.data;
         },
         background_openTab: async function(msg, bgdata: OpenTab, sender) {
             chrome.tabs.create({ url: bgdata.url });

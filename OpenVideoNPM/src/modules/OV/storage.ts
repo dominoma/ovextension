@@ -1,4 +1,5 @@
 import * as Messages from "./messages";
+import * as VideoTypes from "video_types";
 
 export const enum StorageScopes {
     Local = "local",
@@ -78,4 +79,47 @@ export module sync {
     export async function set(name: string, value: any): Promise<{ success: boolean }> {
         return setValue(name, value, chrome.storage.sync);
     }
+}
+export const fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+}
+export type Playlist = { id: string, name: string };
+export async function getPlaylists() {
+    return await sync.get("library_playlists") as Playlist[] || [fixed_playlists.history, fixed_playlists.favorites];
+}
+export async function setPlaylists(playlists : { id: string, name: string }[]) {
+    return sync.set("library_playlists", playlists);
+}
+export async function getPlaylistByID(id : string) {
+    if(id == fixed_playlists.history.id) {
+        return await local.get("library_playlist_"+id) as VideoTypes.VideoRefData[] || [];
+    }
+    return await sync.get("library_playlist_"+id) as VideoTypes.VideoRefData[] || [];
+}
+export async function setPlaylistByID(id : string, playlist : VideoTypes.VideoRefData[]) {
+    if(id == fixed_playlists.history.id) {
+        return local.set("library_playlist_"+id, playlist);
+    }
+    return sync.set("library_playlist_"+id, playlist);
+}
+export async function getSearchSites() {
+    return await sync.get("library_search_sites") as VideoTypes.PageRefData[] || [];
+}
+export async function setSearchSites(sites: VideoTypes.PageRefData[]) {
+    return await sync.set("library_search_sites", sites);
+}
+
+export async function isHistoryEnabled() {
+    return (await sync.get("library_history_enabled")) != false;
+}
+export async function setHistoryEnabled(enabled : boolean) {
+    return await sync.set("library_history_enabled", enabled);
+}
+
+export async function getPlayerVolume() {
+    return (await sync.get("player_volume")) || 1 as number;
+}
+export async function setPlayerVolume(volume : number) {
+    return await sync.set("player_volume", volume);
 }
