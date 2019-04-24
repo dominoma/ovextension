@@ -1,6 +1,65 @@
 /******/ (function(modules) { // webpackBootstrap
+/******/ 	// install a JSONP callback for chunk loading
+/******/ 	function webpackJsonpCallback(data) {
+/******/ 		var chunkIds = data[0];
+/******/ 		var moreModules = data[1];
+/******/ 		var executeModules = data[2];
+/******/
+/******/ 		// add "moreModules" to the modules object,
+/******/ 		// then flag all "chunkIds" as loaded and fire callback
+/******/ 		var moduleId, chunkId, i = 0, resolves = [];
+/******/ 		for(;i < chunkIds.length; i++) {
+/******/ 			chunkId = chunkIds[i];
+/******/ 			if(installedChunks[chunkId]) {
+/******/ 				resolves.push(installedChunks[chunkId][0]);
+/******/ 			}
+/******/ 			installedChunks[chunkId] = 0;
+/******/ 		}
+/******/ 		for(moduleId in moreModules) {
+/******/ 			if(Object.prototype.hasOwnProperty.call(moreModules, moduleId)) {
+/******/ 				modules[moduleId] = moreModules[moduleId];
+/******/ 			}
+/******/ 		}
+/******/ 		if(parentJsonpFunction) parentJsonpFunction(data);
+/******/
+/******/ 		while(resolves.length) {
+/******/ 			resolves.shift()();
+/******/ 		}
+/******/
+/******/ 		// add entry modules from loaded chunk to deferred list
+/******/ 		deferredModules.push.apply(deferredModules, executeModules || []);
+/******/
+/******/ 		// run deferred modules when all chunks ready
+/******/ 		return checkDeferredModules();
+/******/ 	};
+/******/ 	function checkDeferredModules() {
+/******/ 		var result;
+/******/ 		for(var i = 0; i < deferredModules.length; i++) {
+/******/ 			var deferredModule = deferredModules[i];
+/******/ 			var fulfilled = true;
+/******/ 			for(var j = 1; j < deferredModule.length; j++) {
+/******/ 				var depId = deferredModule[j];
+/******/ 				if(installedChunks[depId] !== 0) fulfilled = false;
+/******/ 			}
+/******/ 			if(fulfilled) {
+/******/ 				deferredModules.splice(i--, 1);
+/******/ 				result = __webpack_require__(__webpack_require__.s = deferredModule[0]);
+/******/ 			}
+/******/ 		}
+/******/ 		return result;
+/******/ 	}
+/******/
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
+/******/
+/******/ 	// object to store loaded and loading chunks
+/******/ 	// undefined = chunk not loaded, null = chunk preloaded/prefetched
+/******/ 	// Promise = chunk loading, 0 = chunk loaded
+/******/ 	var installedChunks = {
+/******/ 		10: 0
+/******/ 	};
+/******/
+/******/ 	var deferredModules = [];
 /******/
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
@@ -79,14 +138,23 @@
 /******/ 	// __webpack_public_path__
 /******/ 	__webpack_require__.p = "";
 /******/
+/******/ 	var jsonpArray = window["webpackJsonp"] = window["webpackJsonp"] || [];
+/******/ 	var oldJsonpFunction = jsonpArray.push.bind(jsonpArray);
+/******/ 	jsonpArray.push = webpackJsonpCallback;
+/******/ 	jsonpArray = jsonpArray.slice();
+/******/ 	for(var i = 0; i < jsonpArray.length; i++) webpackJsonpCallback(jsonpArray[i]);
+/******/ 	var parentJsonpFunction = oldJsonpFunction;
 /******/
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 150);
+/******/
+/******/ 	// add entry module to deferred list
+/******/ 	deferredModules.push([155,1]);
+/******/ 	// run deferred modules when ready
+/******/ 	return checkDeferredModules();
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 132:
+/***/ 148:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -100,7 +168,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(133);
+const VideoTypes = __webpack_require__(57);
 const Tools = __webpack_require__(20);
 const Messages = __webpack_require__(19);
 const Environment = __webpack_require__(24);
@@ -216,6 +284,7 @@ function setup() {
                     firstpopup = false;
                 }
                 pauseAllVideos();
+                setIconOpensPopup(false);
             });
         },
         videopopup_closePopup: function (request) {
@@ -225,54 +294,40 @@ function setup() {
                 }
                 getPopupFrame().hidden = true;
                 getPopupFrame().style.setProperty("display", "none", "important");
-                Background.setIconPopup();
+                setIconOpensPopup(true);
             });
         },
         videopopup_addVideoToPopup: function (request) {
             return __awaiter(this, void 0, void 0, function* () {
                 _addVideoToPopup(request.data.videoData);
+                setIconOpensPopup(true);
             });
         }
     });
 }
 exports.setup = setup;
-
-
-/***/ }),
-
-/***/ 133:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(21);
-function makeURLsSave(videoData) {
-    for (let track of videoData.tracks) {
-        track.src = Page.getSafeURL(track.src);
+function setIconOpensPopup(openpopup) {
+    if (openpopup) {
+        Background.setIconPopup();
     }
-    for (let src of videoData.src) {
-        src.src = Page.getSafeURL(src.src);
-        if (src.dlsrc) {
-            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
-        }
+    else {
+        Background.setIconPopup("pages/popupmenu.html");
     }
-    videoData.poster = Page.getSafeURL(videoData.poster);
-    return videoData;
 }
-exports.makeURLsSave = makeURLsSave;
+exports.setIconOpensPopup = setIconOpensPopup;
 
 
 /***/ }),
 
-/***/ 150:
+/***/ 155:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Page = __webpack_require__(21);
-const VideoPopup = __webpack_require__(132);
+const VideoPopup = __webpack_require__(148);
+__webpack_require__(156);
 class VideoSearcher {
     sendVideoData(videoData) {
         if (videoData.src.length > 0) {
@@ -551,6 +606,43 @@ else {
 
 /***/ }),
 
+/***/ 156:
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(157);
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(4)(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ 157:
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(3)(false);
+// Module
+exports.push([module.i, "@CHARSET \"ISO-8859-1\";\n.OpenVideo {\n  display: none !important;\n  visibility: hidden !important; }\n\n.ov-popupFrame, .ov-theaterMode {\n  position: fixed !important;\n  top: 0px !important;\n  left: 0px !important;\n  bottom: 0px !important;\n  right: 0px !important;\n  width: 100% !important;\n  height: 100% !important;\n  border: none !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  overflow: hidden !important;\n  z-index: 2147483646 !important; }\n\n.ov-theaterMode {\n  background: rgba(0, 0, 0, 0.95) !important;\n  pointer-events: none;\n  transition: opacity 0.3s;\n  opacity: 0;\n  display: block;\n  cursor: default; }\n\n.ov-iframe-theaterMode {\n  position: fixed !important;\n  width: 70vw !important;\n  height: calc(( 9/ 16)*70vw) !important;\n  top: calc((100vh - ( 9/ 16)*70vw)/2) !important;\n  left: calc((100vw - 70vw)/2) !important;\n  z-index: 2147483646 !important; }\n\n.ov-popupFrame-closed {\n  visibility: hidden; }\n\n.ov-openFrame {\n  color: white;\n  padding: 12px;\n  font-size: 16px;\n  border: none;\n  cursor: pointer;\n  outline: none;\n  position: fixed;\n  left: 0;\n  bottom: 0;\n  z-index: 2147483647;\n  background-color: #8dc73f;\n  opacity: 0.6; }\n\n.ov-openFrame:hover {\n  opacity: 1; }\n\n.ov-theater-mode {\n  position: fixed !important;\n  left: 20vw !important;\n  top: 20vh !important;\n  width: 50vw !important;\n  height: calc(9/16*50vw) !important; }\n", ""]);
+
+
+
+/***/ }),
+
 /***/ 18:
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -566,6 +658,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(19);
+const Tools = __webpack_require__(20);
 function canStorage() {
     return chrome.storage != undefined;
 }
@@ -656,7 +749,7 @@ var sync;
         });
     }
     sync.set = set;
-})(sync = exports.sync || (exports.sync = {}));
+})(sync || (sync = {}));
 exports.fixed_playlists = {
     history: { id: "history", name: "History" },
     favorites: { id: "favorites", name: "Favorites" }
@@ -727,6 +820,77 @@ function setPlayerVolume(volume) {
     });
 }
 exports.setPlayerVolume = setPlayerVolume;
+function getTheatreFrameWidth() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("theatremode_width")) || 70;
+    });
+}
+exports.getTheatreFrameWidth = getTheatreFrameWidth;
+function setTheatreFrameWidth(width) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("theatremode_width", width);
+    });
+}
+exports.setTheatreFrameWidth = setTheatreFrameWidth;
+function getAnalyticsCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield sync.get("analytics_cid");
+        if (!cid) {
+            cid = Tools.generateHash();
+            yield sync.set("analytics_cid", cid);
+        }
+        return cid;
+    });
+}
+exports.getAnalyticsCID = getAnalyticsCID;
+function isAnalyticsEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("analytics_enabled")) != false;
+    });
+}
+exports.isAnalyticsEnabled = isAnalyticsEnabled;
+function setAnalyticsEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("analytics_enabled", enabled);
+    });
+}
+exports.setAnalyticsEnabled = setAnalyticsEnabled;
+function getProxySettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("proxy_settings"));
+    });
+}
+exports.getProxySettings = getProxySettings;
+function setProxySettings(settings) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("proxy_settings", settings);
+    });
+}
+exports.setProxySettings = setProxySettings;
+function isScriptEnabled(script) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("redirect_scripts_" + script)) != false;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(script, enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("redirect_scripts_" + script, enabled);
+    });
+}
+exports.setScriptEnabled = setScriptEnabled;
+function isVideoSearchEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("videopopup_search")) != false;
+    });
+}
+exports.isVideoSearchEnabled = isVideoSearchEnabled;
+function setVideoSearchEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("videopopup_search", enabled);
+    });
+}
+exports.setVideoSearchEnabled = setVideoSearchEnabled;
 
 
 /***/ }),
@@ -1731,23 +1895,19 @@ function declareBGPage() {
 }
 exports.declareBGPage = declareBGPage;
 function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+    return chrome.extension.getURL("/pages/videoplay.html") + Tools.objToHash(vidHash);
 }
 exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
 function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+    return chrome.extension.getURL("/pages/videopopup.html") + Tools.objToHash(vidHash);
 }
 exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
 function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
+    return chrome.extension.getURL("/pages/options.html");
 }
 exports.getOptionsSiteUrl = getOptionsSiteUrl;
 function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
+    return chrome.extension.getURL("/pages/library.html");
 }
 exports.getLibrarySiteUrl = getLibrarySiteUrl;
 function getPatreonUrl() {
@@ -1758,6 +1918,19 @@ function getHostSuggestionUrl() {
     return "https://youtu.be/rbeUGOkKt0o";
 }
 exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getRatingUrl() {
+    if (browser() == "chrome" /* Chrome */) {
+        return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews";
+    }
+    else {
+        return "https://addons.mozilla.org/firefox/addon/openvideo/";
+    }
+}
+exports.getRatingUrl = getRatingUrl;
+function getSupportUrl() {
+    return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
+}
+exports.getSupportUrl = getSupportUrl;
 function getErrorMsg(data) {
     return {
         version: getManifest().version,
@@ -1838,13 +2011,13 @@ function _getPageRefData() {
     if (Environment.isExtensionPage(location.href)) {
         return null;
     }
-    let host = location.href.match(/:\/\/(www\.)?([^/]*)\/?/)[2];
+    let host = location.href.match(/:\/\/(www[0-9]?\.)?([^/]*)\/?/)[2];
     let link = document.querySelector("link[rel='shortcut icon']");
     if (link) {
         return { url: location.href, icon: Page.getAbsoluteUrl(link.href), name: host };
     }
     else {
-        return { url: location.href, icon: "", name: host };
+        return { url: location.href, icon: "https://s2.googleusercontent.com/s2/favicons?domain_url=" + host, name: host };
     }
 }
 function setup() {
@@ -1905,6 +2078,37 @@ function convertOldPlaylists() {
     });
 }
 exports.convertOldPlaylists = convertOldPlaylists;
+
+
+/***/ }),
+
+/***/ 57:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    if ('origin' in videoData) {
+        videoData.origin.icon = Page.getSafeURL(videoData.origin.icon);
+        if (videoData.parent) {
+            videoData.parent.icon = Page.getSafeURL(videoData.parent.icon);
+        }
+    }
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
 
 
 /***/ })

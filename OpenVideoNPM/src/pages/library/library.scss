@@ -8,6 +8,18 @@
           /20em  1fr;
 	min-height: 0;
 	min-width: 0;
+
+	.ov-lib-cc-links {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		color: #ccc;
+		a {
+			margin: 0 0.25em;
+			text-decoration: none;
+			color: #ccc;
+		}
+	}
 }
 
 

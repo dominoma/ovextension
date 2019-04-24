@@ -5,6 +5,8 @@ import * as Storage from "./storage";
 import * as VideoTypes from "video_types";
 import {StringMap} from "OV/types";
 
+export type Proxy = Storage.Proxy;
+
 export function canProxy() {
     return chrome.proxy != undefined;
 }
@@ -29,19 +31,6 @@ export function setupBG(): void {
             return currentProxy;
         }
     });
-}
-export interface Proxy {
-    ip: string;
-    port: number;
-    country?: string;
-    anonymity?: string;
-}
-async function saveProxy(proxy : Proxy | null) {
-    return Storage.sync.set("ProxySettings", proxy);
-}
-async function loadProxy() {
-    let settings = await Storage.sync.get("ProxySettings");
-    return settings as Proxy | null;
 }
 function getChromePAC() {
     if(!currentProxy) {
@@ -68,7 +57,7 @@ function getChromePAC() {
 
 }
 export async function loadFromStorage() {
-    let proxy = await loadProxy();
+    let proxy = await Storage.getProxySettings();
     if(proxy) {
         if(proxy.country == "Custom") {
             return setup(proxy);
@@ -93,7 +82,7 @@ export async function setup(proxy: Proxy): Promise<Proxy> {
 async function _setup(proxy: Proxy): Promise<Proxy> {
     remove();
     currentProxy = proxy;
-    saveProxy(currentProxy);
+    Storage.setProxySettings(currentProxy);
     if (Environment.browser() == Environment.Browsers.Chrome) {
         let script  = await getChromePAC();
         console.log(script);
@@ -196,7 +185,7 @@ function _remove() {
         browser.proxy.unregister();
     }
     currentProxy = null;
-    saveProxy(null);
+    Storage.setProxySettings(null);
 }
 async function searchProxies(): Promise<Array<Proxy>> {
     var url = "https://free-proxy-list.net/anonymous-proxy.html";

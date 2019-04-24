@@ -25,7 +25,7 @@
 		    margin: auto 1em;
 			-webkit-mask-repeat: no-repeat;
 		    -webkit-mask-size: contain;
-			-webkit-mask-image: url('https://d30y9cdsu7xlg0.cloudfront.net/png/878743-200.png');
+			-webkit-mask-image: url('../assets/icons/subscription.svg');
 		    background-color: #909090;
 		}
 
@@ -45,22 +45,22 @@
 	}
 	.ov-lib-nav-btn-search {
 		.ov-lib-nav-btn-icon {
-			-webkit-mask-image: url('../assets/png/search.png');
+			-webkit-mask-image: url('../assets/icons/musica-searcher.svg');
 		}
 	}
 	.ov-lib-nav-btn-history {
 		.ov-lib-nav-btn-icon {
-			-webkit-mask-image: url('https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_history_48px-512.png');
+			-webkit-mask-image: url('../assets/icons/history-clock-button.svg');
 		}
 	}
 	.ov-lib-nav-btn-favorites {
 		.ov-lib-nav-btn-icon {
-			-webkit-mask-image: url('https://cdn.icon-icons.com/icons2/317/PNG/512/heart-icon_34407.png');
+			-webkit-mask-image: url('../assets/icons/favorite-heart-button.svg');
 		}
 	}
 	.ov-lib-nav-btn-addPlaylist {
 		.ov-lib-nav-btn-icon {
-			-webkit-mask-image: url('https://www.materialui.co/materialIcons/av/playlist_add_black_192x192.png');
+			-webkit-mask-image: url('../assets/icons/playlist.svg');
 		}
 	}
 }

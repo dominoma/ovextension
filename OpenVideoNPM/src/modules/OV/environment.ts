@@ -6,25 +6,33 @@ export function declareBGPage(): void {
     _isBGPage = true;
 }
 export function getVidPlaySiteUrl(vidHash: VideoTypes.VideoData): string {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
-}
-export function getVideoSearchUrl(): string {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
+    return chrome.extension.getURL("/pages/videoplay.html") + Tools.objToHash(vidHash);
 }
 export function getVidPopupSiteUrl(vidHash: Object): string {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+    return chrome.extension.getURL("/pages/videopopup.html") + Tools.objToHash(vidHash);
 }
 export function getOptionsSiteUrl(): string {
-    return chrome.extension.getURL("/pages/options/options.html");
+    return chrome.extension.getURL("/pages/options.html");
 }
 export function getLibrarySiteUrl(): string {
-    return chrome.extension.getURL("/pages/library/library.html");
+    return chrome.extension.getURL("/pages/library.html");
 }
 export function getPatreonUrl() {
     return "https://www.patreon.com/join/openvideo?";
 }
 export function getHostSuggestionUrl() {
     return "https://youtu.be/rbeUGOkKt0o";
+}
+export function getRatingUrl() {
+    if (browser() == Browsers.Chrome) {
+        return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews";
+    }
+    else {
+        return "https://addons.mozilla.org/firefox/addon/openvideo/";
+    }
+}
+export function getSupportUrl() {
+    return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 export function getErrorMsg(data: any) {
     return {

@@ -41,16 +41,15 @@ chrome.browserAction.onClicked.addListener(function(tab) {
         throw new Error("Tab has no id!");
     }
     Messages.sendToTab(tab.id, { func: "videopopup_openPopup", data: {} });
-    chrome.browserAction.setPopup({ tabId: tab.id, popup: "pages/popupmenu/popupmenu.html" });
 });
 chrome.runtime.onInstalled.addListener(async function(details) {
     if (details.reason == "install" || details.reason == "update") {
         let redirectHosts = await ScriptBase.getRedirectHosts();
         for(let script of redirectHosts) {
-            ScriptBase.setScriptEnabled(script.name, true);
+            Storage.setScriptEnabled(script.name, true);
         }
     }
-    Storage.sync.set("InstallDetails", details);
+    //Storage.sync.set("InstallDetails", details);
 });
 function setHeader(headers: Array<chrome.webRequest.HttpHeader>, name: string, value: string) {
     var header = getHeader(headers, name);

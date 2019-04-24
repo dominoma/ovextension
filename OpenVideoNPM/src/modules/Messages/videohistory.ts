@@ -9,13 +9,13 @@ function _getPageRefData() {
     if(Environment.isExtensionPage(location.href)) {
         return null;
     }
-    let host = location.href.match(/:\/\/(www\.)?([^/]*)\/?/)![2];
+    let host = location.href.match(/:\/\/(www[0-9]?\.)?([^/]*)\/?/)![2];
     let link = document.querySelector("link[rel='shortcut icon']") as HTMLLinkElement;
     if(link) {
         return { url: location.href, icon: Page.getAbsoluteUrl(link.href), name: host };
     }
     else {
-        return { url: location.href, icon: "", name: host };
+        return { url: location.href, icon: "https://s2.googleusercontent.com/s2/favicons?domain_url="+host, name: host };
     }
 }
 

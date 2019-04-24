@@ -59,12 +59,12 @@ function getFavicon() {
             return favicon[1];
         }
     }
-    return "";
+    return "https://s2.googleusercontent.com/s2/favicons?domain_url="+location.host;
 }
 export async function startScripts(scope: RunScopes, onScriptExecute: () => Promise<void>, onScriptExecuted: (videoData : VideoTypes.VideoData) => Promise<void> ){
     if (Tools.parseURL(location.href).query["ovignore"] != "true") {
         for (let host of redirectHosts) {
-            let isEnabled = await isScriptEnabled(host.name);
+            let isEnabled = await Storage.isScriptEnabled(host.name);
             if (isEnabled) {
                 for (let script of host.scripts) {
                     let match = location.href.match(script.urlPattern);
@@ -93,7 +93,7 @@ export async function startScripts(scope: RunScopes, onScriptExecute: () => Prom
                                     videoData = VideoTypes.makeURLsSave(videoData);
                                     await onScriptExecuted(videoData);
                                     console.log("script executed", videoData);
-                                    location.href = Environment.getVidPlaySiteUrl(videoData);
+                                    location.replace(Environment.getVidPlaySiteUrl(videoData));
                                 }
                                 catch(error) {
                                     document.documentElement.hidden = false;
@@ -107,13 +107,6 @@ export async function startScripts(scope: RunScopes, onScriptExecute: () => Prom
             }
         }
     }
-}
-export async function isScriptEnabled(name: string) {
-    let value = await Storage.sync.get(name);
-    return value == true || value == undefined || value == null;
-}
-export async function setScriptEnabled(name: string, enabled: boolean) {
-    return Storage.sync.set(name, enabled);
 }
 export async function setupBG() {
     Messages.setupBackground({

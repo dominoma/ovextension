@@ -5,20 +5,11 @@ import * as Messages from "./messages";
 import * as Environment from "./environment";
 import * as Storage from "./storage";
 
-
-export async function getCID(): Promise<string> {
-    let cid = await Storage.sync.get("AnalyticsCID");
-    if (!cid) {
-        cid = Tools.generateHash();
-        Storage.sync.set("AnalyticsCID", cid);
-    }
-    return cid;
-}
 async function postData(data: StringMap) {
-    let isEnabled = await Storage.sync.get("AnalyticsEnabled");
+    let isEnabled = await Storage.isAnalyticsEnabled();
 
-    if (isEnabled || isEnabled == undefined) {
-        let cid = await getCID();
+    if (isEnabled) {
+        let cid = await Storage.getAnalyticsCID();
         data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
         return Tools.createRequest({
             url: "https://www.google-analytics.com/collect",

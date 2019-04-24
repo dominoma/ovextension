@@ -1,5 +1,6 @@
 import * as Messages from "./messages";
 import * as VideoTypes from "video_types";
+import * as Tools from "./tools";
 
 export const enum StorageScopes {
     Local = "local",
@@ -72,7 +73,7 @@ export module local {
         return setValue(name, value, chrome.storage.local);
     }
 }
-export module sync {
+module sync {
     export async function get(name: string): Promise<any> {
         return getValue(name, chrome.storage.sync);
     }
@@ -122,4 +123,48 @@ export async function getPlayerVolume() {
 }
 export async function setPlayerVolume(volume : number) {
     return await sync.set("player_volume", volume);
+}
+export async function getTheatreFrameWidth() {
+    return (await sync.get("theatremode_width")) || 70 as number;
+}
+export async function setTheatreFrameWidth(width : number) {
+    return await sync.set("theatremode_width", width);
+}
+export async function getAnalyticsCID() {
+    let cid = await sync.get("analytics_cid") as string | null;
+    if(!cid) {
+        cid = Tools.generateHash();
+        await sync.set("analytics_cid", cid);
+    }
+    return cid;
+}
+export async function isAnalyticsEnabled() {
+    return (await sync.get("analytics_enabled")) != false;
+}
+export async function setAnalyticsEnabled(enabled : boolean) {
+    return await sync.set("analytics_enabled", enabled);
+}
+export interface Proxy {
+    ip: string;
+    port: number;
+    country?: string;
+    anonymity?: string;
+}
+export async function getProxySettings() {
+    return (await sync.get("proxy_settings")) as Proxy | null;
+}
+export async function setProxySettings(settings : Proxy | null) {
+    return await sync.set("proxy_settings", settings);
+}
+export async function isScriptEnabled(script : string) {
+    return (await sync.get("redirect_scripts_"+script)) != false;
+}
+export async function setScriptEnabled(script : string, enabled : boolean) {
+    return await sync.set("redirect_scripts_"+script, enabled);
+}
+export async function isVideoSearchEnabled() {
+    return (await sync.get("videopopup_search")) != false;
+}
+export async function setVideoSearchEnabled(enabled : boolean) {
+    return await sync.set("videopopup_search", enabled);
 }

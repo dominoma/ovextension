@@ -1,7 +1,7 @@
-import * as Proxy from "OV/proxy";
+import * as Storage from "OV/storage";
 
 var hosts: string[] = [];
-var proxy: Proxy.Proxy|null = null;
+var proxy: Storage.Proxy|null = null;
 function FindProxyForURL(url: string, host: string) {
     if (proxy && proxy.ip) {
         for (var host of hosts) {

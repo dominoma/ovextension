@@ -1,4 +1,5 @@
 import * as ScriptBase from "redirect_scripts_base";
+import * as Storage from "OV/storage";
 import * as RedirectScripts from "../RedirectScripts";
 import * as TheatreMode from "Messages/theatremode";
 import * as Proxy from "OV/proxy";
@@ -12,9 +13,10 @@ ScriptBase.startScripts(ScriptBase.RunScopes.document_end, async function() {
 }, async function(videoData){
     await Proxy.addHostsfromVideos(videoData);
 });
-ScriptBase.isScriptEnabled("All videos").then(function(value) {
+Storage.isVideoSearchEnabled().then(async function(value) {
     if (value) {
         VideoPopup.setupCS();
-        Page.injectScript("search_videos");
+        await Page.injectScript("../pages/assets/js/vendors");
+        await Page.injectScript("search_videos");
     }
 });

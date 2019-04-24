@@ -4,6 +4,8 @@ import * as VideoTypes from "video_types";
 
 import * as VideoPopup from "Messages/videopopup";
 
+import "./csVideoPopup.scss";
+
 abstract class VideoSearcher {
 
     protected sendVideoData(videoData : VideoTypes.RawVideoData) {

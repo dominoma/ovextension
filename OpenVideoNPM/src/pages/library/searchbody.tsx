@@ -6,8 +6,11 @@ import * as React from "react";
 import * as Storage from "OV/storage";
 import * as Tools from "OV/tools";
 
-import {PromptManager} from "../assets/ts/prompt";
+import * as AddSiteIcon from "../assets/icons/rounded-add-button.svg";
+import * as AllSitesIcon from "../assets/icons/dot-matrix.svg";
 
+import {PromptManager} from "../assets/ts/prompt";
+console.log(AddSiteIcon, AllSitesIcon);
 type SearchInputProps = {
     search?: string | null;
     onChange?: (input: string) => void;
@@ -60,9 +63,18 @@ export class SearchInput extends React.Component<SearchInputProps, SearchInputSt
 type SearchBtnProps = {
     data: VideoTypes.PageRefData
     selected: boolean;
-    onSelected: (data : VideoTypes.PageRefData) => any;
+    onSelected: (data : VideoTypes.PageRefData, selected: boolean) => any;
 }
-export class SearchBtn extends React.Component<SearchBtnProps, {}> {
+type SearchBtnState = {
+
+}
+export class SearchBtn extends React.Component<SearchBtnProps, SearchBtnState> {
+
+    constructor(props : SearchBtnProps) {
+        super(props);
+
+    }
+
     render() {
         let className = "ov-lib-search-btn";
         if(this.props.selected) {
@@ -80,27 +92,17 @@ export class SearchBtn extends React.Component<SearchBtnProps, {}> {
         );
     }
     searchBtnClicked() {
-        this.props.onSelected(this.props.data);
+        this.props.onSelected(this.props.data, !this.props.selected);
     }
 }
-type SearchBodyProps = {
-    search: string | null;
+type SearchBtnsProps = {
+    onChange: (data : VideoTypes.PageRefData[]) => any;
 }
-type SearchBodyState = {
-    sites: VideoTypes.PageRefData[],
-    selected: VideoTypes.PageRefData[]
+type SearchBtnsState = {
+    sites: VideoTypes.PageRefData[];
+    selected: VideoTypes.PageRefData[];
 }
-export const allSitesSearchBtnData = {
-    icon: "",
-    url: "allSites",
-    name: "All Sites"
-}
-export const addSiteSearchBtnData = {
-    icon: "http://downloadicons.net/sites/default/files/add-icon-76240.png",
-    url: "addSite",
-    name: "Add Site"
-}
-export class SearchBody extends React.Component<SearchBodyProps, SearchBodyState> {
+export class SearchBtns extends React.Component<SearchBtnsProps, SearchBtnsState> {
 
     private static async resolveBtnData(data : { name: string; url: string; }) {
         let fullURL = (data.url.indexOf("://") == -1 ? "https://" : "") + data.url;
@@ -124,9 +126,9 @@ export class SearchBody extends React.Component<SearchBodyProps, SearchBodyState
         }
     }
 
-    constructor(props : SearchBodyProps) {
+    constructor(props : SearchBtnsProps) {
         super(props);
-        this.state = { sites: [], selected: [] }
+        this.state = { sites: [], selected: [] };
     }
 
     componentDidMount() {
@@ -134,26 +136,12 @@ export class SearchBody extends React.Component<SearchBodyProps, SearchBodyState
             this.setState({
                 sites: sites
             });
+            this.props.onChange(sites);
         });
     }
 
-    async searchBtnSelected(data : VideoTypes.PageRefData) {
-        if(data.url == addSiteSearchBtnData.url) {
-            let state = await PromptManager.openPrompt("addSearchSitePrompt");
-            let data = await SearchBody.resolveBtnData(state);
-            console.log(data);
-            if(data) {
-                let sites = this.state.sites.concat();
-                sites.push(data);
-                Storage.setSearchSites(sites);
-                this.setState({ sites: sites });
-            }
-        }
-    }
-
     render() {
-        let buttonsData = [allSitesSearchBtnData].concat(this.state.sites).concat(addSiteSearchBtnData);
-        let buttons = buttonsData.map((el)=>{
+        let buttons = this.state.sites.map((el)=>{
             return (
                 <SearchBtn
                     data={el}
@@ -166,16 +154,189 @@ export class SearchBody extends React.Component<SearchBodyProps, SearchBodyState
             );
         });
         return (
-            <div className="ov-lib-search">
-                <SearchInput onSearch={this.inputSearched.bind}/>
-                <div className="ov-lib-search-btn-list">
-                    {buttons}
-                </div>
+            <div className="ov-lib-search-btn-list">
+                <SearchBtn
+                    data={allSitesSearchBtnData}
+                    selected={this.state.selected.length == 0}
+                    onSelected={this.allSitesSelected.bind(this)}
+                    key={allSitesSearchBtnData.url}
+                />
+                {buttons}
+                <SearchBtn
+                    data={addSiteSearchBtnData}
+                    selected={false}
+                    onSelected={this.siteAddRequest.bind(this)}
+                    key={addSiteSearchBtnData.url}
+                />
             </div>
-        )
+        );
     }
-    inputSearched(search : string) {
+    searchBtnSelected(data : VideoTypes.PageRefData, selected: boolean) {
+        let newSites = this.state.selected.concat();
+        if(selected) {
+            newSites.push(data);
+            this.setState({ selected: newSites });
+        }
+        else {
+            let index = this.state.selected.findIndex((el) => {
+                return el.url == data.url;
+            });
+            if(index != -1) {
+                newSites.splice(index, 1);
+            }
+            this.setState({ selected: newSites });
+        }
+        this.props.onChange(newSites);
+    }
+    async siteAddRequest() {
+        let state = await PromptManager.openPrompt("addSearchSitePrompt");
+        let data = await SearchBtns.resolveBtnData(state);
+        console.log(data);
+        if(data) {
+            let sites = this.state.sites.concat();
+            sites.push(data);
+            Storage.setSearchSites(sites);
+            this.setState({ sites: sites });
+        }
+    }
+    allSitesSelected() {
+        this.setState({ selected: [] });
+        this.props.onChange(this.state.sites);
+    }
 
+}
+type SearchResult = {
+    url: string;
+    title: string;
+    description: string;
+    icon: string;
+}
+type ResultLinkProps = {
+    data: SearchResult;
+}
+class ResultLink extends React.Component<ResultLinkProps,{}> {
+    render() {
+        return (
+            <a className="ov-library-search-result" href={this.props.data.url}>
+                <div
+                    className="ov-library-search-result-icon"
+                    style={{backgroundImage:"url('"+this.props.data.icon+"')"}}
+                ></div>
+                <div className="ov-library-search-result-title">
+                    {this.props.data.title}
+                </div>
+                <div
+                    className="ov-library-search-result-description"
+                    dangerouslySetInnerHTML={{ __html: this.props.data.description }}>
+                </div>
+            </a>
+        );
     }
+}
+type ResultLinksProps = {
+    data: SearchResult[];
+}
+class ResultLinks extends React.Component<ResultLinksProps,{}> {
+    render() {
+        let results = this.props.data.map((el)=>{
+            return <ResultLink key={el.url} data={el} />;
+        })
+        return (
+            <div className="ov-library-search-results">
+                {results}
+            </div>
+        );
+    }
+}
+type SearchBodyProps = {
+    search: string | null;
+}
+type SearchBodyState = {
+    selected: VideoTypes.PageRefData[],
+    searchresult: SearchResult[] | null
+}
+export const allSitesSearchBtnData = {
+    icon: AllSitesIcon,
+    url: "allSites",
+    name: "All Sites"
+}
+export const addSiteSearchBtnData = {
+    icon: AddSiteIcon,
+    url: "addSite",
+    name: "Add Site"
+}
+export class SearchBody extends React.Component<SearchBodyProps, SearchBodyState> {
+
+
+
+    constructor(props : SearchBodyProps) {
+        super(props);
+        this.state = { selected: [], searchresult: null }
+    }
+
+    render() {
+        if(this.state.searchresult) {
+            return (
+                <div className="ov-lib-search-result-body">
+                    <SearchInput onSearch={this.inputSearched.bind(this)}/>
+                    <ResultLinks data={this.state.searchresult}/>
+                </div>
+            );
+        }
+        else {
+            return (
+                <div className="ov-lib-search">
+                    <SearchInput onSearch={this.inputSearched.bind(this)}/>
+                    <SearchBtns onChange={this.searchBtnsChange.bind(this)}/>
+                </div>
+            )
+        }
+    }
+    searchBtnsChange(data : VideoTypes.PageRefData[]) {
+        this.setState({ selected: data });
+    }
+
+    async inputSearched(search : string) {
+        let extractResults = (htmlstr : string) => {
+            let html = (new DOMParser()).parseFromString(htmlstr, "text/html");
+            let results = html.querySelectorAll(".g");
+            let data: SearchResult[] = [];
+            for (let result of results) {
+                let title = result.querySelector("h3");
+                let description = result.querySelector("span.st");
+                let url = result.querySelector("a")
+                if (title && description && url) {
+                    let icon = this.state.selected.find((el)=>{
+                        console.log(url!.href, el.url);
+                        return url!.href.indexOf(el.url.replace(/https:\/\/(www\.)?/, "")) != -1;
+                    })!.icon;
+                    data.push({
+                        title: title.innerText,
+                        url: url.href,
+                        description: description.innerHTML,
+                        icon: icon
+                    });
+                }
+            }
+            return data as SearchResult[];
+        }
+        let query = encodeURIComponent(search+" "+this.state.selected.map((el)=>{
+            return "site:"+el.url.replace("https://", "");
+        }).join(" OR ")).replace(new RegExp(encodeURIComponent(" "), "g"), "+");
+        let xhrs = await Promise.all([0,1,2,4,5,6,7].map((el)=>{
+            return Tools.createRequest({
+                url: "https://www.google.com/search?q="+query,
+                data: {
+                    start: (el*10).toString()
+                }
+            });
+        }))
+        let results = xhrs.reduce((arr, el)=>{
+            let data = extractResults(el.response);
+            return arr.concat(data);
+        }, [] as SearchResult[])
+        this.setState({ searchresult: results });
+    }
+
 
 }

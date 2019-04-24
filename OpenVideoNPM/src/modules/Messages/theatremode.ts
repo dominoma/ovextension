@@ -11,7 +11,6 @@ import * as Background from "./background";
 interface IFrameEntry {
     iframe: HTMLIFrameElement;
     shadow: HTMLElement;
-    observer: MutationObserver;
 }
 type IFrameEntries = Array<IFrameEntry>;
 
@@ -23,7 +22,7 @@ function checkCleanup(entry: IFrameEntry) {
         return false;
     }
     else if (!entry.iframe || !entry.iframe.parentElement) {
-        entry.observer.disconnect();
+        //entry.observer.disconnect();
         entry.shadow.remove();
         return true;
     }
@@ -85,21 +84,6 @@ export function registerIFrame(iframe: HTMLIFrameElement) {
         }
     });
 
-
-
-    let observer = new MutationObserver(function(mutations) {
-        if (isFrameActive() && getActiveFrame().iframe == iframe) {
-            let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
-            let newtop = Math.floor((window.innerHeight - iframe.clientHeight) / 2).toString() + "px";
-            if (iframe.style.left != newleft) {
-                iframe.style.setProperty("left", newleft);
-                iframe.style.setProperty("top", newtop);
-            }
-        }
-
-    });
-    observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });
-
     shadow.className = "ov-theaterMode";
     shadow.addEventListener("click", function(e: MouseEvent) {
         e.stopPropagation();
@@ -114,7 +98,7 @@ export function registerIFrame(iframe: HTMLIFrameElement) {
     }
     iframe.parentNode.appendChild(shadow);
 
-    iframes.push({ shadow: shadow, iframe: iframe, observer: observer });
+    iframes.push({ shadow: shadow, iframe: iframe });
     return iframes[iframes.length - 1];
 
 }
@@ -177,8 +161,8 @@ export async function activateEntry(entry: IFrameEntry) {
             },
             entry: entry
         };
-        let frameWidth = await Storage.sync.get("TheatreModeFrameWidth");
-        setWrapperStyle(entry, frameWidth || 70);
+        let frameWidth = await Storage.getTheatreFrameWidth();
+        setWrapperStyle(entry, frameWidth);
         entry.shadow.style.opacity = "1";
         entry.shadow.style.pointerEvents = "all";
 
@@ -192,7 +176,7 @@ export function deactivateEntry() {
     activeEntry = null;
     let newrelwidth = Math.floor((entry!.entry.iframe.clientWidth / window.innerWidth) * 100);
     console.log(newrelwidth);
-    Storage.sync.set("TheatreModeFrameWidth", newrelwidth);
+    Storage.setTheatreFrameWidth(newrelwidth);
     entry!.entry.shadow.style.opacity = "0";
     entry!.entry.shadow.style.removeProperty("pointer-events");
     window.setTimeout(function() {
@@ -209,7 +193,28 @@ function setWrapperStyle(entry: IFrameEntry, width: number): void {
     width = width < 50 ? 50 : width;
     entry.iframe.removeAttribute("width");
     entry.iframe.removeAttribute("height");
-    entry.iframe.style.cssText = "padding-right:5px;padding-bottom:5px;display:block;overflow: hidden; resize: both;position: fixed !important;width: " + width + "vw !important;height: calc(( 9/ 16)*" + width + "vw) !important;top: calc((100vh - ( 9/ 16)*" + width + "vw)/2) !important;left: calc((100vw - " + width + "vw)/2) !important;z-index:2147483647 !important; border: 0px !important; max-width:100vw !important; min-width: 50vw !important; max-height: 100vh !important; min-height: 50vh !important";
+    entry.iframe.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        margin: auto !important;
+        width: `+width+`vw !important;
+        height: calc(`+width+`vw*9/16) !important;
+        padding-right:5px !important;
+        padding-bottom:5px !important;
+        display:block !important;
+        overflow: hidden !important;
+        resize: both !important;
+        z-index: 99999999999 !important;
+        border: 0px !important;
+        max-width:100vw !important;
+        min-width: 50vw !important;
+        max-height: 100vh !important;
+        min-height: 50vh !important;
+    `;
+    //entry.iframe.style.cssText = "padding-right:5px;padding-bottom:5px;display:block;overflow: hidden; resize: both;position: fixed !important;width: " + width + "vw !important;height: calc(( 9/ 16)*" + width + "vw) !important;top: calc((100vh - ( 9/ 16)*" + width + "vw)/2) !important;left: calc((100vw - " + width + "vw)/2) !important;z-index:2147483647 !important; border: 0px !important; max-width:100vw !important; min-width: 50vw !important; max-height: 100vh !important; min-height: 50vh !important";
 }
 function getIFrameByID(width: number, height: number): HTMLIFrameElement {
 

@@ -9,7 +9,7 @@ function secondsToTime(seconds : number) {
     let date = new Date(0);
     date.setSeconds(seconds);
     let string = date.toISOString().substr(11, 8);
-    while(string[0] == "0" || string[0] == ":") {
+    while(string.length > 4 && (string[0] == "0" || string[0] == ":")) {
         string = string.substring(1, string.length);
     }
     return string;
@@ -20,7 +20,21 @@ type VideoLinkProps = {
     playing: boolean;
     onWatchDirect: (videoData: VideoTypes.VideoRefData) => any;
 }
-export class VideoLink extends React.Component<VideoLinkProps,{}> {
+type VideoLinkState = {
+    noimage: boolean;
+}
+export class VideoLink extends React.Component<VideoLinkProps,VideoLinkState> {
+
+    constructor(props : VideoLinkProps) {
+        super(props);
+        this.state = { noimage: props.videoData.poster == "" };
+    }
+
+    componentDidUpdate(oldProps : VideoLinkProps) {
+        if(this.props.videoData.poster != oldProps.videoData.poster) {
+            this.setState({ noimage: this.props.videoData.poster == "" });
+        }
+    }
 
     render() {
 
@@ -62,8 +76,12 @@ export class VideoLink extends React.Component<VideoLinkProps,{}> {
                 <div
                     onClick={hasParent ? undefined : this.originClick.bind(this)}
                     className="ov-lib-videoref-thumbnail"
-                    style={{backgroundImage: "url('"+this.props.videoData.poster+"')"}}
                 >
+                    <img
+                        className={this.state.noimage ? "ov-lib-videoref-noimg" : "ov-lib-videoref-img"}
+                        src={this.props.videoData.poster}
+                        onError={this.imgLoadError.bind(this)}
+                    />
                     <div className="ov-lib-videoref-watched" style={
                         {
                             marginRight: (1 - this.props.videoData.watched/this.props.videoData.duration) * 100 + "%"
@@ -77,6 +95,9 @@ export class VideoLink extends React.Component<VideoLinkProps,{}> {
                 <div className="ov-lib-videoref-x" onClick={this.closeClick.bind(this)}></div>
             </div>
         );
+    }
+    imgLoadError() {
+        this.setState({ noimage: true });
     }
     closeClick() {
         this.props.onRemove(this.props.videoData);

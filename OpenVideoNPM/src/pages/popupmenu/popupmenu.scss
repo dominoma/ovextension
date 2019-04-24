@@ -1,0 +1,86 @@
+@import "assets/css/vars.scss";
+
+.ov-popupmenu {
+
+    display: flex;
+    flex-direction: column;
+
+    width: 13em;
+
+    user-select: none;
+
+    .ov-popupmenu-button {
+        color: white;
+        font-size: 1.5em;
+        padding: 0.5em;
+        background: $OVPrimaryColor;
+        margin: 0.2em;
+        cursor: pointer;
+        text-align: center;
+    }
+    .ov-popupmenu-proxy-btn {
+        display: grid;
+        grid: "disable disable reload" 1.5em
+              "country custom  reload" 1em
+              /1fr     1em     2.5em;
+
+        background: $OVPrimaryColor;
+
+        font-size: 1.5em;
+        margin: 0.2em;
+
+        .ov-popupmenu-proxy-disable {
+            grid-area: disable;
+            color: white;
+            background: #ccc;
+            padding: 0.08em 0;
+            text-align: center;
+            font-size: 0.7em;
+            margin: 0.27em;
+            cursor: pointer;
+        }
+        .ov-popupmenu-proxy-country {
+            grid-area: country;
+            font-size: 0.8em;
+            color: white;
+            background: $OVPrimaryColor;
+            font-size: 0.6em;
+            margin: auto;
+        }
+        .ov-popupmenu-proxy-custom {
+            grid-area: custom;
+            background: $OVPrimaryColor;
+            font-size: 0.6em;
+            margin: auto;
+            color: white;
+            cursor: pointer;
+        }
+        .ov-popupmenu-proxy-reload {
+            grid-area: reload;
+            -webkit-mask-repeat: no-repeat;
+		    -webkit-mask-size: contain;
+			-webkit-mask-image: url('https://image.flaticon.com/icons/png/512/61/61225.png');
+            background: white;
+            margin: 0.5em;
+            cursor: pointer;
+        }
+    }
+    .ov-popupmenu-patreonbutton {
+        background-image: url('https://c5.patreon.com/external/logo/become_a_patron_button@2x.png');
+    	background-position: center;
+        background-size: contain;
+    	height: 2.5em;
+        font-size: 1.5em;
+        margin: 0.2em;
+        cursor: pointer;
+    }
+    .ov-popupmenu-footer {
+        margin: auto 0.2em 0 0.2em;
+        display: flex;
+        .ov-popupmenu-link {
+            color: #ccc;
+            margin: 0 0.2em;
+            cursor: pointer;
+        }
+    }
+}

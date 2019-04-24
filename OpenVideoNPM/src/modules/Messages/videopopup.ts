@@ -99,6 +99,7 @@ export function setup() {
                 firstpopup = false;
             }
             pauseAllVideos();
+            setIconOpensPopup(false);
         },
         videopopup_closePopup: async function(request) {
             if(!isPopupCreated()) {
@@ -106,10 +107,19 @@ export function setup() {
             }
             getPopupFrame().hidden = true;
             getPopupFrame().style.setProperty("display", "none", "important");
-            Background.setIconPopup();
+            setIconOpensPopup(true);
         },
         videopopup_addVideoToPopup: async function(request) {
             _addVideoToPopup(request.data.videoData);
+            setIconOpensPopup(true);
         }
     });
+}
+export function setIconOpensPopup(openpopup : boolean) {
+    if(openpopup) {
+        Background.setIconPopup();
+    }
+    else {
+        Background.setIconPopup("pages/popupmenu.html");
+    }
 }

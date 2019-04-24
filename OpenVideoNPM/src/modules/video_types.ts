@@ -59,7 +59,9 @@ export interface VideoData extends RawVideoData {
     origin: PageRefData;
     parent: PageRefData | null;
 }
-export function makeURLsSave<T extends RawVideoData>(videoData: T) {
+export function makeURLsSave(videoData: VideoData) : VideoData;
+export function makeURLsSave(videoData: RawVideoData) : RawVideoData;
+export function makeURLsSave(videoData: RawVideoData | VideoData) {
     for (let track of videoData.tracks) {
         track.src = Page.getSafeURL(track.src);
     }
@@ -70,5 +72,11 @@ export function makeURLsSave<T extends RawVideoData>(videoData: T) {
         }
     }
     videoData.poster = Page.getSafeURL(videoData.poster);
+    if('origin' in videoData) {
+        videoData.origin.icon = Page.getSafeURL(videoData.origin.icon);
+        if(videoData.parent) {
+            videoData.parent.icon = Page.getSafeURL(videoData.parent.icon);
+        }
+    }
     return videoData;
 }

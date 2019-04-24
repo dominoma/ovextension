@@ -41,6 +41,7 @@
     "@types/react-dom": "^16.0.11",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",
-    "silvermine-videojs-quality-selector": "^1.1.2"
+    "silvermine-videojs-quality-selector": "^1.1.2",
+    "url-loader": "^1.1.2"
   }
 }

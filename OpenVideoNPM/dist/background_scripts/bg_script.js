@@ -81,186 +81,12 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 144);
+/******/ 	return __webpack_require__(__webpack_require__.s = 149);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 133:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(21);
-function makeURLsSave(videoData) {
-    for (let track of videoData.tracks) {
-        track.src = Page.getSafeURL(track.src);
-    }
-    for (let src of videoData.src) {
-        src.src = Page.getSafeURL(src.src);
-        if (src.dlsrc) {
-            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
-        }
-    }
-    videoData.poster = Page.getSafeURL(videoData.poster);
-    return videoData;
-}
-exports.makeURLsSave = makeURLsSave;
-
-
-/***/ }),
-
-/***/ 136:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const VideoTypes = __webpack_require__(133);
-const Tools = __webpack_require__(20);
-const Analytics = __webpack_require__(50);
-const Environment = __webpack_require__(24);
-const Messages = __webpack_require__(19);
-const Storage = __webpack_require__(18);
-const VideoHistory = __webpack_require__(25);
-const Page = __webpack_require__(21);
-let redirectHosts = [];
-;
-;
-function addRedirectHost(redirectHost) {
-    redirectHosts.push(redirectHost);
-}
-exports.addRedirectHost = addRedirectHost;
-function isUrlRedirecting(url) {
-    if (Tools.parseURL(url).query["ovignore"] != "true") {
-        return false;
-    }
-    else {
-        for (let host of redirectHosts) {
-            for (let script of host.scripts) {
-                if (url.match(script.urlPattern)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-exports.isUrlRedirecting = isUrlRedirecting;
-function getFavicon() {
-    let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
-    if (link) {
-        let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
-        if (favicon) {
-            return favicon[1];
-        }
-    }
-    return "";
-}
-function startScripts(scope, onScriptExecute, onScriptExecuted) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Tools.parseURL(location.href).query["ovignore"] != "true") {
-            for (let host of redirectHosts) {
-                let isEnabled = yield isScriptEnabled(host.name);
-                if (isEnabled) {
-                    for (let script of host.scripts) {
-                        let match = location.href.match(script.urlPattern);
-                        if (match) {
-                            console.log("Redirect with " + host.name);
-                            for (let runScope of script.runScopes) {
-                                if (runScope.run_at == scope) {
-                                    document.documentElement.hidden = runScope.hide_page !== false;
-                                    try {
-                                        yield onScriptExecute();
-                                        console.log("script executed");
-                                        let rawVideoData = yield runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
-                                        let parent = null;
-                                        console.log(Page.isFrame());
-                                        if (Page.isFrame()) {
-                                            parent = yield VideoHistory.getPageRefData();
-                                        }
-                                        let videoData = Tools.merge(rawVideoData, {
-                                            origin: {
-                                                name: host.name,
-                                                url: location.href,
-                                                icon: getFavicon()
-                                            },
-                                            parent: parent
-                                        });
-                                        videoData = VideoTypes.makeURLsSave(videoData);
-                                        yield onScriptExecuted(videoData);
-                                        console.log("script executed", videoData);
-                                        location.href = Environment.getVidPlaySiteUrl(videoData);
-                                    }
-                                    catch (error) {
-                                        document.documentElement.hidden = false;
-                                        console.error(error);
-                                        Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                                    }
-                                    ;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-exports.startScripts = startScripts;
-function isScriptEnabled(name) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let value = yield Storage.sync.get(name);
-        return value == true || value == undefined || value == null;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(name, enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return Storage.sync.set(name, enabled);
-    });
-}
-exports.setScriptEnabled = setScriptEnabled;
-function setupBG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        Messages.setupBackground({
-            redirect_script_base_getRedirectHosts: function () {
-                return __awaiter(this, void 0, void 0, function* () {
-                    return redirectHosts;
-                });
-            }
-        });
-    });
-}
-exports.setupBG = setupBG;
-function getRedirectHosts() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (Environment.isBackgroundScript()) {
-            console.log(redirectHosts);
-            return redirectHosts;
-        }
-        else {
-            let response = yield Messages.sendToBG({ func: "redirect_script_base_getRedirectHosts", data: {} });
-            console.log(response);
-            return response.data;
-        }
-    });
-}
-exports.getRedirectHosts = getRedirectHosts;
-
-
-/***/ }),
-
-/***/ 144:
+/***/ 149:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -275,14 +101,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Storage = __webpack_require__(18);
-const Proxy = __webpack_require__(52);
+const Proxy = __webpack_require__(64);
 const Tools = __webpack_require__(20);
 const Environment = __webpack_require__(24);
 const Background = __webpack_require__(23);
 const Messages = __webpack_require__(19);
-const ScriptBase = __webpack_require__(136);
-const RedirectScripts = __webpack_require__(145);
-const Analytics = __webpack_require__(50);
+const ScriptBase = __webpack_require__(56);
+const RedirectScripts = __webpack_require__(150);
+const Analytics = __webpack_require__(58);
 const VideoHistory = __webpack_require__(25);
 function LoadBGScripts() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -315,17 +141,16 @@ chrome.browserAction.onClicked.addListener(function (tab) {
         throw new Error("Tab has no id!");
     }
     Messages.sendToTab(tab.id, { func: "videopopup_openPopup", data: {} });
-    chrome.browserAction.setPopup({ tabId: tab.id, popup: "pages/popupmenu/popupmenu.html" });
 });
 chrome.runtime.onInstalled.addListener(function (details) {
     return __awaiter(this, void 0, void 0, function* () {
         if (details.reason == "install" || details.reason == "update") {
             let redirectHosts = yield ScriptBase.getRedirectHosts();
             for (let script of redirectHosts) {
-                ScriptBase.setScriptEnabled(script.name, true);
+                Storage.setScriptEnabled(script.name, true);
             }
         }
-        Storage.sync.set("InstallDetails", details);
+        //Storage.sync.set("InstallDetails", details);
     });
 });
 function setHeader(headers, name, value) {
@@ -400,7 +225,7 @@ catch (e) {
 
 /***/ }),
 
-/***/ 145:
+/***/ 150:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -414,8 +239,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const ScriptBase = __webpack_require__(136);
-const Analytics = __webpack_require__(50);
+const ScriptBase = __webpack_require__(56);
+const Analytics = __webpack_require__(58);
 const Page = __webpack_require__(21);
 const Tools = __webpack_require__(20);
 const Environment = __webpack_require__(24);
@@ -1172,6 +997,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Messages = __webpack_require__(19);
+const Tools = __webpack_require__(20);
 function canStorage() {
     return chrome.storage != undefined;
 }
@@ -1262,7 +1088,7 @@ var sync;
         });
     }
     sync.set = set;
-})(sync = exports.sync || (exports.sync = {}));
+})(sync || (sync = {}));
 exports.fixed_playlists = {
     history: { id: "history", name: "History" },
     favorites: { id: "favorites", name: "Favorites" }
@@ -1333,6 +1159,77 @@ function setPlayerVolume(volume) {
     });
 }
 exports.setPlayerVolume = setPlayerVolume;
+function getTheatreFrameWidth() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("theatremode_width")) || 70;
+    });
+}
+exports.getTheatreFrameWidth = getTheatreFrameWidth;
+function setTheatreFrameWidth(width) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("theatremode_width", width);
+    });
+}
+exports.setTheatreFrameWidth = setTheatreFrameWidth;
+function getAnalyticsCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield sync.get("analytics_cid");
+        if (!cid) {
+            cid = Tools.generateHash();
+            yield sync.set("analytics_cid", cid);
+        }
+        return cid;
+    });
+}
+exports.getAnalyticsCID = getAnalyticsCID;
+function isAnalyticsEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("analytics_enabled")) != false;
+    });
+}
+exports.isAnalyticsEnabled = isAnalyticsEnabled;
+function setAnalyticsEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("analytics_enabled", enabled);
+    });
+}
+exports.setAnalyticsEnabled = setAnalyticsEnabled;
+function getProxySettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("proxy_settings"));
+    });
+}
+exports.getProxySettings = getProxySettings;
+function setProxySettings(settings) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("proxy_settings", settings);
+    });
+}
+exports.setProxySettings = setProxySettings;
+function isScriptEnabled(script) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("redirect_scripts_" + script)) != false;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(script, enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("redirect_scripts_" + script, enabled);
+    });
+}
+exports.setScriptEnabled = setScriptEnabled;
+function isVideoSearchEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("videopopup_search")) != false;
+    });
+}
+exports.isVideoSearchEnabled = isVideoSearchEnabled;
+function setVideoSearchEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("videopopup_search", enabled);
+    });
+}
+exports.setVideoSearchEnabled = setVideoSearchEnabled;
 
 
 /***/ }),
@@ -2337,23 +2234,19 @@ function declareBGPage() {
 }
 exports.declareBGPage = declareBGPage;
 function getVidPlaySiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videoplay/videoplay.html") + Tools.objToHash(vidHash);
+    return chrome.extension.getURL("/pages/videoplay.html") + Tools.objToHash(vidHash);
 }
 exports.getVidPlaySiteUrl = getVidPlaySiteUrl;
-function getVideoSearchUrl() {
-    return chrome.extension.getURL("/pages/videosearch/videosearch.html");
-}
-exports.getVideoSearchUrl = getVideoSearchUrl;
 function getVidPopupSiteUrl(vidHash) {
-    return chrome.extension.getURL("/pages/videopopup/videopopup.html") + Tools.objToHash(vidHash);
+    return chrome.extension.getURL("/pages/videopopup.html") + Tools.objToHash(vidHash);
 }
 exports.getVidPopupSiteUrl = getVidPopupSiteUrl;
 function getOptionsSiteUrl() {
-    return chrome.extension.getURL("/pages/options/options.html");
+    return chrome.extension.getURL("/pages/options.html");
 }
 exports.getOptionsSiteUrl = getOptionsSiteUrl;
 function getLibrarySiteUrl() {
-    return chrome.extension.getURL("/pages/library/library.html");
+    return chrome.extension.getURL("/pages/library.html");
 }
 exports.getLibrarySiteUrl = getLibrarySiteUrl;
 function getPatreonUrl() {
@@ -2364,6 +2257,19 @@ function getHostSuggestionUrl() {
     return "https://youtu.be/rbeUGOkKt0o";
 }
 exports.getHostSuggestionUrl = getHostSuggestionUrl;
+function getRatingUrl() {
+    if (browser() == "chrome" /* Chrome */) {
+        return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/reviews";
+    }
+    else {
+        return "https://addons.mozilla.org/firefox/addon/openvideo/";
+    }
+}
+exports.getRatingUrl = getRatingUrl;
+function getSupportUrl() {
+    return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
+}
+exports.getSupportUrl = getSupportUrl;
 function getErrorMsg(data) {
     return {
         version: getManifest().version,
@@ -2444,13 +2350,13 @@ function _getPageRefData() {
     if (Environment.isExtensionPage(location.href)) {
         return null;
     }
-    let host = location.href.match(/:\/\/(www\.)?([^/]*)\/?/)[2];
+    let host = location.href.match(/:\/\/(www[0-9]?\.)?([^/]*)\/?/)[2];
     let link = document.querySelector("link[rel='shortcut icon']");
     if (link) {
         return { url: location.href, icon: Page.getAbsoluteUrl(link.href), name: host };
     }
     else {
-        return { url: location.href, icon: "", name: host };
+        return { url: location.href, icon: "https://s2.googleusercontent.com/s2/favicons?domain_url=" + host, name: host };
     }
 }
 function setup() {
@@ -2515,7 +2421,174 @@ exports.convertOldPlaylists = convertOldPlaylists;
 
 /***/ }),
 
-/***/ 50:
+/***/ 56:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const VideoTypes = __webpack_require__(57);
+const Tools = __webpack_require__(20);
+const Analytics = __webpack_require__(58);
+const Environment = __webpack_require__(24);
+const Messages = __webpack_require__(19);
+const Storage = __webpack_require__(18);
+const VideoHistory = __webpack_require__(25);
+const Page = __webpack_require__(21);
+let redirectHosts = [];
+;
+;
+function addRedirectHost(redirectHost) {
+    redirectHosts.push(redirectHost);
+}
+exports.addRedirectHost = addRedirectHost;
+function isUrlRedirecting(url) {
+    if (Tools.parseURL(url).query["ovignore"] != "true") {
+        return false;
+    }
+    else {
+        for (let host of redirectHosts) {
+            for (let script of host.scripts) {
+                if (url.match(script.urlPattern)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+exports.isUrlRedirecting = isUrlRedirecting;
+function getFavicon() {
+    let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+    if (link) {
+        let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
+        if (favicon) {
+            return favicon[1];
+        }
+    }
+    return "https://s2.googleusercontent.com/s2/favicons?domain_url=" + location.host;
+}
+function startScripts(scope, onScriptExecute, onScriptExecuted) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Tools.parseURL(location.href).query["ovignore"] != "true") {
+            for (let host of redirectHosts) {
+                let isEnabled = yield Storage.isScriptEnabled(host.name);
+                if (isEnabled) {
+                    for (let script of host.scripts) {
+                        let match = location.href.match(script.urlPattern);
+                        if (match) {
+                            console.log("Redirect with " + host.name);
+                            for (let runScope of script.runScopes) {
+                                if (runScope.run_at == scope) {
+                                    document.documentElement.hidden = runScope.hide_page !== false;
+                                    try {
+                                        yield onScriptExecute();
+                                        console.log("script executed");
+                                        let rawVideoData = yield runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
+                                        let parent = null;
+                                        console.log(Page.isFrame());
+                                        if (Page.isFrame()) {
+                                            parent = yield VideoHistory.getPageRefData();
+                                        }
+                                        let videoData = Tools.merge(rawVideoData, {
+                                            origin: {
+                                                name: host.name,
+                                                url: location.href,
+                                                icon: getFavicon()
+                                            },
+                                            parent: parent
+                                        });
+                                        videoData = VideoTypes.makeURLsSave(videoData);
+                                        yield onScriptExecuted(videoData);
+                                        console.log("script executed", videoData);
+                                        location.replace(Environment.getVidPlaySiteUrl(videoData));
+                                    }
+                                    catch (error) {
+                                        document.documentElement.hidden = false;
+                                        console.error(error);
+                                        Analytics.fireEvent(host.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
+                                    }
+                                    ;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+exports.startScripts = startScripts;
+function setupBG() {
+    return __awaiter(this, void 0, void 0, function* () {
+        Messages.setupBackground({
+            redirect_script_base_getRedirectHosts: function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return redirectHosts;
+                });
+            }
+        });
+    });
+}
+exports.setupBG = setupBG;
+function getRedirectHosts() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (Environment.isBackgroundScript()) {
+            console.log(redirectHosts);
+            return redirectHosts;
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "redirect_script_base_getRedirectHosts", data: {} });
+            console.log(response);
+            return response.data;
+        }
+    });
+}
+exports.getRedirectHosts = getRedirectHosts;
+
+
+/***/ }),
+
+/***/ 57:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Page = __webpack_require__(21);
+function makeURLsSave(videoData) {
+    for (let track of videoData.tracks) {
+        track.src = Page.getSafeURL(track.src);
+    }
+    for (let src of videoData.src) {
+        src.src = Page.getSafeURL(src.src);
+        if (src.dlsrc) {
+            src.dlsrc.src = Page.getSafeURL(src.dlsrc.src);
+        }
+    }
+    videoData.poster = Page.getSafeURL(videoData.poster);
+    if ('origin' in videoData) {
+        videoData.origin.icon = Page.getSafeURL(videoData.origin.icon);
+        if (videoData.parent) {
+            videoData.parent.icon = Page.getSafeURL(videoData.parent.icon);
+        }
+    }
+    return videoData;
+}
+exports.makeURLsSave = makeURLsSave;
+
+
+/***/ }),
+
+/***/ 58:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2533,22 +2606,11 @@ const Tools = __webpack_require__(20);
 const Messages = __webpack_require__(19);
 const Environment = __webpack_require__(24);
 const Storage = __webpack_require__(18);
-function getCID() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let cid = yield Storage.sync.get("AnalyticsCID");
-        if (!cid) {
-            cid = Tools.generateHash();
-            Storage.sync.set("AnalyticsCID", cid);
-        }
-        return cid;
-    });
-}
-exports.getCID = getCID;
 function postData(data) {
     return __awaiter(this, void 0, void 0, function* () {
-        let isEnabled = yield Storage.sync.get("AnalyticsEnabled");
-        if (isEnabled || isEnabled == undefined) {
-            let cid = yield getCID();
+        let isEnabled = yield Storage.isAnalyticsEnabled();
+        if (isEnabled) {
+            let cid = yield Storage.getAnalyticsCID();
             data = Tools.merge({ v: 1, tid: "UA-118573631-1", cid: cid }, data);
             return Tools.createRequest({
                 url: "https://www.google-analytics.com/collect",
@@ -2600,7 +2662,7 @@ exports.fireEvent = fireEvent;
 
 /***/ }),
 
-/***/ 52:
+/***/ 64:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2657,17 +2719,6 @@ function setupBG() {
     });
 }
 exports.setupBG = setupBG;
-function saveProxy(proxy) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return Storage.sync.set("ProxySettings", proxy);
-    });
-}
-function loadProxy() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let settings = yield Storage.sync.get("ProxySettings");
-        return settings;
-    });
-}
 function getChromePAC() {
     if (!currentProxy) {
         throw new Error("Can't setup chrome proxy!");
@@ -2692,7 +2743,7 @@ function getChromePAC() {
 }
 function loadFromStorage() {
     return __awaiter(this, void 0, void 0, function* () {
-        let proxy = yield loadProxy();
+        let proxy = yield Storage.getProxySettings();
         if (proxy) {
             if (proxy.country == "Custom") {
                 return setup(proxy);
@@ -2722,7 +2773,7 @@ function _setup(proxy) {
     return __awaiter(this, void 0, void 0, function* () {
         remove();
         currentProxy = proxy;
-        saveProxy(currentProxy);
+        Storage.setProxySettings(currentProxy);
         if (Environment.browser() == "chrome" /* Chrome */) {
             let script = yield getChromePAC();
             console.log(script);
@@ -2843,7 +2894,7 @@ function _remove() {
         browser.proxy.unregister();
     }
     currentProxy = null;
-    saveProxy(null);
+    Storage.setProxySettings(null);
 }
 function searchProxies() {
     return __awaiter(this, void 0, void 0, function* () {

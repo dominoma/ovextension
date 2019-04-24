@@ -1,93 +1,88 @@
 {
-  "manifest_version": 2,
+    "manifest_version": 2,
 
-  "name": "OpenVideo FastStream",
-  "short_name": "OpenVideo",
-  "description": "__MSG_extDescr__",
-  "version": "1.11.13",
-  "content_security_policy": "script-src 'self'; object-src 'self';",
-  "browser_action": {
-    "default_icon": "assets/icons/logo256.png",
-    "default_popup": "pages/popupmenu/popupmenu.html"
-  },
-  "options_ui": {
-    "page": "pages/options/options.html"
-  },
-  "applications": {
-	  "gecko": {
-	    "id": "OpenVideoFS@gmail.com"
-	  }
-	},
-   "icons": {
+    "name": "OpenVideo FastStream",
+    "short_name": "OpenVideo",
+    "description": "__MSG_extDescr__",
+    "version": "1.12",
+    "content_security_policy": "script-src 'self'; object-src 'self';",
+    "browser_action": {
+        "default_icon": "assets/icons/logo256.png",
+        "default_popup": "${popupmenu}$"
+    },
+    "options_ui": {
+        "page": "${options}$"
+    },
+    "applications": {
+        "gecko": {
+            "id": "OpenVideoFS@gmail.com"
+        }
+    },
+    "icons": {
         "16":"assets/icons/logo16.png",
         "48":"assets/icons/logo48.png",
         "64":"assets/icons/logo64.png",
         "128":"assets/icons/logo128.png",
         "256":"assets/icons/logo256.png"
-  },
-  "default_locale": "en",
-  "background": {
-    "scripts": [
+    },
+    "default_locale": "en",
+    "background": {
+        "scripts": [
 
-    	"background_scripts/bg_script.js"
+            "${bg_script}$"
+        ]
+    },
+    "permissions": [
+        "storage",
+        "webRequest",
+        "webRequestBlocking",
+        "<all_urls>",
+        "tabs",
+        "unlimitedStorage",
+        "webNavigation",
+        "downloads",
+        "proxy"
+    ],
+
+    "web_accessible_resources": [
+        "${search_videos}$",
+        "${videopopup}$",
+        "${videoplay}$",
+        "/pages/assets/js/vendors.js"
+    ],
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": [
+                "${document_start}$"
+            ],
+            "run_at": "document_start",
+            "all_frames": true
+        },
+        {
+            "matches": ["<all_urls>"],
+            "js": [
+                "${top_window}$"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": ["<all_urls>"],
+            "js": [
+
+                "${document_idle}$"
+            ],
+            "run_at": "document_idle",
+            "all_frames": true
+        },
+        {
+            "matches": ["<all_urls>"],
+            "js": [
+
+                "${document_end}$"
+            ],
+            "run_at": "document_end",
+            "all_frames": true
+        }
     ]
-  },
-  "permissions": [
-  	"storage",
-  	"webRequest",
-  	"webRequestBlocking",
-    "<all_urls>",
-    "tabs",
-    "unlimitedStorage",
-    "webNavigation",
-    "downloads",
-    "proxy"
-  ],
-
-  "web_accessible_resources": [
-  	"pages/videoplay/videoplay.html",
-  	"pages/videopopup/videopopup.html",
-  	"pages/library/library.html",
-  	"inject_scripts/search_videos.js"
-  ],
-   "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": [
-
-      	"content_scripts/document_start.js"
-      ],
-      "run_at": "document_start",
-      "all_frames": true
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": [
-
-      	"content_scripts/top_window.js"
-      ],
-      "css": [
-      	"/assets/css/csVideoPopup.css"
-      ],
-      "run_at": "document_start"
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": [
-
-      	"content_scripts/document_idle.js"
-      ],
-      "run_at": "document_idle",
-      "all_frames": true
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": [
-
-      	"content_scripts/document_end.js"
-      ],
-      "run_at": "document_end",
-      "all_frames": true
-    }
-  ]
 }

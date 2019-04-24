@@ -48,7 +48,17 @@
     	background-repeat: no-repeat;
 		position: relative;
 		user-select: none;
-
+		.ov-lib-videoref-img, .ov-lib-videoref-noimg {
+			width: 100%;
+			height: 100%;
+		}
+		.ov-lib-videoref-noimg {
+			-webkit-mask-image: url('../assets/icons/video-player-outline.svg');
+			-webkit-mask-repeat: no-repeat;
+			-webkit-mask-size: contain;
+			background: #ccc;
+			-webkit-mask-position: center;
+		}
 		.ov-lib-videoref-watched {
 			position: absolute;
 			left: 0;
@@ -115,10 +125,11 @@
 			    font-size: 1.5em;
 			    margin-top: auto;
 			    margin-bottom: auto;
-			    padding-left: 1.2em;
+			    padding-left: 1.3em;
 			    margin-left: 1em;
 			    background-repeat: no-repeat;
-			    background-size: 1em;
+			    background-size: 1.2em;
+				background-position-y: center;
 			}
 		}
 	}
