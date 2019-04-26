@@ -5,168 +5,155 @@ import * as ScriptBase from "redirect_scripts_base";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
-import "options.scss";
+import "./options.scss";
 Messages.setupMiddleware();
-type SwitchProps = { onChange: (obj: Switch) => void, enabled?: boolean };
+type SwitchProps = { onChange: (enabled: boolean) => void, enabled?: boolean };
 class Switch extends React.Component<SwitchProps,{ enabled: boolean }>{
     constructor(props : SwitchProps) {
         super(props);
-        this.setState({ enabled: !!this.props.enabled });
+        this.state = { enabled: !!this.props.enabled };
+    }
+    componentDidUpdate(oldProps : SwitchProps) {
+        if(oldProps.enabled != this.props.enabled) {
+            this.setState({ enabled: !!this.props.enabled })
+        }
     }
     render() {
         return (
-            <label className="switch">
+            <label className="ov-options-switch">
                 <input type="checkbox" checked={this.state.enabled} onChange={this.onChange.bind(this)}/>
-                <div className="slider round"></div>
+                <div></div>
             </label>
         );
     }
     onChange(event: React.ChangeEvent<HTMLInputElement>) {
-        this.setState({ enabled: event.target.value == "true" });
-        this.props.onChange(this);
+        this.setState({ enabled: event.target.checked });
+        this.props.onChange(event.target.checked );
     }
 }
-type SwitchesTableProps = { onChange?: (obj: HostsTable) => void, rows: number };
-class HostsTable extends React.Component<SwitchesTableProps,{ name: string, enabled: boolean }[]>{
-    constructor(props : SwitchesTableProps) {
+type BooleanMap = { [key:string] : boolean };
+type ScriptSwitschesProps = {  };
+type ScriptSwitschesState = {
+    isEnabled: BooleanMap;
+};
+class ScriptSwitsches extends React.Component<ScriptSwitschesProps,ScriptSwitschesState>{
+    constructor(props : ScriptSwitschesProps) {
         super(props);
+        this.state = { isEnabled: {} };
         this.loadHostsIntoState();
     }
     async loadHostsIntoState() {
         let redirectHosts = await ScriptBase.getRedirectHosts();
-        let state = await Promise.all(redirectHosts.map(async function(host){
-            let enabled = await ScriptBase.isScriptEnabled(host.name);
-            return { name: host.name, enabled: enabled };
+        let scriptsEnabled = await Promise.all(redirectHosts.map(async (host) => {
+            return { name: host.name, enabled: await Storage.isScriptEnabled(host.name) };
         }));
 
-        this.setState(state);
+        let state = scriptsEnabled.reduce((obj, scriptEnabled) => {
+            obj[scriptEnabled.name] = scriptEnabled.enabled;
+            return obj;
+        }, {} as BooleanMap)
+
+        this.setState({ isEnabled: state });
     }
     getSwitchChangeCallback(name : string) {
-        let _this = this;
-        return function(target : Switch){
-            _this.onSwitchChange(target, name)
+        return (enabled : boolean) => {
+            let state = this.state.isEnabled;
+            state[name] = enabled;
+            console.log(enabled, state);
+            this.setState({ isEnabled: state });
+            Storage.setScriptEnabled(name, enabled);
         };
     }
     getSwitches() {
-        let cells = this.state.map(function(this: HostsTable, host){
-            return [
-                <td>
-                    <Switch onChange={this.getSwitchChangeCallback(host.name)} enabled={host.enabled}/>
-                </td>,
-                <td>
-                    <span>{host.name}</span>
-                </td>
-
-            ];
-        }, this);
-        let rows = [];
-        for(let i=0;i<this.props.rows;i++) {
-            rows.push(<tr>{cells.slice(i*this.props.rows,(i+1)*this.props.rows)}</tr>);
+        let switches = [];
+        for(let host in this.state.isEnabled) {
+            switches.push(
+                <div className="ov-options-script" key={host}>
+                    <Switch
+                        onChange={this.getSwitchChangeCallback(host)}
+                        enabled={this.state.isEnabled[host]}
+                    />
+                    <div className="ov-options-switch-title">{host}</div>
+                </div>
+            );
         }
-        return rows;
-    }
-    onSwitchChange(target : Switch, name: string) {
-        let index = this.state.findIndex(function(host){
-            return host.name == name;
-        });
-        let state = this.state;
-        state[index] = { name: name, enabled: target.state.enabled };
-        ScriptBase.setScriptEnabled(name, target.state.enabled);
-        this.setState(state);
-        if(this.props.onChange) {
-            this.props.onChange(this);
-        }
+        return switches;
     }
     render() {
         return (
-            <table>
-                <thead>
-                    <tr>
-                        <th colSpan={6}>
-                            <h2>{Languages.getMsg("options_site_redirections_lbl")}</h2>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {this.getSwitches()}
-                </tbody>
-            </table>
+            <div className="ov-options-scripts">
+                {this.getSwitches()}
+            </div>
         );
     }
 };
-class OtherOptionsTable extends React.Component<{},{ analytics: boolean, videopopup: boolean, history: boolean }>{
-    constructor() {
-        super({});
+type OtherSwitchesState = {
+    analytics: boolean;
+    videopopup: boolean;
+    history: boolean;
+}
+class OtherSwitches extends React.Component<{}, OtherSwitchesState>{
+    constructor(props : {}) {
+        super(props);
+        this.state = { analytics: true, videopopup: true, history: true };
         this.loadState();
     }
     async loadState() {
         let values = await Promise.all([
-            Storage.sync.get("History"),
-            Storage.sync.get("VideoPopup"),
-            Storage.sync.get("Analytics")
+            Storage.isHistoryEnabled(),
+            Storage.isVideoSearchEnabled(),
+            Storage.isAnalyticsEnabled()
         ]);
         this.setState({
-            history: values[0] != false,
-            videopopup: values[1] != false,
-            analytics: values[2] != false
+            history: values[0],
+            videopopup: values[1],
+            analytics: values[2]
         });
     }
     render() {
         return (
-            <table>
-                <tr>
-                    <td><Switch onChange={this.videopopupChange}/></td>
-                    <td>
-                        <span>{Languages.getMsg("options_site_enable_history_ckb")}</span>
-                    </td>
-                    <td><Switch onChange={this.historyChange}/></td>
-                    <td>
-                        <span>{Languages.getMsg("options_site_enable_popup_ckb")}</span>
-                    </td>
-                    <td><Switch onChange={this.analyticsChange}/></td>
-                    <td>
-                        <span>{Languages.getMsg("options_site_use_analytics_ckb")}</span>
-                    </td>
-                </tr>
-            </table>
+            <div className="ov-options-others">
+                <Switch enabled={this.state.videopopup} onChange={this.videopopupChange.bind(this)}/>
+                <div className="ov-options-switch-title">{Languages.getMsg("options_site_enable_history_ckb")}</div>
+                <Switch enabled={this.state.history} onChange={this.historyChange.bind(this)}/>
+                <div className="ov-options-switch-title">{Languages.getMsg("options_site_enable_popup_ckb")}</div>
+                <Switch enabled={this.state.analytics} onChange={this.analyticsChange.bind(this)}/>
+                <div className="ov-options-switch-title">{Languages.getMsg("options_site_use_analytics_ckb")}</div>
+            </div>
         );
     }
-    analyticsChange(el : Switch) {
-        Storage.sync.set("Analytics", el.state.enabled);
+    analyticsChange(enabled : boolean) {
+        Storage.setAnalyticsEnabled(enabled);
         this.setState({
-            analytics: el.state.enabled
+            analytics: enabled
         });
     }
-    historyChange(el : Switch) {
-        Storage.sync.set("History", el.state.enabled);
+    historyChange(enabled : boolean) {
+        Storage.setHistoryEnabled(enabled);
         this.setState({
-            history: el.state.enabled
+            history: enabled
         });
     }
-    videopopupChange(el : Switch) {
-        Storage.sync.set("VideoPopup", el.state.enabled);
+    videopopupChange(enabled : boolean) {
+        Storage.setVideoSearchEnabled(enabled);
         this.setState({
-            videopopup: el.state.enabled
+            videopopup: enabled
         });
     }
 }
-class Body extends React.Component<{},{}> {
+class Options extends React.Component<{},{}> {
     render() {
         return (
-            <div>
-                <div className="section">
-                    <h1>{Languages.getMsg("options_site_redirect_options_lbl")}</h1>
-                    <HostsTable rows={6}/>
-                </div>
-                <div className="section-last">
-                    <h1>{Languages.getMsg("options_site_other_options_lbl")}</h1>
-                    <OtherOptionsTable/>
-                </div>
+            <div className="ov-options">
+                <h1 className="ov-options-header">{Languages.getMsg("options_site_redirect_options_lbl")}</h1>
+                <ScriptSwitsches/>
+                <h1>{Languages.getMsg("options_site_other_options_lbl")}</h1>
+                <OtherSwitches/>
             </div>
         );
     }
 }
 ReactDOM.render(
-  <Body />,
+  <Options />,
   document.body
 );

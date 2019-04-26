@@ -1,0 +1,163 @@
+@import "assets/css/vars.scss";
+.ov-lib-video {
+	display: flex;
+	grid-area: body;
+	flex-direction: row-reverse;
+	overflow: hidden;
+	min-width: 0;
+	iframe {
+		flex-grow: 1;
+	    border: none;
+	    margin: 3em;
+		order: 1;
+	}
+	.ov-lib-videolist {
+		display: flex;
+		flex-wrap: wrap;
+		align-content: flex-start;
+		padding: 1em;
+		margin: 2em auto;
+		overflow-y: auto;
+	}
+	.ov-lib-videolist-playing {
+		flex-direction: column;
+		order: 0;
+		margin: 2em 2em 2em 0em;
+		flex-wrap: nowrap;
+		overflow-y: auto;
+
+		.ov-lib-videoref {
+			padding: 0.5em;
+		}
+	}
+}
+.ov-lib-videoref-playing {
+	background: rgba(0, 0, 0, 0.1);
+}
+.ov-lib-videoref {
+
+	cursor: pointer;
+	height: fit-content;
+	width: 16em;
+    margin: 0.25em;
+
+	.ov-lib-videoref-thumbnail {
+		width: 16em;
+		height: 9em;
+		background-size: contain;
+    	background-repeat: no-repeat;
+		position: relative;
+		user-select: none;
+		.ov-lib-videoref-img, .ov-lib-videoref-noimg {
+			width: 100%;
+			height: 100%;
+		}
+		.ov-lib-videoref-noimg {
+			-webkit-mask-image: url('../assets/icons/video-player-outline.svg');
+			-webkit-mask-repeat: no-repeat;
+			-webkit-mask-size: contain;
+			background: #ccc;
+			-webkit-mask-position: center;
+		}
+		.ov-lib-videoref-watched {
+			position: absolute;
+			left: 0;
+			bottom: 0;
+			right: 0;
+			background-color: $OVPrimaryColor;
+			height: 5px;
+			transition: opacity 0.3s;
+			opacity: 1;
+		}
+
+		.ov-lib-videoref-duration {
+			position: absolute;
+		    bottom: 0;
+		    right: 0;
+		    margin: 4px;
+		    color: #FFFFFF;
+		    background-color: rgba(0, 0, 0, 0.80);
+		    padding: 2px 4px;
+		    border-radius: 2px;
+		    letter-spacing: .5px;
+		    font-weight: 500;
+			transition: opacity 0.3s;
+			opacity: 1;
+		}
+		.ov-lib-videoref-links {
+			background: rgba(0,0,0,0.5);
+		    position: absolute;
+		    left: 0;
+		    right: 0;
+		    top: 0;
+		    bottom: 0;
+		    color: white;
+			transition: opacity 0.3s;
+			opacity: 0;
+
+			.ov-lib-videoref-origin-link {
+				transition: background .3s ease-out;
+				position: absolute;
+				left: 0;
+				right: 0;
+				top: 0;
+				bottom: 50%;
+				display: flex;
+
+				&:hover {
+					background: rgba(0,0,0,0.7);
+				}
+			}
+			.ov-lib-videoref-parent-link {
+				transition: background .3s ease-out;
+				position: absolute;
+			    left: 0;
+			    right: 0;
+			    top: 50%;
+			    bottom: 0;
+				display: flex;
+				&:hover {
+					background: rgba(0,0,0,0.7);
+				}
+			}
+			p {
+				font-weight: 400;
+			    font-size: 1.5em;
+			    margin-top: auto;
+			    margin-bottom: auto;
+			    padding-left: 1.3em;
+			    margin-left: 1em;
+			    background-repeat: no-repeat;
+			    background-size: 1.2em;
+				background-position-y: center;
+			}
+		}
+	}
+	.ov-lib-videoref-title {
+		max-height: 2.5em;
+	    overflow: hidden;
+	    text-overflow: ellipsis;
+	    white-space: normal;
+	    font-size: 1.2em;
+	    font-weight: 500;
+	    margin: 8px 0 8px;
+	}
+	.ov-lib-videoref-subtitle {
+		color: #606060;
+	    text-overflow: ellipsis;
+	    white-space: nowrap;
+	    overflow: hidden;
+	    font-size: 1em;
+	    font-weight: 400;
+	    text-transform: none;
+	}
+
+	&:hover {
+		.ov-lib-videoref-watched, .ov-lib-videoref-duration {
+			opacity: 0;
+		}
+		.ov-lib-videoref-links {
+			opacity: 1;
+		}
+	}
+}

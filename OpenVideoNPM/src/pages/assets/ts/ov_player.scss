@@ -1,0 +1,198 @@
+@import "../css/vars.scss";
+video {
+    outline: none;
+}
+.video-js {
+    display: flex;
+    .vjs-big-play-button {
+        background: url('../png/logo256.png') no-repeat;
+        background-size: contain;
+        background-position: center;
+        position: unset;
+        top: unset;
+        left: unset;
+        margin: auto;
+        width: 4em;
+        height: 4em;
+        z-index: 999;
+        border: none;
+        .vjs-icon-placeholder:before {
+            content:none;
+        }
+    }
+    &:hover {
+        .vjs-big-play-button {
+            background-color: transparent;
+        }
+    }
+}
+.vjs-has-started .vjs-control-bar {
+    display: inline-flex;
+    background-color: transparent;
+    bottom: 0.25em;
+    left: 1em;
+    right: 1em;
+    width: unset;
+    font-size: 1.2em;
+
+    &:before {
+        content: '';
+        background-image: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.8));
+        pointer-events: none;
+        position: absolute;
+        left: -1em;
+        right: -1em;
+        bottom: -0.5em;
+        height: 5em;
+    }
+    .vjs-button {
+        opacity: 0.9;
+        outline: none;
+        &:hover {
+            opacity: 1;
+        }
+    }
+    .vjs-button {
+        cursor: pointer;
+    }
+    .vjs-menu-content {
+        font-size: 0.9em;
+        li {
+            padding: 0.2em;
+        }
+    }
+    .vjs-progress-control {
+        height: fit-content;
+        position: absolute;
+        width: 100%;
+        bottom: 100%;
+        .vjs-progress-holder {
+            margin: 0;
+        }
+        .vjs-play-progress {
+            background-color: $OVPrimaryColor;
+        }
+    }
+    .vjs-duration {
+        display: block;
+        padding-left: 0.3em;
+    }
+    .vjs-current-time {
+        display: block;
+        padding-right: 0;
+        &:after {
+            content: " / ";
+        }
+    }
+    .vjs-volume-panel {
+
+    }
+    .vjs-play-control {
+
+    }
+    .vjs-remaining-time {
+        display: none;
+    }
+    .vjs-playback-rate {
+        margin-left: auto;
+    }
+    .vjs-subs-caps-button {
+        .vjs-menu {
+            width: 15em;
+            left: -5.5em;
+            ul {
+                overflow-x: hidden;
+                li {
+                    position: relative;
+                    text-transform: capitalize;
+                    button {
+                        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;
+                    	width: 13px;
+
+                    	position:absolute;
+                    	right: 5px;
+                        top: 2px;
+                        bottom: 2px;
+                        -webkit-mask-position: center;
+                    	background-color: #fff;
+                    }
+                }
+                li.vjs-selected button {
+                    background-color: #2B333F;
+                    color: #2B333F !important;
+                }
+            }
+        }
+    }
+    .vjs-download-button {
+
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=)
+            no-repeat center/1.5em;
+
+    }
+    .vjs-patreon-button {
+        width: 100%;
+        height: 100%;
+        background: url('../icons/Patreon_logomark.svg') no-repeat center/1.8em;
+    }
+    .vjs-theatre-button {
+        width: 100%;
+        height: 100%;
+        -webkit-mask: url('../icons/light-off.svg') no-repeat center/1.5em;
+        background-color: white;
+    }
+    .vjs-quality-button {
+        .vjs-menu-button {
+            -webkit-mask: url('../icons/settings-work-tool.svg') no-repeat center/1.5em;
+            background-color: white;
+        }
+        .vjs-menu {
+            width: 7em;
+            left: -1.5em;
+            ul {
+                li {
+                    position: relative;
+                    button {
+                        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;
+                    	width: 13px;
+
+                    	position:absolute;
+                    	right: 5px;
+                        top: 2px;
+                        bottom: 2px;
+                        -webkit-mask-position: center;
+                    	background-color: #fff;
+                    }
+
+                }
+                li.vjs-selected button {
+                    background-color: #2B333F;
+                    color: #2B333F !important;
+                }
+            }
+        }
+
+    }
+    .vjs-playlist-button {
+        .vjs-menu-button {
+            -webkit-mask: url('../icons/playlist.svg') no-repeat center;
+            -webkit-mask-size: 1.9em;
+            background-color: white;
+        }
+        .vjs-menu {
+
+            ul {
+                li {
+                    text-transform: capitalize;
+                }
+            }
+        }
+
+    }
+    .vjs-fullscreen-control {
+
+    }
+}

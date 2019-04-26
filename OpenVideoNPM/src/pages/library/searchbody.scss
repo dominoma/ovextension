@@ -1,0 +1,158 @@
+@import "assets/css/vars.scss";
+.ov-lib-search-input {
+	width: 15em;
+	font-size: 1.5em;
+	display:flex;
+  	flex-direction:row;
+	box-sizing: border-box;
+	padding: 0.25em 0 0.25em 0.25em;
+	border: solid 1px gainsboro;
+	-webkit-transition: box-shadow 0.3s, border 0.3s;
+	-moz-transition: box-shadow 0.3s, border 0.3s;
+	-o-transition: box-shadow 0.3s, border 0.3s;
+	transition: box-shadow 0.3s, border 0.3s;
+	outline-color: $OVPrimaryColor;
+	background: white;
+	input {
+		resize: none;
+		background: white;
+		border: none;
+		flex-grow:2;
+
+		&:focus {
+			outline: none;
+		}
+	}
+	&:hover, &:focus {
+		-webkit-box-shadow: 0 0 5px 1px $OVPrimaryColor;
+		-moz-box-shadow: 0 0 5px 1px $OVPrimaryColor;
+		box-shadow: 0 0 5px 1px $OVPrimaryColor;
+	}
+	.ov-lib-search-input-btn {
+		-webkit-mask-image: url('../assets/icons/musica-searcher.svg');
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		width: 1.25em;
+		background-color: #aaaaaa;
+		margin: auto 0.2em;
+		height: 1.25em;
+		&:hover {
+			background-color: $OVPrimaryColor;
+		}
+	}
+}
+.ov-lib-search-btn-list {
+	margin: 2em auto auto auto;
+	display: flex;
+	.ov-lib-search-btn {
+		cursor: pointer;
+		font-size: 1.5em;
+		color: #0a0a0a;
+		text-align: center;
+		margin: 0.25em;
+		display: flex;
+		flex-direction: column;
+		width: 6em;
+		overflow: hidden;
+		.ov-lib-search-btn-bg {
+			border-radius: 50%;
+			width: 5em;
+			height: 5em;
+			background: whitesmoke;
+			display: flex;
+			margin: auto;
+			.ov-lib-search-btn-img {
+				margin: auto;
+				width: 2em;
+				height: 2em;
+				background-repeat: no-repeat;
+				background-size: contain;
+			}
+
+		}
+		&:hover {
+			.ov-lib-search-btn-bg {
+				background: rgba(0, 0, 0, 0.1);
+			}
+		}
+		.ov-lib-search-btn-text {
+			margin:auto;
+		}
+	}
+	.ov-lib-search-btn-selected {
+		.ov-lib-search-btn-bg {
+			background: rgba(0, 0, 0, 0.2) !important;
+		}
+	}
+}
+.ov-library-search-results {
+	display: flex;
+	flex-wrap: wrap;
+	overflow-y: auto;
+	margin: 0em 2em 2em 2em;
+
+	.ov-library-search-result {
+		display: grid;
+	    grid: "icon title" 1.8em
+			  "desc desc"  1fr /
+			  1.8em 1fr;
+	    width: 35em;
+	    height: 7em;
+	    text-decoration: none;
+	    color: black;
+	    padding: 0.2em;
+	    margin: 0.2em;
+	    background: whitesmoke;
+		border: solid 1px #ccc;
+
+		&:hover {
+			border: solid 1px $OVPrimaryColor;
+			background: rgba(0, 0, 0, 0.2);
+		}
+
+		.ov-library-search-result-icon {
+			background-repeat: no-repeat;
+			background-size: contain;
+			grid-area: icon;
+			margin: 0.1em;
+		}
+		.ov-library-search-result-title {
+			grid-area: title;
+			font-weight: bold;
+			font-size: 1.25em;
+			overflow: hidden;
+			margin-left: 0.2em;
+		}
+		.ov-library-search-result-description {
+			grid-area: desc;
+			margin: 0.2em;
+			em {
+				font-weight: bold;
+				color: $OVPrimaryColor;
+				font-style: normal;
+			}
+		}
+	}
+}
+.ov-lib-search {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	overflow: auto;
+	.ov-lib-search-input {
+		margin: auto auto 2em auto;
+		width: 80%;
+		max-width: 30em;
+	}
+}
+.ov-lib-search-result-body {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	overflow: auto;
+	.ov-lib-search-input {
+		margin: 2em auto;
+		width: 80%;
+		max-width: 30em;
+	}
+}

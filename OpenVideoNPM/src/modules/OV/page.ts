@@ -72,17 +72,22 @@ export async function injectScript(file: string): Promise<HTMLScriptElement> {
         (document.body || document.head).appendChild(script);
     });
 }
-export async function injectRawScript(func: string): Promise<HTMLScriptElement> {
+export async function injectRawScript(func: string, head ?: boolean): Promise<HTMLScriptElement> {
     await isReady();
     return new Promise<HTMLScriptElement>(function(resolve, reject) {
         var script = document.createElement('script');
         script.innerHTML = "("+func+")();";
-        script.async = true;
+        script.async = !head;
         script.onload = function() {
             script.onload = null;
             resolve(script);
         };
-        (document.body || document.head).appendChild(script);
+        if(head) {
+             document.head.insertBefore(script, document.head.children[0] || null);
+        }
+        else {
+            (document.body || document.head).appendChild(script);
+        }
     });
 };
 export async function injectScripts(files: string[]) {

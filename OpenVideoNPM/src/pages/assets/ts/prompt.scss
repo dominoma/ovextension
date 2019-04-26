@@ -1,0 +1,17 @@
+.ov-prompt-wrapper {
+    position: fixed;
+    display: flex;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+
+    .ov-prompt-content {
+        margin: 6em auto auto auto;
+        padding: 1em;
+        background: white;
+        border-radius: 0.5em;
+    }
+}

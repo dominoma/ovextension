@@ -1,0 +1,73 @@
+@import "assets/css/vars.scss";
+body {
+    position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: rgba(0, 0, 0, 0.95);
+	transition: opacity 500ms;
+	z-index: 100000;
+    display: flex;
+    font-family: "Open Sans", sans-serif;
+}
+.ov-videopopup-content {
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    padding: 0 1.2em;
+	background: #fff;
+	width: 60vw !important;
+    height: calc(( 9/ 16)*60vw) !important;
+	border: solid 1px #8dc73f;
+	border-radius: 5px;
+	-webkit-box-shadow: 0 0 5px 1px #8dc73f;
+	-moz-box-shadow: 0 0 5px 1px #8dc73f;
+	box-shadow: 0 0 5px 1px #8dc73f;
+
+    .ov-videopopup-header {
+        display: flex;
+        font-size: 1.6em;
+        .ov-videopopup-close {
+        	transition: all 200ms;
+        	font-size: 1.5em;
+        	font-weight: bold;
+        	text-decoration: none;
+        	color: #333;
+            margin: auto 0 auto auto;
+        	cursor: pointer;
+            &:hover {
+            	color: $OVPrimaryColor;
+            }
+        }
+        h2 {
+            margin: auto 0;
+            font-size: 1em;
+        }
+    }
+
+    .ov-videopopup-player {
+        flex-grow: 1;
+    }
+
+    .ov-videopopup-footer {
+        margin: 0.5em auto;
+        .ov-videopopup-button, .ov-videopopup-button-disabled {
+        	color: white;
+        	height: 2.5em;
+            padding: 0.75em;
+        	border: none;
+        	cursor: pointer;
+        	outline: none;
+            font-size: 1.25em;
+        }
+        .ov-videopopup-button {
+        	background-color: $OVPrimaryColor;
+            width: 2.5em;
+            font-weight: bold;
+        }
+        .ov-videopopup-button-disabled {
+        	background-color: #ccc;
+        }
+    }
+}

@@ -3,7 +3,7 @@
 		"message": "Watch videos from OpenLoad, Streamango, RapidVideo, ... without ads or popups!",
 		"description": "Extension Description"
 	},
-	
+
 	"popup_menu_library_btn": {
 		"message": "Library"
 	},
@@ -23,7 +23,7 @@
 		"message": "Search for movies"
 	},
 	"popup_menu_rating_btn": {
-		"message": "Love it? Rate it <i>here</i>"
+		"message": "Love it? Rate it!"
 	},
 	"popup_menu_support_btn": {
 		"message": "Support"
@@ -31,7 +31,7 @@
 	"popup_menu_version_lbl": {
 		"message": "Version"
 	},
-	
+
 	"options_site_redirect_options_lbl": {
 		"message": "Redirect-Options"
 	},
@@ -50,7 +50,7 @@
 	"options_site_use_analytics_ckb": {
 		"message": "Use Google Analytics"
 	},
-	
+
 	"library_site_library_lbl": {
 		"message": "Library"
 	},
@@ -75,14 +75,14 @@
 	"library_site_favorites_lbl": {
 		"message": "Favorites"
 	},
-	
+
 	"video_popup_msg_lbl": {
 		"message": "OpenVideo found a video!"
-	}, 
+	},
 	"video_popup_video_bar_lbl": {
 		"message": "Video {curr_vid} of {vid_count}"
-	}, 
-	
+	},
+
 	"video_player_err_msg": {
 		"message": "The video could not be loaded, either because your internet connection is too slow or because this video hoster is blocked in your country. Reloading the page, using a proxy (click on the OpenVideo icon) or a different video hoster might help. If nothing of this has worked you can tell me via Support on which hoster OpenVideo doesn't work and I'll look over it."
 	},

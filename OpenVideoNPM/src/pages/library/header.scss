@@ -1,0 +1,34 @@
+@import "assets/css/vars.scss";
+.ov-lib-head {
+
+	display: flex;
+	background-color: $OVPrimaryColor;
+	grid-area: head;
+	.ov-lib-head-icon {
+		margin: auto 1em;
+		background-image: url('../assets/png/logo256.png');
+		background-repeat: no-repeat;
+		background-size: contain;
+		width: 4em;
+		height: 4em;
+	}
+	.ov-lib-head-icon-text {
+		margin: auto 0em;
+		font-size: 2em;
+		cursor: default;
+		color: white;
+		user-select: none;
+	}
+	.ov-lib-head-title {
+		margin: auto;
+		font-size: 2em;
+		cursor: default;
+		color: white;
+		user-select: none;
+	}
+	.ov-lib-search-input {
+		margin: auto 1em;
+		width: 20em;
+	}
+
+}

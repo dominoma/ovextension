@@ -1,15 +1,5 @@
 import * as Tools from "./tools";
 
-export enum State {
-    EvToMdw = "EvToMdw",
-    MdwToBG = "MdwToBG",
-    BGToMdw = "BGToMdw",
-    MdwToEv = "MdwToEv",
-    EvToMdwRsp = "EvToMdwRsp",
-    MdwToBGRsp = "MdwToBGRsp",
-    BGToMdwRsp = "BGToMdwRsp",
-    MdwToEvRsp = "MdwToEvRsp"
-}
 export interface BackgroundData {
     data: any;
     func: string;

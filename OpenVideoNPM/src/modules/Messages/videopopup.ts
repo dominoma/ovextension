@@ -6,6 +6,7 @@ import * as Environment from "./../OV/environment";
 import * as Page from "./../OV/page";
 
 import * as Background from "./background";
+import * as VideoHistory from "./videohistory";
 
 let videoArr: Array<VideoTypes.VideoData> = [];
 let newVideos = 0;
@@ -26,16 +27,21 @@ function _isPopupVisible(): boolean {
 function isPopupCreated(): boolean {
     return document.getElementById("videoPopup") != undefined;
 }
-function _addVideoToPopup(videoData: VideoTypes.RawVideoData) {
+async function _addVideoToPopup(videoData: VideoTypes.RawVideoData) {
     let src = videoData.src;
+    let origin = await VideoHistory.getPageRefData();
     let videoListEntry = videoArr.find(function(arrElem) {
         return arrElem.src[0].src == src[0].src;
     });
     if (videoListEntry == null) {
         videoArr.push(Tools.merge(videoData, {
             title: document.title,
-            origin: location.href,
-            host: "Popup"
+            origin: origin!,
+            parent: {
+                url: "POPUP",
+                name: "POPUP",
+                icon: "POPUP"
+            }
         }));
         newVideos++;
         if (!isPopupCreated()) {
@@ -93,6 +99,7 @@ export function setup() {
                 firstpopup = false;
             }
             pauseAllVideos();
+            setIconOpensPopup(false);
         },
         videopopup_closePopup: async function(request) {
             if(!isPopupCreated()) {
@@ -100,10 +107,19 @@ export function setup() {
             }
             getPopupFrame().hidden = true;
             getPopupFrame().style.setProperty("display", "none", "important");
-            Background.setIconPopup();
+            setIconOpensPopup(true);
         },
         videopopup_addVideoToPopup: async function(request) {
             _addVideoToPopup(request.data.videoData);
+            setIconOpensPopup(true);
         }
     });
+}
+export function setIconOpensPopup(openpopup : boolean) {
+    if(openpopup) {
+        Background.setIconPopup();
+    }
+    else {
+        Background.setIconPopup("pages/popupmenu.html");
+    }
 }

@@ -1,0 +1,48 @@
+{
+    "library": {
+        "srcDir": "pages/library/",
+        "distDir": "pages/",
+        "isHTML": true
+    },
+    "options": {
+        "srcDir": "pages/options/",
+        "distDir": "pages/",
+        "isHTML": true
+    },
+    "popupmenu": {
+        "srcDir": "pages/popupmenu/",
+        "distDir": "pages/",
+        "isHTML": true
+    },
+    "videoplay": {
+        "srcDir": "pages/videoplay/",
+        "distDir": "pages/",
+        "isHTML": true
+    },
+    "videopopup": {
+        "srcDir": "pages/videopopup/",
+        "distDir": "pages/",
+        "isHTML": true
+    },
+    "bg_script": {
+        "srcDir": "background_scripts/"
+    },
+    "document_start": {
+        "srcDir": "content_scripts/"
+    },
+    "document_idle": {
+        "srcDir": "content_scripts/"
+    },
+    "document_end": {
+        "srcDir": "content_scripts/"
+    },
+    "top_window": {
+        "srcDir": "content_scripts/"
+    },
+    "search_videos": {
+        "srcDir": "inject_scripts/"
+    },
+    "pac_firefox": {
+        "srcDir": "proxy_scripts/"
+    }
+}

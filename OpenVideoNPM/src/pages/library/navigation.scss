@@ -1,0 +1,66 @@
+@import "assets/css/vars.scss";
+.ov-lib-nav {
+    grid-area: nav;
+    font-size: 1rem;
+	background: rgba(245,245,245,1);
+	font-family: Segoe UI;
+    .ov-lib-nav-btn {
+
+		display: flex;
+    	color: #0a0a0a;
+    	height: 3em;
+		font-weight: 400;
+		cursor: pointer;
+		user-select: none;
+
+		.ov-lib-nav-btn-text {
+			overflow: hidden;
+		    white-space: nowrap;
+		    text-overflow: ellipsis;
+		    margin: auto 0em;
+		}
+		.ov-lib-nav-btn-icon {
+			width: 1.5em;
+		    height: 1.5em;
+		    margin: auto 1em;
+			-webkit-mask-repeat: no-repeat;
+		    -webkit-mask-size: contain;
+			-webkit-mask-image: url('../assets/icons/subscription.svg');
+		    background-color: #909090;
+		}
+
+        &:hover {
+			background: rgba(0,0,0,0.1);
+        }
+    }
+	.ov-lib-nav-btn-selected {
+		background: rgba(0,0,0,0.2);
+		font-weight: 500 !important;
+		.ov-lib-nav-btn-icon {
+			background-color: $OVPrimaryColor;
+		}
+		&:hover {
+			background: rgba(0,0,0,0.2);
+		}
+	}
+	.ov-lib-nav-btn-search {
+		.ov-lib-nav-btn-icon {
+			-webkit-mask-image: url('../assets/icons/musica-searcher.svg');
+		}
+	}
+	.ov-lib-nav-btn-history {
+		.ov-lib-nav-btn-icon {
+			-webkit-mask-image: url('../assets/icons/history-clock-button.svg');
+		}
+	}
+	.ov-lib-nav-btn-favorites {
+		.ov-lib-nav-btn-icon {
+			-webkit-mask-image: url('../assets/icons/favorite-heart-button.svg');
+		}
+	}
+	.ov-lib-nav-btn-addPlaylist {
+		.ov-lib-nav-btn-icon {
+			-webkit-mask-image: url('../assets/icons/playlist.svg');
+		}
+	}
+}
