@@ -64,11 +64,11 @@ function getFavicon() {
 export async function startScripts(scope: RunScopes, onScriptExecute: () => Promise<void>, onScriptExecuted: (videoData : VideoTypes.VideoData) => Promise<void> ){
     if (Tools.parseURL(location.href).query["ovignore"] != "true") {
         for (let host of redirectHosts) {
-            let isEnabled = await Storage.isScriptEnabled(host.name);
-            if (isEnabled) {
-                for (let script of host.scripts) {
-                    let match = location.href.match(script.urlPattern);
-                    if (match) {
+            for (let script of host.scripts) {
+                let match = location.href.match(script.urlPattern);
+                if (match) {
+                    let isEnabled = await Storage.isScriptEnabled(host.name);
+                    if (isEnabled) {
                         console.log("Redirect with " + host.name)
                         for (let runScope of script.runScopes) {
                             if (runScope.run_at == scope) {
@@ -77,7 +77,7 @@ export async function startScripts(scope: RunScopes, onScriptExecute: () => Prom
                                     await onScriptExecute();
                                     console.log("script executed");
                                     let rawVideoData = await runScope.script({ url: location.href, match: match, hostname: host.name, run_scope: runScope.run_at });
-                                    let parent = null;
+                                    let parent = null as VideoTypes.PageRefData | null;
                                     console.log(Page.isFrame())
                                     if(Page.isFrame()) {
                                         parent = await VideoHistory.getPageRefData();

@@ -30,6 +30,7 @@ Page.wrapType(XMLHttpRequest, {
 });
 import videojs from "video.js";
 import * as OVPlayerComponents from "./ov_player_components";
+import "videojs-hotkeys/videojs.hotkeys.js";
 OVPlayerComponents.setup();
 type OVPlayerProps = {
     videoData: VideoTypes.VideoData
@@ -162,11 +163,11 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
     async playerReady() {
         OVPlayer.player!.execute = this.execute.bind(this);
 
-        /*OVPlayer.player!.hotkeys({
+        OVPlayer.player!.hotkeys({
             volumeStep: 0.1,
             seekStep: 5,
             enableModifiersForNumbers: false
-        });*/
+        });
         (OVPlayer.player!.el() as HTMLElement).style.width = "100%";
         (OVPlayer.player!.el() as HTMLElement).style.height = "100%";
         let ControlBar = OVPlayer.player!.getChild('controlBar');
@@ -213,7 +214,12 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
             var TheaterButton = ControlBar.addChild('vjsTheatreButton', {});
             ControlBar.el().insertBefore(TheaterButton.el(), FullscreenToggle.el());
             OVPlayer.player!.on("fullscreenchange", () => {
-                (TheaterButton.el() as HTMLElement).style.display = OVPlayer.player!.isFullscreen() ? "none" : "inherit";
+                if(OVPlayer.player!.isFullscreen()) {
+                    (TheaterButton.el() as HTMLElement).style.display = "none";
+                }
+                else {
+                    (TheaterButton.el() as HTMLElement).style.removeProperty("display");
+                }
             });
         }
         let volume = await Storage.getPlayerVolume();

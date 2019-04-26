@@ -126,33 +126,28 @@ video {
     }
     .vjs-download-button {
 
-        width: 1.5em;
-        height: 1.5em;
-        margin: auto;
+        width: 100%;
+        height: 100%;
         background-color: white;
-        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat;
+        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=)
+            no-repeat center/1.5em;
 
     }
     .vjs-patreon-button {
-        width: 1.8em;
-        height: 1.8em;
-        margin: auto;
-        background-image: url('../icons/Patreon_logomark.svg');
+        width: 100%;
+        height: 100%;
+        background: url('../icons/Patreon_logomark.svg') no-repeat center/1.8em;
     }
     .vjs-theatre-button {
-        width: 1.5em;
-        height: 1.5em;
-        margin: auto;
-        -webkit-mask: url('../icons/light-off.svg') no-repeat;
-        -webkit-mask-size: contain;
+        width: 100%;
+        height: 100%;
+        -webkit-mask: url('../icons/light-off.svg') no-repeat center/1.5em;
         background-color: white;
     }
     .vjs-quality-button {
         .vjs-menu-button {
-            -webkit-mask: url('../icons/settings-work-tool.svg') no-repeat;
-            -webkit-mask-size: 1.5em;
+            -webkit-mask: url('../icons/settings-work-tool.svg') no-repeat center/1.5em;
             background-color: white;
-            -webkit-mask-position: center;
         }
         .vjs-menu {
             width: 7em;
@@ -183,10 +178,9 @@ video {
     }
     .vjs-playlist-button {
         .vjs-menu-button {
-            -webkit-mask: url('../icons/playlist.svg') no-repeat;
+            -webkit-mask: url('../icons/playlist.svg') no-repeat center;
             -webkit-mask-size: 1.9em;
             background-color: white;
-            -webkit-mask-position: center;
         }
         .vjs-menu {
 

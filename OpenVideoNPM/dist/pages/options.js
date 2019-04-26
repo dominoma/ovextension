@@ -1087,18 +1087,23 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
-function injectRawScript(func) {
+function injectRawScript(func, head) {
     return __awaiter(this, void 0, void 0, function* () {
         yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.innerHTML = "(" + func + ")();";
-            script.async = true;
+            script.async = !head;
             script.onload = function () {
                 script.onload = null;
                 resolve(script);
             };
-            (document.body || document.head).appendChild(script);
+            if (head) {
+                document.head.insertBefore(script, document.head.children[0] || null);
+            }
+            else {
+                (document.body || document.head).appendChild(script);
+            }
         });
     });
 }
@@ -1818,11 +1823,11 @@ function startScripts(scope, onScriptExecute, onScriptExecuted) {
     return __awaiter(this, void 0, void 0, function* () {
         if (Tools.parseURL(location.href).query["ovignore"] != "true") {
             for (let host of redirectHosts) {
-                let isEnabled = yield Storage.isScriptEnabled(host.name);
-                if (isEnabled) {
-                    for (let script of host.scripts) {
-                        let match = location.href.match(script.urlPattern);
-                        if (match) {
+                for (let script of host.scripts) {
+                    let match = location.href.match(script.urlPattern);
+                    if (match) {
+                        let isEnabled = yield Storage.isScriptEnabled(host.name);
+                        if (isEnabled) {
                             console.log("Redirect with " + host.name);
                             for (let runScope of script.runScopes) {
                                 if (runScope.run_at == scope) {

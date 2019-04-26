@@ -140,7 +140,7 @@ export function install() {
                 run_at: ScriptBase.RunScopes.document_start,
                 script: async function(details) {
                     if (details.url.indexOf("openload.co") == -1) {
-                        details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
+                        details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "oload.services");
                     }
 
                     if (details.url.indexOf("/f/") != -1) {
@@ -198,10 +198,10 @@ export function install() {
 
                     let subtitles = getTracksFromHTML(HTML);
 
-
+                    console.log(HTML);
                     let longString = HTML.match(/<p[^>]*>([^<]*)<\/p>/)![1];
                     console.log(longString)
-                    console.log(HTML);
+
                     let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)![1];
                     let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)![1];
 
@@ -255,7 +255,7 @@ export function install() {
                 run_at: ScriptBase.RunScopes.document_start,
                 script: async function(details): Promise<VideoTypes.RawVideoData> {
                     //details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}/, "streamango.com").replace(/\/f\//, "/embed/");
-
+                    //stopExecution();
                     function resolveVideo(hashCode: string, intVal: number) {
                         let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
                         let retVal = '';

@@ -81,12 +81,12 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 153);
+/******/ 	return __webpack_require__(__webpack_require__.s = 154);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 148:
+/***/ 149:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -251,7 +251,7 @@ exports.setIconOpensPopup = setIconOpensPopup;
 
 /***/ }),
 
-/***/ 150:
+/***/ 151:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -408,7 +408,7 @@ function install() {
                         script: function (details) {
                             return __awaiter(this, void 0, void 0, function* () {
                                 if (details.url.indexOf("openload.co") == -1) {
-                                    details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "openload.co");
+                                    details.url = details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "oload.services");
                                 }
                                 if (details.url.indexOf("/f/") != -1) {
                                     Analytics.fireEvent("OpenLoad over File", "Utils", details.url);
@@ -459,9 +459,9 @@ function install() {
                                 let thumbnailUrl = Tools.matchNull(HTML, /poster="([^"]*)"/);
                                 let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
                                 let subtitles = getTracksFromHTML(HTML);
+                                console.log(HTML);
                                 let longString = HTML.match(/<p[^>]*>([^<]*)<\/p>/)[1];
                                 console.log(longString);
-                                console.log(HTML);
                                 let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)[1];
                                 let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)[1];
                                 let keyResult1 = 0;
@@ -509,6 +509,7 @@ function install() {
                         script: function (details) {
                             return __awaiter(this, void 0, void 0, function* () {
                                 //details.url = details.url.replace(/(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}/, "streamango.com").replace(/\/f\//, "/embed/");
+                                //stopExecution();
                                 function resolveVideo(hashCode, intVal) {
                                     let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
                                     let retVal = '';
@@ -1008,7 +1009,7 @@ exports.install = install;
 
 /***/ }),
 
-/***/ 153:
+/***/ 154:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1024,11 +1025,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const ScriptBase = __webpack_require__(56);
 const Storage = __webpack_require__(18);
-const RedirectScripts = __webpack_require__(150);
+const RedirectScripts = __webpack_require__(151);
 const TheatreMode = __webpack_require__(22);
 const Proxy = __webpack_require__(64);
 const Page = __webpack_require__(21);
-const VideoPopup = __webpack_require__(148);
+const VideoPopup = __webpack_require__(149);
 RedirectScripts.install();
 ScriptBase.startScripts("document_end" /* document_end */, function () {
     return __awaiter(this, void 0, void 0, function* () {
@@ -1987,18 +1988,23 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
-function injectRawScript(func) {
+function injectRawScript(func, head) {
     return __awaiter(this, void 0, void 0, function* () {
         yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.innerHTML = "(" + func + ")();";
-            script.async = true;
+            script.async = !head;
             script.onload = function () {
                 script.onload = null;
                 resolve(script);
             };
-            (document.body || document.head).appendChild(script);
+            if (head) {
+                document.head.insertBefore(script, document.head.children[0] || null);
+            }
+            else {
+                (document.body || document.head).appendChild(script);
+            }
         });
     });
 }
@@ -2186,18 +2192,6 @@ function registerIFrame(iframe) {
             }
         }
     });
-    /*let observer = new MutationObserver(function(mutations) {
-        if (isFrameActive() && getActiveFrame().iframe == iframe) {
-            let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
-            let newtop = Math.floor((window.innerHeight - iframe.clientHeight) / 2).toString() + "px";
-            if (iframe.style.left != newleft) {
-                iframe.style.setProperty("left", newleft);
-                iframe.style.setProperty("top", newtop);
-            }
-        }
-
-    });
-    observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });*/
     shadow.className = "ov-theaterMode";
     shadow.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -2211,7 +2205,7 @@ function registerIFrame(iframe) {
         throw Error("IFrame is not part of the page!");
     }
     iframe.parentNode.appendChild(shadow);
-    iframes.push({ shadow: shadow, iframe: iframe, observer: null });
+    iframes.push({ shadow: shadow, iframe: iframe });
     return iframes[iframes.length - 1];
 }
 exports.registerIFrame = registerIFrame;
@@ -2855,11 +2849,11 @@ function startScripts(scope, onScriptExecute, onScriptExecuted) {
     return __awaiter(this, void 0, void 0, function* () {
         if (Tools.parseURL(location.href).query["ovignore"] != "true") {
             for (let host of redirectHosts) {
-                let isEnabled = yield Storage.isScriptEnabled(host.name);
-                if (isEnabled) {
-                    for (let script of host.scripts) {
-                        let match = location.href.match(script.urlPattern);
-                        if (match) {
+                for (let script of host.scripts) {
+                    let match = location.href.match(script.urlPattern);
+                    if (match) {
+                        let isEnabled = yield Storage.isScriptEnabled(host.name);
+                        if (isEnabled) {
                             console.log("Redirect with " + host.name);
                             for (let runScope of script.runScopes) {
                                 if (runScope.run_at == scope) {

@@ -195,6 +195,11 @@ class Library extends React.Component {
             activePrompt: null
         };
     }
+    componentDidUpdate(oldprops) {
+        if (oldprops.nav != this.props.nav || oldprops.search != this.props.search) {
+            this.setState({ nav: this.props.nav || navigation_1.fixedButtons.search, search: this.props.search });
+        }
+    }
     render() {
         let body = null;
         document.title = this.state.nav.name + " - OV-Library";
@@ -1217,18 +1222,23 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
-function injectRawScript(func) {
+function injectRawScript(func, head) {
     return __awaiter(this, void 0, void 0, function* () {
         yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.innerHTML = "(" + func + ")();";
-            script.async = true;
+            script.async = !head;
             script.onload = function () {
                 script.onload = null;
                 resolve(script);
             };
-            (document.body || document.head).appendChild(script);
+            if (head) {
+                document.head.insertBefore(script, document.head.children[0] || null);
+            }
+            else {
+                (document.body || document.head).appendChild(script);
+            }
         });
     });
 }
@@ -1415,18 +1425,6 @@ function registerIFrame(iframe) {
             }
         }
     });
-    /*let observer = new MutationObserver(function(mutations) {
-        if (isFrameActive() && getActiveFrame().iframe == iframe) {
-            let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
-            let newtop = Math.floor((window.innerHeight - iframe.clientHeight) / 2).toString() + "px";
-            if (iframe.style.left != newleft) {
-                iframe.style.setProperty("left", newleft);
-                iframe.style.setProperty("top", newtop);
-            }
-        }
-
-    });
-    observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });*/
     shadow.className = "ov-theaterMode";
     shadow.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -1440,7 +1438,7 @@ function registerIFrame(iframe) {
         throw Error("IFrame is not part of the page!");
     }
     iframe.parentNode.appendChild(shadow);
-    iframes.push({ shadow: shadow, iframe: iframe, observer: null });
+    iframes.push({ shadow: shadow, iframe: iframe });
     return iframes[iframes.length - 1];
 }
 exports.registerIFrame = registerIFrame;

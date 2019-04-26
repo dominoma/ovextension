@@ -147,14 +147,14 @@
 /******/
 /******/
 /******/ 	// add entry module to deferred list
-/******/ 	deferredModules.push([155,1]);
+/******/ 	deferredModules.push([156,1]);
 /******/ 	// run deferred modules when ready
 /******/ 	return checkDeferredModules();
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 148:
+/***/ 149:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -319,15 +319,15 @@ exports.setIconOpensPopup = setIconOpensPopup;
 
 /***/ }),
 
-/***/ 155:
+/***/ 156:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Page = __webpack_require__(21);
-const VideoPopup = __webpack_require__(148);
-__webpack_require__(156);
+const VideoPopup = __webpack_require__(149);
+__webpack_require__(157);
 class VideoSearcher {
     sendVideoData(videoData) {
         if (videoData.src.length > 0) {
@@ -606,11 +606,11 @@ else {
 
 /***/ }),
 
-/***/ 156:
+/***/ 157:
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(157);
+var content = __webpack_require__(158);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -632,7 +632,7 @@ if(false) {}
 
 /***/ }),
 
-/***/ 157:
+/***/ 158:
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(3)(false);
@@ -1576,18 +1576,23 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
-function injectRawScript(func) {
+function injectRawScript(func, head) {
     return __awaiter(this, void 0, void 0, function* () {
         yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.innerHTML = "(" + func + ")();";
-            script.async = true;
+            script.async = !head;
             script.onload = function () {
                 script.onload = null;
                 resolve(script);
             };
-            (document.body || document.head).appendChild(script);
+            if (head) {
+                document.head.insertBefore(script, document.head.children[0] || null);
+            }
+            else {
+                (document.body || document.head).appendChild(script);
+            }
         });
     });
 }

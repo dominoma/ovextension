@@ -147,7 +147,7 @@
 /******/
 /******/
 /******/ 	// add entry module to deferred list
-/******/ 	deferredModules.push([145,1]);
+/******/ 	deferredModules.push([146,1]);
 /******/ 	// run deferred modules when ready
 /******/ 	return checkDeferredModules();
 /******/ })
@@ -195,6 +195,7 @@ Page.wrapType(XMLHttpRequest, {
 });
 const video_js_1 = __webpack_require__(68);
 const OVPlayerComponents = __webpack_require__(144);
+__webpack_require__(145);
 OVPlayerComponents.setup();
 class OVPlayer extends React.Component {
     constructor() {
@@ -313,11 +314,11 @@ class OVPlayer extends React.Component {
     playerReady() {
         return __awaiter(this, void 0, void 0, function* () {
             OVPlayer.player.execute = this.execute.bind(this);
-            /*OVPlayer.player!.hotkeys({
+            OVPlayer.player.hotkeys({
                 volumeStep: 0.1,
                 seekStep: 5,
                 enableModifiersForNumbers: false
-            });*/
+            });
             OVPlayer.player.el().style.width = "100%";
             OVPlayer.player.el().style.height = "100%";
             let ControlBar = OVPlayer.player.getChild('controlBar');
@@ -362,7 +363,12 @@ class OVPlayer extends React.Component {
                 var TheaterButton = ControlBar.addChild('vjsTheatreButton', {});
                 ControlBar.el().insertBefore(TheaterButton.el(), FullscreenToggle.el());
                 OVPlayer.player.on("fullscreenchange", () => {
-                    TheaterButton.el().style.display = OVPlayer.player.isFullscreen() ? "none" : "inherit";
+                    if (OVPlayer.player.isFullscreen()) {
+                        TheaterButton.el().style.display = "none";
+                    }
+                    else {
+                        TheaterButton.el().style.removeProperty("display");
+                    }
                 });
             }
             let volume = yield Storage.getPlayerVolume();
@@ -636,7 +642,7 @@ var ___CSS_LOADER_URL___3___ = urlEscape(__webpack_require__(143));
 var ___CSS_LOADER_URL___4___ = urlEscape(__webpack_require__(46));
 
 // Module
-exports.push([module.i, "video {\n  outline: none; }\n\n.video-js {\n  display: flex; }\n  .video-js .vjs-big-play-button {\n    background: url(" + ___CSS_LOADER_URL___0___ + ") no-repeat;\n    background-size: contain;\n    background-position: center;\n    position: unset;\n    top: unset;\n    left: unset;\n    margin: auto;\n    width: 4em;\n    height: 4em;\n    z-index: 999;\n    border: none; }\n    .video-js .vjs-big-play-button .vjs-icon-placeholder:before {\n      content: none; }\n  .video-js:hover .vjs-big-play-button {\n    background-color: transparent; }\n\n.vjs-has-started .vjs-control-bar {\n  display: inline-flex;\n  background-color: transparent;\n  bottom: 0.25em;\n  left: 1em;\n  right: 1em;\n  width: unset;\n  font-size: 1.2em; }\n  .vjs-has-started .vjs-control-bar:before {\n    content: '';\n    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8));\n    pointer-events: none;\n    position: absolute;\n    left: -1em;\n    right: -1em;\n    bottom: -0.5em;\n    height: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    opacity: 0.9;\n    outline: none; }\n    .vjs-has-started .vjs-control-bar .vjs-button:hover {\n      opacity: 1; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    cursor: pointer; }\n  .vjs-has-started .vjs-control-bar .vjs-menu-content {\n    font-size: 0.9em; }\n    .vjs-has-started .vjs-control-bar .vjs-menu-content li {\n      padding: 0.2em; }\n  .vjs-has-started .vjs-control-bar .vjs-progress-control {\n    height: fit-content;\n    position: absolute;\n    width: 100%;\n    bottom: 100%; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-progress-holder {\n      margin: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-play-progress {\n      background-color: #8dc73f; }\n  .vjs-has-started .vjs-control-bar .vjs-duration {\n    display: block;\n    padding-left: 0.3em; }\n  .vjs-has-started .vjs-control-bar .vjs-current-time {\n    display: block;\n    padding-right: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-current-time:after {\n      content: \" / \"; }\n  .vjs-has-started .vjs-control-bar .vjs-remaining-time {\n    display: none; }\n  .vjs-has-started .vjs-control-bar .vjs-playback-rate {\n    margin-left: auto; }\n  .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu {\n    width: 15em;\n    left: -5.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul {\n      overflow-x: hidden; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li {\n        position: relative;\n        text-transform: capitalize; }\n        .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li button {\n          -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n          width: 13px;\n          position: absolute;\n          right: 5px;\n          top: 2px;\n          bottom: 2px;\n          -webkit-mask-position: center;\n          background-color: #fff; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li.vjs-selected button {\n        background-color: #2B333F;\n        color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-download-button {\n    width: 1.5em;\n    height: 1.5em;\n    margin: auto;\n    background-color: white;\n    -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat; }\n  .vjs-has-started .vjs-control-bar .vjs-patreon-button {\n    width: 1.8em;\n    height: 1.8em;\n    margin: auto;\n    background-image: url(" + ___CSS_LOADER_URL___1___ + "); }\n  .vjs-has-started .vjs-control-bar .vjs-theatre-button {\n    width: 1.5em;\n    height: 1.5em;\n    margin: auto;\n    -webkit-mask: url(" + ___CSS_LOADER_URL___2___ + ") no-repeat;\n    -webkit-mask-size: contain;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___3___ + ") no-repeat;\n    -webkit-mask-size: 1.5em;\n    background-color: white;\n    -webkit-mask-position: center; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu {\n    width: 7em;\n    left: -1.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li {\n      position: relative; }\n      .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li button {\n        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n        width: 13px;\n        position: absolute;\n        right: 5px;\n        top: 2px;\n        bottom: 2px;\n        -webkit-mask-position: center;\n        background-color: #fff; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li.vjs-selected button {\n      background-color: #2B333F;\n      color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___4___ + ") no-repeat;\n    -webkit-mask-size: 1.9em;\n    background-color: white;\n    -webkit-mask-position: center; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu ul li {\n    text-transform: capitalize; }\n", ""]);
+exports.push([module.i, "video {\n  outline: none; }\n\n.video-js {\n  display: flex; }\n  .video-js .vjs-big-play-button {\n    background: url(" + ___CSS_LOADER_URL___0___ + ") no-repeat;\n    background-size: contain;\n    background-position: center;\n    position: unset;\n    top: unset;\n    left: unset;\n    margin: auto;\n    width: 4em;\n    height: 4em;\n    z-index: 999;\n    border: none; }\n    .video-js .vjs-big-play-button .vjs-icon-placeholder:before {\n      content: none; }\n  .video-js:hover .vjs-big-play-button {\n    background-color: transparent; }\n\n.vjs-has-started .vjs-control-bar {\n  display: inline-flex;\n  background-color: transparent;\n  bottom: 0.25em;\n  left: 1em;\n  right: 1em;\n  width: unset;\n  font-size: 1.2em; }\n  .vjs-has-started .vjs-control-bar:before {\n    content: '';\n    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8));\n    pointer-events: none;\n    position: absolute;\n    left: -1em;\n    right: -1em;\n    bottom: -0.5em;\n    height: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    opacity: 0.9;\n    outline: none; }\n    .vjs-has-started .vjs-control-bar .vjs-button:hover {\n      opacity: 1; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    cursor: pointer; }\n  .vjs-has-started .vjs-control-bar .vjs-menu-content {\n    font-size: 0.9em; }\n    .vjs-has-started .vjs-control-bar .vjs-menu-content li {\n      padding: 0.2em; }\n  .vjs-has-started .vjs-control-bar .vjs-progress-control {\n    height: fit-content;\n    position: absolute;\n    width: 100%;\n    bottom: 100%; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-progress-holder {\n      margin: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-play-progress {\n      background-color: #8dc73f; }\n  .vjs-has-started .vjs-control-bar .vjs-duration {\n    display: block;\n    padding-left: 0.3em; }\n  .vjs-has-started .vjs-control-bar .vjs-current-time {\n    display: block;\n    padding-right: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-current-time:after {\n      content: \" / \"; }\n  .vjs-has-started .vjs-control-bar .vjs-remaining-time {\n    display: none; }\n  .vjs-has-started .vjs-control-bar .vjs-playback-rate {\n    margin-left: auto; }\n  .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu {\n    width: 15em;\n    left: -5.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul {\n      overflow-x: hidden; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li {\n        position: relative;\n        text-transform: capitalize; }\n        .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li button {\n          -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n          width: 13px;\n          position: absolute;\n          right: 5px;\n          top: 2px;\n          bottom: 2px;\n          -webkit-mask-position: center;\n          background-color: #fff; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li.vjs-selected button {\n        background-color: #2B333F;\n        color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-download-button {\n    width: 100%;\n    height: 100%;\n    background-color: white;\n    -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat center/1.5em; }\n  .vjs-has-started .vjs-control-bar .vjs-patreon-button {\n    width: 100%;\n    height: 100%;\n    background: url(" + ___CSS_LOADER_URL___1___ + ") no-repeat center/1.8em; }\n  .vjs-has-started .vjs-control-bar .vjs-theatre-button {\n    width: 100%;\n    height: 100%;\n    -webkit-mask: url(" + ___CSS_LOADER_URL___2___ + ") no-repeat center/1.5em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___3___ + ") no-repeat center/1.5em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu {\n    width: 7em;\n    left: -1.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li {\n      position: relative; }\n      .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li button {\n        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n        width: 13px;\n        position: absolute;\n        right: 5px;\n        top: 2px;\n        bottom: 2px;\n        -webkit-mask-position: center;\n        background-color: #fff; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li.vjs-selected button {\n      background-color: #2B333F;\n      color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___4___ + ") no-repeat center;\n    -webkit-mask-size: 1.9em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu ul li {\n    text-transform: capitalize; }\n", ""]);
 
 
 
@@ -932,15 +938,15 @@ exports.setup = setup;
 
 /***/ }),
 
-/***/ 145:
+/***/ 146:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(146);
+__webpack_require__(147);
 const Page = __webpack_require__(21);
-const VideoPopup = __webpack_require__(148);
+const VideoPopup = __webpack_require__(149);
 const ov_player_1 = __webpack_require__(136);
 const Background = __webpack_require__(23);
 const React = __webpack_require__(6);
@@ -1000,11 +1006,11 @@ ReactDOM.render(React.createElement(PopupContent, { data: Page.getUrlObj() }), d
 
 /***/ }),
 
-/***/ 146:
+/***/ 147:
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(147);
+var content = __webpack_require__(148);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -1026,7 +1032,7 @@ if(false) {}
 
 /***/ }),
 
-/***/ 147:
+/***/ 148:
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(3)(false);
@@ -1037,7 +1043,7 @@ exports.push([module.i, "body {\n  position: fixed;\n  top: 0;\n  bottom: 0;\n  
 
 /***/ }),
 
-/***/ 148:
+/***/ 149:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2135,18 +2141,23 @@ function injectScript(file) {
     });
 }
 exports.injectScript = injectScript;
-function injectRawScript(func) {
+function injectRawScript(func, head) {
     return __awaiter(this, void 0, void 0, function* () {
         yield isReady();
         return new Promise(function (resolve, reject) {
             var script = document.createElement('script');
             script.innerHTML = "(" + func + ")();";
-            script.async = true;
+            script.async = !head;
             script.onload = function () {
                 script.onload = null;
                 resolve(script);
             };
-            (document.body || document.head).appendChild(script);
+            if (head) {
+                document.head.insertBefore(script, document.head.children[0] || null);
+            }
+            else {
+                (document.body || document.head).appendChild(script);
+            }
         });
     });
 }
@@ -2334,18 +2345,6 @@ function registerIFrame(iframe) {
             }
         }
     });
-    /*let observer = new MutationObserver(function(mutations) {
-        if (isFrameActive() && getActiveFrame().iframe == iframe) {
-            let newleft = Math.floor((window.innerWidth - iframe.clientWidth) / 2).toString() + "px";
-            let newtop = Math.floor((window.innerHeight - iframe.clientHeight) / 2).toString() + "px";
-            if (iframe.style.left != newleft) {
-                iframe.style.setProperty("left", newleft);
-                iframe.style.setProperty("top", newtop);
-            }
-        }
-
-    });
-    observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });*/
     shadow.className = "ov-theaterMode";
     shadow.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -2359,7 +2358,7 @@ function registerIFrame(iframe) {
         throw Error("IFrame is not part of the page!");
     }
     iframe.parentNode.appendChild(shadow);
-    iframes.push({ shadow: shadow, iframe: iframe, observer: null });
+    iframes.push({ shadow: shadow, iframe: iframe });
     return iframes[iframes.length - 1];
 }
 exports.registerIFrame = registerIFrame;

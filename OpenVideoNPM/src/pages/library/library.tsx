@@ -53,7 +53,11 @@ class Library extends React.Component<LibraryProps, LibraryState> {
             activePrompt: null
         };
     }
-
+    componentDidUpdate(oldprops : LibraryProps) {
+        if(oldprops.nav != this.props.nav || oldprops.search != this.props.search) {
+            this.setState({ nav: this.props.nav || fixedButtons.search, search: this.props.search });
+        }
+    }
     render() {
         let body = null;
         document.title = this.state.nav.name + " - OV-Library";
