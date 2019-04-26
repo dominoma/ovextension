@@ -76,6 +76,7 @@ module.exports = {
             'dist/background_scripts/**/*.js',
             'dist/content_scripts/**/*.js',
             'dist/inject_scripts/**/*.js',
+            
             'dist/proxy_scripts/**/*.js'
         ]),
         new CircularDependencyPlugin({
