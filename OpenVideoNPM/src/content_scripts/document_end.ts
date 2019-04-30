@@ -16,7 +16,7 @@ ScriptBase.startScripts(ScriptBase.RunScopes.document_end, async function() {
 Storage.isVideoSearchEnabled().then(async function(value) {
     if (value) {
         VideoPopup.setupCS();
-        await Page.injectScript("../pages/assets/js/vendors");
+        //await Page.injectScript("../pages/assets/js/vendors");
         await Page.injectScript("search_videos");
     }
 });

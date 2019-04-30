@@ -1046,7 +1046,7 @@ Storage.isVideoSearchEnabled().then(function (value) {
     return __awaiter(this, void 0, void 0, function* () {
         if (value) {
             VideoPopup.setupCS();
-            yield Page.injectScript("../pages/assets/js/vendors");
+            //await Page.injectScript("../pages/assets/js/vendors");
             yield Page.injectScript("search_videos");
         }
     });

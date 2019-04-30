@@ -114,9 +114,9 @@ class OtherSwitches extends React.Component<{}, OtherSwitchesState>{
         return (
             <div className="ov-options-others">
                 <Switch enabled={this.state.videopopup} onChange={this.videopopupChange.bind(this)}/>
-                <div className="ov-options-switch-title">{Languages.getMsg("options_site_enable_history_ckb")}</div>
-                <Switch enabled={this.state.history} onChange={this.historyChange.bind(this)}/>
                 <div className="ov-options-switch-title">{Languages.getMsg("options_site_enable_popup_ckb")}</div>
+                <Switch enabled={this.state.history} onChange={this.historyChange.bind(this)}/>
+                <div className="ov-options-switch-title">{Languages.getMsg("options_site_enable_history_ckb")}</div>
                 <Switch enabled={this.state.analytics} onChange={this.analyticsChange.bind(this)}/>
                 <div className="ov-options-switch-title">{Languages.getMsg("options_site_use_analytics_ckb")}</div>
             </div>

@@ -10,6 +10,7 @@ module.exports = class WebExtensionManager {
         options = options || {};
         this.filesPath = options["filesPath"] || "./webpack.files.json";
         this.manifestPath = options["manifestPath"] || "./src/manifest.json";
+        this.manifestVars = options["manifestVars"] || {};
     }
 
     apply(compiler) {
@@ -50,17 +51,25 @@ module.exports = class WebExtensionManager {
         return plugins;
     }
     getManifestPlugin(manifest, files) {
+        function getVarRegex(name) {
+            return new RegExp("\\${"+name+"}\\$", "g");
+        }
         return new ManifestPlugin({
             fileName: "manifest.json",
-            generate: function() {
+            generate: () => {
                 let str = JSON.stringify(manifest);
                 for(let key in files) {
                     let file = files[key];
                     let distDir = file.distDir || file.srcDir;
                     let ext = file.isHTML ? ".html" : ".js";
-                    let regexp = new RegExp("\\${"+key+"}\\$", "g");
+                    let regexp = getVarRegex(key);
                     let fileURL = distDir+key+ext;
                     str = str.replace(regexp, fileURL);
+                }
+                for(let name in this.manifestVars) {
+                    console.log(name);
+                    let regexp = getVarRegex(name);
+                    str = str.replace(regexp, this.manifestVars[name]);
                 }
                 return JSON.parse(str);
             }
