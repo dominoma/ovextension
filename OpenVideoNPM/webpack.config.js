@@ -7,6 +7,8 @@ const WebExtensionManager = require('./webextensionmngr');
 
 const files = require('./webpack.files.json');
 
+const vendorPath = "pages/assets/js/vendors";
+
 
 module.exports = {
     optimization: {
@@ -14,8 +16,8 @@ module.exports = {
         splitChunks: {
             cacheGroups: {
                 commons: {
-                    test: /[\\/]node_modules[\\/]/,
-                    name: "pages/assets/js/vendors",
+                    test: /[\\/]node_modules[\\/](?!(style-loader|css-loader|sass-loader))/,
+                    name: vendorPath,
                     chunks: "all"
                 }
             }
@@ -76,7 +78,7 @@ module.exports = {
             'dist/background_scripts/**/*.js',
             'dist/content_scripts/**/*.js',
             'dist/inject_scripts/**/*.js',
-            
+
             'dist/proxy_scripts/**/*.js'
         ]),
         new CircularDependencyPlugin({
@@ -90,6 +92,10 @@ module.exports = {
             // set the current working directory for displaying module paths
             cwd: process.cwd(),
         }),
-        new WebExtensionManager()
+        new WebExtensionManager({
+            manifestVars: {
+                vendorPath: vendorPath+".js"
+            }
+        })
     ]
 }
