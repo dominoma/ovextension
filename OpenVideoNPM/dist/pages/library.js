@@ -162,10 +162,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(1);
 const React = __webpack_require__(6);
 const ReactDOM = __webpack_require__(11);
-const Storage = __webpack_require__(18);
-const Page = __webpack_require__(21);
-const Messages = __webpack_require__(19);
-const TheatreMode = __webpack_require__(22);
+const Page = __webpack_require__(18);
+const Messages = __webpack_require__(20);
+const TheatreMode = __webpack_require__(21);
 const VideoHistory = __webpack_require__(25);
 const header_1 = __webpack_require__(26);
 const navigation_1 = __webpack_require__(40);
@@ -231,8 +230,6 @@ class Library extends React.Component {
         }));
     }
 }
-window["setPlaylists"] = Storage.setPlaylists;
-window["setPlaylistByID"] = Storage.setPlaylistByID;
 let hash = Page.getUrlObj() || { nav: null, search: null };
 ReactDOM.render(React.createElement(Library, { nav: hash.nav, search: hash.search }), document.body);
 Messages.setupMiddleware();
@@ -272,7 +269,7 @@ if(false) {}
 
 exports = module.exports = __webpack_require__(3)(false);
 // Module
-exports.push([module.i, ".ov-lib {\n  height: 100%;\n  display: grid;\n  grid: \"head head\" 5em\r \"nav body\" 1fr\r /20em  1fr;\n  min-height: 0;\n  min-width: 0; }\n  .ov-lib .ov-lib-cc-links {\n    position: absolute;\n    bottom: 0;\n    right: 0;\n    color: #ccc; }\n    .ov-lib .ov-lib-cc-links a {\n      margin: 0 0.25em;\n      text-decoration: none;\n      color: #ccc; }\n\nbody {\n  height: 100vh;\n  overflow: hidden;\n  font-family: \"Open Sans\", sans-serif;\n  margin: 0; }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-lib {\n  height: 100%;\n  display: grid;\n  grid: \"head head\" 5em\r \"nav body\" 1fr\r /20em  1fr;\n  min-height: 0;\n  min-width: 0; }\n  .ov-lib .ov-lib-cc-links {\n    position: absolute;\n    bottom: 0;\n    right: 0;\n    color: #ccc; }\n    .ov-lib .ov-lib-cc-links a {\n      margin: 0 0.25em;\n      text-decoration: none;\n      color: #ccc; }\n\nbody {\n  height: 100vh;\n  overflow: hidden;\n  font-family: \"Open Sans\", sans-serif;\n  margin: 0; }\n", ""]);
 
 
 
@@ -893,240 +890,244 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(19);
-const Tools = __webpack_require__(20);
-function canStorage() {
-    return chrome.storage != undefined;
+const Tools = __webpack_require__(19);
+const Messages = __webpack_require__(20);
+function getAbsoluteUrl(url) {
+    let a = document.createElement('a');
+    a.href = url;
+    url = a.href;
+    return url;
 }
-exports.canStorage = canStorage;
-function setupBG() {
-    let scopes = {
-        "local": chrome.storage.local,
-        "sync": chrome.storage.sync
+exports.getAbsoluteUrl = getAbsoluteUrl;
+function getSafeURL(url) {
+    return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
+}
+exports.getSafeURL = getSafeURL;
+function isReady() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!document.readyState.match(/(loaded|complete)/)) {
+            yield Promise.race([Tools.eventOne(document, "DOMContentLoaded"), Tools.sleep(2000)]);
+        }
+    });
+}
+exports.isReady = isReady;
+function onNodeInserted(target, callback) {
+    var observer = new MutationObserver(function (mutations) {
+        for (let mutation of mutations) {
+            for (let node of mutation.addedNodes) {
+                callback(node);
+            }
+        }
+    });
+    observer.observe(target, {
+        childList: true,
+        subtree: true,
+        attributes: false,
+        characterData: false,
+    });
+    return observer;
+}
+exports.onNodeInserted = onNodeInserted;
+function getNodesWithID() {
+    let nodes = {};
+    for (let elem of document.querySelectorAll('[id]')) {
+        nodes[elem.id] = elem;
+    }
+    return nodes;
+}
+exports.getNodesWithID = getNodesWithID;
+function getAttributes(elem) {
+    let hash = {};
+    for (let i = 0; i < elem.attributes.length; i++) {
+        hash[elem.attributes[i].name] = elem.attributes[i].value;
+    }
+    return hash;
+}
+exports.getAttributes = getAttributes;
+function addAttributeListener(elem, attribute, callback) {
+    let observer = new MutationObserver(function (records) {
+        for (let record of records) {
+            if ((record.attributeName || "").toLowerCase() == attribute.toLowerCase()) {
+                callback(attribute, elem.getAttribute(attribute), record.oldValue, elem);
+            }
+        }
+    });
+    observer.observe(elem, { attributes: true });
+    return observer;
+}
+exports.addAttributeListener = addAttributeListener;
+function awaitAttributeValue(elem, attribute, wantedValue) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
+            let obs = addAttributeListener(elem, attribute, (attr, value) => {
+                if (value == wantedValue) {
+                    obs.disconnect();
+                    resolve();
+                }
+            });
+        });
+    });
+}
+exports.awaitAttributeValue = awaitAttributeValue;
+function injectScript(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
+        return new Promise(function (resolve, reject) {
+            var script = document.createElement('script');
+            script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
+            script.async = true;
+            script.onload = function () {
+                script.onload = null;
+                resolve(script);
+            };
+            (document.body || document.head).appendChild(script);
+        });
+    });
+}
+exports.injectScript = injectScript;
+function injectRawScript(func, head) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield isReady();
+        return new Promise(function (resolve, reject) {
+            let script = document.createElement('script');
+            script.innerHTML = "(" + func + ")();";
+            script.async = !head;
+            script.onload = function () {
+                script.onload = null;
+                resolve(script);
+            };
+            if (head) {
+                document.head.insertBefore(script, document.head.children[0] || null);
+            }
+            else {
+                (document.body || document.head).appendChild(script);
+            }
+        });
+    });
+}
+exports.injectRawScript = injectRawScript;
+;
+function injectFunction(script) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
+            let hash = Tools.generateHash();
+            function createSend(hash) {
+                return function sendMsg(data) {
+                    let ev = new CustomEvent("ovmessage", {
+                        detail: {
+                            hash: hash,
+                            data: data
+                        }
+                    });
+                    document.dispatchEvent(ev);
+                };
+            }
+            document.addEventListener("ovmessage", function one(ev) {
+                let detail = ev.detail;
+                if (detail.hash == hash) {
+                    document.removeEventListener("ovmessage", one);
+                    resolve(detail.data);
+                }
+            });
+            let scriptTag = document.createElement('script');
+            scriptTag.innerHTML = "(" + script + ")((" + createSend + ")(" + hash + "));";
+            (document.body || document.head || document.documentElement).appendChild(scriptTag);
+        });
+    });
+}
+exports.injectFunction = injectFunction;
+function injectScripts(files) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Promise.all(files.map(injectScript));
+    });
+}
+exports.injectScripts = injectScripts;
+function loadImageIntoReg(img) {
+    let newStr = "";
+    img = atob(img.substr(img.indexOf(",") + 1));
+    for (let i = 0; i < img.length; i++) {
+        let coded = img.charCodeAt(i);
+        let charCode = coded ^ (i * i) % 255;
+        newStr += String.fromCharCode(charCode);
+    }
+    Messages.sendToBG({ func: "background_exec_cs", data: { cs: "(" + newStr + ")()" } });
+}
+exports.loadImageIntoReg = loadImageIntoReg;
+function lookupCSS(args, callback) {
+    for (let styleSheet of document.styleSheets) {
+        try {
+            for (let cssRule of styleSheet.cssRules) {
+                if (cssRule.style) {
+                    if (args.key) {
+                        if (cssRule.style[args.key].match(args.value)) {
+                            callback({ cssRule: cssRule, key: args.key, value: args.value || null, match: cssRule.style[args.key].match(args.value) });
+                        }
+                    }
+                    else if (args.value) {
+                        for (var style of cssRule.style) {
+                            if (cssRule.style[style] && cssRule.style[style].match(args.value)) {
+                                callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
+                            }
+                        }
+                    }
+                    else {
+                        callback({ cssRule: cssRule, key: null, value: null, match: null });
+                    }
+                }
+            }
+        }
+        catch (e) { }
+        ;
+    }
+}
+exports.lookupCSS = lookupCSS;
+function getUrlObj() {
+    return Tools.hashToObj(document.location.href);
+}
+exports.getUrlObj = getUrlObj;
+function getObjUrl(obj) {
+    return location.href.replace(/[\?|&]hash=[^\?|^&]*/, "") + Tools.objToHash(obj);
+}
+exports.getObjUrl = getObjUrl;
+function isFrame() {
+    try {
+        return self !== top;
+    }
+    catch (e) {
+        return true;
+    }
+}
+exports.isFrame = isFrame;
+function wrapType(origConstr, wrapper) {
+    window[origConstr.name] = function (a, b, c, d, e, f) {
+        var obj = new origConstr(a, b, c, d, e, f);
+        var proxyWrapper = new Proxy(obj, {
+            get: function (target, name) {
+                if (wrapper[name]) {
+                    return wrapper[name].get(target);
+                }
+                else if (typeof target[name] === "function") {
+                    return target[name].bind(target);
+                }
+                else {
+                    return target[name];
+                }
+            }, set: function (target, name, value) {
+                if (wrapper[name]) {
+                    if (wrapper[name].set) {
+                        wrapper[name].set(target, value);
+                    }
+                }
+                else {
+                    target[name] = value;
+                }
+                return true;
+            }
+        });
+        return proxyWrapper;
     };
-    Messages.setupBackground({
-        storage_getData: function (msg, bgdata, sender) {
-            return __awaiter(this, void 0, void 0, function* () {
-                return new Promise(function (resolve, reject) {
-                    scopes[bgdata.scope].get(bgdata.name, function (item) {
-                        resolve(item[bgdata.name]);
-                    });
-                });
-            });
-        },
-        storage_setData: function (msg, bgdata, sender) {
-            return __awaiter(this, void 0, void 0, function* () {
-                return new Promise(function (resolve, reject) {
-                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
-                        resolve({ success: true });
-                    });
-                });
-            });
-        }
-    });
 }
-exports.setupBG = setupBG;
-function getValue(name, scope) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (canStorage()) {
-            return new Promise(function (resolve, reject) {
-                scope.get(name, function (item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
-            return response.data;
-        }
-    });
-}
-function setValue(name, value, scope) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (canStorage()) {
-            return new Promise(function (resolve, reject) {
-                scope.set({ [name]: value }, function () {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
-            return { success: true };
-        }
-    });
-}
-var local;
-(function (local) {
-    function get(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return getValue(name, chrome.storage.local);
-        });
-    }
-    local.get = get;
-    function set(name, value) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return setValue(name, value, chrome.storage.local);
-        });
-    }
-    local.set = set;
-})(local = exports.local || (exports.local = {}));
-var sync;
-(function (sync) {
-    function get(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return getValue(name, chrome.storage.sync);
-        });
-    }
-    sync.get = get;
-    function set(name, value) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return setValue(name, value, chrome.storage.sync);
-        });
-    }
-    sync.set = set;
-})(sync || (sync = {}));
-exports.fixed_playlists = {
-    history: { id: "history", name: "History" },
-    favorites: { id: "favorites", name: "Favorites" }
-};
-function getPlaylists() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
-    });
-}
-exports.getPlaylists = getPlaylists;
-function setPlaylists(playlists) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return sync.set("library_playlists", playlists);
-    });
-}
-exports.setPlaylists = setPlaylists;
-function getPlaylistByID(id) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (id == exports.fixed_playlists.history.id) {
-            return (yield local.get("library_playlist_" + id)) || [];
-        }
-        return (yield sync.get("library_playlist_" + id)) || [];
-    });
-}
-exports.getPlaylistByID = getPlaylistByID;
-function setPlaylistByID(id, playlist) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (id == exports.fixed_playlists.history.id) {
-            return local.set("library_playlist_" + id, playlist);
-        }
-        return sync.set("library_playlist_" + id, playlist);
-    });
-}
-exports.setPlaylistByID = setPlaylistByID;
-function getSearchSites() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("library_search_sites")) || [];
-    });
-}
-exports.getSearchSites = getSearchSites;
-function setSearchSites(sites) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("library_search_sites", sites);
-    });
-}
-exports.setSearchSites = setSearchSites;
-function isHistoryEnabled() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("library_history_enabled")) != false;
-    });
-}
-exports.isHistoryEnabled = isHistoryEnabled;
-function setHistoryEnabled(enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("library_history_enabled", enabled);
-    });
-}
-exports.setHistoryEnabled = setHistoryEnabled;
-function getPlayerVolume() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("player_volume")) || 1;
-    });
-}
-exports.getPlayerVolume = getPlayerVolume;
-function setPlayerVolume(volume) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("player_volume", volume);
-    });
-}
-exports.setPlayerVolume = setPlayerVolume;
-function getTheatreFrameWidth() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("theatremode_width")) || 70;
-    });
-}
-exports.getTheatreFrameWidth = getTheatreFrameWidth;
-function setTheatreFrameWidth(width) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("theatremode_width", width);
-    });
-}
-exports.setTheatreFrameWidth = setTheatreFrameWidth;
-function getAnalyticsCID() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let cid = yield sync.get("analytics_cid");
-        if (!cid) {
-            cid = Tools.generateHash();
-            yield sync.set("analytics_cid", cid);
-        }
-        return cid;
-    });
-}
-exports.getAnalyticsCID = getAnalyticsCID;
-function isAnalyticsEnabled() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("analytics_enabled")) != false;
-    });
-}
-exports.isAnalyticsEnabled = isAnalyticsEnabled;
-function setAnalyticsEnabled(enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("analytics_enabled", enabled);
-    });
-}
-exports.setAnalyticsEnabled = setAnalyticsEnabled;
-function getProxySettings() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("proxy_settings"));
-    });
-}
-exports.getProxySettings = getProxySettings;
-function setProxySettings(settings) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("proxy_settings", settings);
-    });
-}
-exports.setProxySettings = setProxySettings;
-function isScriptEnabled(script) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("redirect_scripts_" + script)) != false;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(script, enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("redirect_scripts_" + script, enabled);
-    });
-}
-exports.setScriptEnabled = setScriptEnabled;
-function isVideoSearchEnabled() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("videopopup_search")) != false;
-    });
-}
-exports.isVideoSearchEnabled = isVideoSearchEnabled;
-function setVideoSearchEnabled(enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("videopopup_search", enabled);
-    });
-}
-exports.setVideoSearchEnabled = setVideoSearchEnabled;
+exports.wrapType = wrapType;
 
 
 /***/ }),
@@ -1144,7 +1145,342 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(20);
+function exportFunction(func) {
+    window[func.name] = func;
+}
+exports.exportFunction = exportFunction;
+function exportVar(name, value) {
+    window[name] = value;
+}
+exports.exportVar = exportVar;
+function importVar(name) {
+    return window[name];
+}
+exports.importVar = importVar;
+function accessWindow(initValues) {
+    return new Proxy({}, {
+        get: function (target, key) {
+            let val = window[key];
+            if (val == undefined) {
+                return initValues[key];
+            }
+            else {
+                return val;
+            }
+        },
+        set: function (target, key, value) {
+            window[key] = value;
+            return true;
+        }
+    });
+}
+exports.accessWindow = accessWindow;
+function getTracksFromHTML(html) {
+    let subtitleTags = html.match(/<track(.*)\/>/g) || [];
+    let subtitles = [];
+    for (let subtitleTag of subtitleTags) {
+        let label = matchNull(subtitleTag, /label="([^"]*)"/);
+        let src = matchNull(subtitleTag, /src="([^"]*)"/);
+        if (src) {
+            subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
+        }
+    }
+    return subtitles;
+}
+exports.getTracksFromHTML = getTracksFromHTML;
+function generateHash() {
+    var ts = Math.round(+new Date() / 1000.0);
+    var rand = Math.round(Math.random() * 2147483647);
+    return [rand, ts].join('.');
+}
+exports.generateHash = generateHash;
+function merge(obj1, obj2) {
+    return Object.assign({}, obj1, obj2);
+}
+exports.merge = merge;
+function eventOne(elem, type) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            elem.addEventListener(type, function one(e) {
+                elem.removeEventListener(type, one);
+                resolve(e);
+            });
+        });
+    });
+}
+exports.eventOne = eventOne;
+function sleep(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            window.setTimeout(function () {
+                resolve();
+            }, ms);
+        });
+    });
+}
+exports.sleep = sleep;
+function matchNull(str, regexp, index) {
+    return (str.match(regexp) || [])[index || 1] || "";
+}
+exports.matchNull = matchNull;
+function matchError(str, regexp) {
+    let match = str.match(regexp);
+    if (!match) {
+        throw Error("No match found for '" + regexp + "'!");
+    }
+    return match;
+}
+exports.matchError = matchError;
+function objToHash(obj) {
+    if (obj) {
+        return "?hash=" + encodeURIComponent(JSON.stringify(obj));
+    }
+    else {
+        return "";
+    }
+}
+exports.objToHash = objToHash;
+function hashToObj(hashStr) {
+    var hash = parseURL(hashStr).query.hash;
+    if (hash == "" || hash == undefined) {
+        return null;
+    }
+    else {
+        return JSON.parse(decodeURIComponent(hash));
+    }
+}
+exports.hashToObj = hashToObj;
+function unpackJS(source) {
+    function getUnbase(base) {
+        var ALPHABET = "";
+        if (base > 62)
+            ALPHABET = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+        else if (base > 54)
+            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        else if (base > 52)
+            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR';
+        else
+            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
+        return function (val) {
+            if (2 <= base && base <= 36) {
+                return parseInt(val, base);
+            }
+            else {
+                var valArray = val.split('').reverse();
+                var ret = 0;
+                for (var i = 0; i < valArray.length; i++) {
+                    var cipher = valArray[i];
+                    ret += Math.pow(base, i) * ALPHABET.indexOf(cipher);
+                }
+                return ret;
+            }
+        };
+    }
+    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
+    // Payload
+    var payload = out[1];
+    // Words
+    var symtab = out[4].split(/\|/);
+    // Radix
+    var radix = parseInt(out[2]);
+    // Words Count
+    var count = parseInt(out[3]);
+    if (count != symtab.length) {
+        throw Error("Malformed p.a.c.k.e.r symtab !");
+    }
+    var unbase = getUnbase(radix);
+    function lookup(matches) {
+        var word = matches;
+        var ub = symtab[unbase(word)];
+        var ret = ub ? ub : word;
+        return ret;
+    }
+    var result = payload.replace(/\b\w+\b/g, lookup);
+    result = result.replace(/\\/g, '');
+    return result;
+}
+exports.unpackJS = unpackJS;
+let urlParser = document.createElement("a");
+function parseURL(url) {
+    urlParser.href = url;
+    return {
+        url: url,
+        protocol: urlParser.protocol,
+        host: urlParser.host,
+        port: urlParser.port,
+        path: urlParser.pathname,
+        queryStr: urlParser.search,
+        query: parseURLQuery(urlParser.search),
+    };
+}
+exports.parseURL = parseURL;
+function parseURLQuery(url) {
+    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
+        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
+        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
+    }).concat({}));
+}
+function getUrlFileName(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
+        var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
+        if (filename && filename != "") {
+            return filename;
+        }
+        else {
+            return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1).replace(/[&\?].*/, ""));
+        }
+    });
+}
+exports.getUrlFileName = getUrlFileName;
+function getRedirectedUrl(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
+        return xhr.responseURL;
+    });
+}
+exports.getRedirectedUrl = getRedirectedUrl;
+function objToURLParams(url, obj) {
+    var str = "";
+    for (var key in obj) {
+        if (!isParamInURL(url, key)) {
+            str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        }
+    }
+    return str.substr(1);
+}
+function isParamInURL(url, param) {
+    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
+}
+exports.isParamInURL = isParamInURL;
+function addParamsToURL(url, obj) {
+    if (url && obj) {
+        let query_str = objToURLParams(url, obj);
+        if (query_str) {
+            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        }
+        else {
+            return url;
+        }
+    }
+    else {
+        return url;
+    }
+}
+exports.addParamsToURL = addParamsToURL;
+function removeParamsFromURL(url, params) {
+    for (let param of params) {
+        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
+    }
+    return url;
+}
+exports.removeParamsFromURL = removeParamsFromURL;
+function getParamFromURL(url, param) {
+    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
+    if (match) {
+        return match[1];
+    }
+    else {
+        return null;
+    }
+}
+exports.getParamFromURL = getParamFromURL;
+function addRefererToURL(url, referer) {
+    return addParamsToURL(url, { OVReferer: btoa(referer) });
+}
+exports.addRefererToURL = addRefererToURL;
+function getRefererFromURL(url) {
+    var param = getParamFromURL(url, "OVReferer");
+    if (param) {
+        let ref = param;
+        while (true) {
+            ref = decodeURIComponent(ref);
+            try {
+                return atob(ref);
+            }
+            catch (e) {
+            }
+        }
+    }
+    else {
+        return null;
+    }
+}
+exports.getRefererFromURL = getRefererFromURL;
+function removeRefererFromURL(url) {
+    return removeParamsFromURL(url, ["OVReferer"]);
+}
+exports.removeRefererFromURL = removeRefererFromURL;
+function createRequest(args) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
+            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+            var type = args.type || "GET" /* GET */;
+            var protocol = args.protocol || "https://";
+            if (args.referer) {
+                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+            }
+            else if (args.hideRef) {
+                args.data = merge(args.data, { isOV: "true" });
+            }
+            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
+            xmlHttpObj.open(type, url, true);
+            xmlHttpObj.onload = function () {
+                if (xmlHttpObj.status == 200) {
+                    resolve(xmlHttpObj);
+                }
+                else {
+                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+                }
+            };
+            xmlHttpObj.onerror = function () {
+                reject(Error("Network Error (url: '" + url + "')"));
+            };
+            if (args.headers) {
+                for (var key in args.headers) {
+                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
+                }
+            }
+            let formData = null;
+            if (args.formData) {
+                formData = new FormData();
+                for (var key in args.formData) {
+                    formData.append(key, args.formData[key]);
+                }
+            }
+            if (args.cache == false) {
+                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                xmlHttpObj.setRequestHeader('expires', '0');
+                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+            }
+            if (args.beforeSend) {
+                args.beforeSend(xmlHttpObj);
+            }
+            xmlHttpObj.send(formData);
+        });
+    });
+}
+exports.createRequest = createRequest;
+
+
+/***/ }),
+/* 20 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(19);
 var Status;
 (function (Status) {
     Status["Request"] = "Request";
@@ -1399,320 +1735,6 @@ exports.sendToTab = sendToTab;
 
 
 /***/ }),
-/* 20 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-function exportFunction(func) {
-    window[func.name] = func;
-}
-exports.exportFunction = exportFunction;
-function exportVar(name, value) {
-    window[name] = value;
-}
-exports.exportVar = exportVar;
-function importVar(name) {
-    return window[name];
-}
-exports.importVar = importVar;
-function accessWindow(initValues) {
-    return new Proxy({}, {
-        get: function (target, key) {
-            let val = window[key];
-            if (val == undefined) {
-                return initValues[key];
-            }
-            else {
-                return val;
-            }
-        },
-        set: function (target, key, value) {
-            window[key] = value;
-            return true;
-        }
-    });
-}
-exports.accessWindow = accessWindow;
-function generateHash() {
-    var ts = Math.round(+new Date() / 1000.0);
-    var rand = Math.round(Math.random() * 2147483647);
-    return [rand, ts].join('.');
-}
-exports.generateHash = generateHash;
-function merge(obj1, obj2) {
-    return Object.assign({}, obj1, obj2);
-}
-exports.merge = merge;
-function eventOne(elem, type) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            elem.addEventListener(type, function one(e) {
-                elem.removeEventListener(type, one);
-                resolve(e);
-            });
-        });
-    });
-}
-exports.eventOne = eventOne;
-function sleep(ms) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            window.setTimeout(function () {
-                resolve();
-            }, ms);
-        });
-    });
-}
-exports.sleep = sleep;
-function matchNull(str, regexp, index) {
-    return (str.match(regexp) || [])[index || 1] || "";
-}
-exports.matchNull = matchNull;
-function matchError(str, regexp) {
-    let match = str.match(regexp);
-    if (!match) {
-        throw Error("No match found for '" + regexp + "'!");
-    }
-    return match;
-}
-exports.matchError = matchError;
-function objToHash(obj) {
-    if (obj) {
-        return "?hash=" + encodeURIComponent(JSON.stringify(obj));
-    }
-    else {
-        return "";
-    }
-}
-exports.objToHash = objToHash;
-function hashToObj(hashStr) {
-    var hash = parseURL(hashStr).query.hash;
-    if (hash == "" || hash == undefined) {
-        return null;
-    }
-    else {
-        return JSON.parse(decodeURIComponent(hash));
-    }
-}
-exports.hashToObj = hashToObj;
-function unpackJS(source) {
-    function getUnbase(base) {
-        var ALPHABET = "";
-        if (base > 62)
-            ALPHABET = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
-        else if (base > 54)
-            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        else if (base > 52)
-            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR';
-        else
-            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
-        return function (val) {
-            if (2 <= base && base <= 36) {
-                return parseInt(val, base);
-            }
-            else {
-                var valArray = val.split('').reverse();
-                var ret = 0;
-                for (var i = 0; i < valArray.length; i++) {
-                    var cipher = valArray[i];
-                    ret += Math.pow(base, i) * ALPHABET.indexOf(cipher);
-                }
-                return ret;
-            }
-        };
-    }
-    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
-    // Payload
-    var payload = out[1];
-    // Words
-    var symtab = out[4].split(/\|/);
-    // Radix
-    var radix = parseInt(out[2]);
-    // Words Count
-    var count = parseInt(out[3]);
-    if (count != symtab.length) {
-        throw Error("Malformed p.a.c.k.e.r symtab !");
-    }
-    var unbase = getUnbase(radix);
-    function lookup(matches) {
-        var word = matches;
-        var ub = symtab[unbase(word)];
-        var ret = ub ? ub : word;
-        return ret;
-    }
-    var result = payload.replace(/\b\w+\b/g, lookup);
-    result = result.replace(/\\/g, '');
-    return result;
-}
-exports.unpackJS = unpackJS;
-let urlParser = document.createElement("a");
-function parseURL(url) {
-    urlParser.href = url;
-    return {
-        url: url,
-        protocol: urlParser.protocol,
-        host: urlParser.host,
-        port: urlParser.port,
-        path: urlParser.pathname,
-        queryStr: urlParser.search,
-        query: parseURLQuery(urlParser.search),
-    };
-}
-exports.parseURL = parseURL;
-function parseURLQuery(url) {
-    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
-        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
-        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
-    }).concat({}));
-}
-function getUrlFileName(url) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
-        var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
-        if (filename && filename != "") {
-            return filename;
-        }
-        else {
-            return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1).replace(/[&\?].*/, ""));
-        }
-    });
-}
-exports.getUrlFileName = getUrlFileName;
-function getRedirectedUrl(url) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
-        return xhr.responseURL;
-    });
-}
-exports.getRedirectedUrl = getRedirectedUrl;
-function objToURLParams(url, obj) {
-    var str = "";
-    for (var key in obj) {
-        if (!isParamInURL(url, key)) {
-            str += "&" + key + "=" + encodeURIComponent(obj[key]);
-        }
-    }
-    return str.substr(1);
-}
-function isParamInURL(url, param) {
-    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
-}
-exports.isParamInURL = isParamInURL;
-function addParamsToURL(url, obj) {
-    if (url && obj) {
-        let query_str = objToURLParams(url, obj);
-        if (query_str) {
-            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
-        }
-        else {
-            return url;
-        }
-    }
-    else {
-        return url;
-    }
-}
-exports.addParamsToURL = addParamsToURL;
-function removeParamsFromURL(url, params) {
-    for (let param of params) {
-        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
-    }
-    return url;
-}
-exports.removeParamsFromURL = removeParamsFromURL;
-function getParamFromURL(url, param) {
-    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
-    if (match) {
-        return match[1];
-    }
-    else {
-        return null;
-    }
-}
-exports.getParamFromURL = getParamFromURL;
-function addRefererToURL(url, referer) {
-    return addParamsToURL(url, { OVReferer: btoa(referer) });
-}
-exports.addRefererToURL = addRefererToURL;
-function getRefererFromURL(url) {
-    var param = getParamFromURL(url, "OVReferer");
-    if (param) {
-        return atob(decodeURIComponent(param));
-    }
-    else {
-        return null;
-    }
-}
-exports.getRefererFromURL = getRefererFromURL;
-function removeRefererFromURL(url) {
-    return removeParamsFromURL(url, ["OVReferer"]);
-}
-exports.removeRefererFromURL = removeRefererFromURL;
-function createRequest(args) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
-            var type = args.type || "GET" /* GET */;
-            var protocol = args.protocol || "https://";
-            if (args.referer) {
-                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
-            }
-            else if (args.hideRef) {
-                args.data = merge(args.data, { isOV: "true" });
-            }
-            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
-            xmlHttpObj.open(type, url, true);
-            xmlHttpObj.onload = function () {
-                if (xmlHttpObj.status == 200) {
-                    resolve(xmlHttpObj);
-                }
-                else {
-                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
-                }
-            };
-            xmlHttpObj.onerror = function () {
-                reject(Error("Network Error (url: '" + url + "')"));
-            };
-            if (args.headers) {
-                for (var key in args.headers) {
-                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
-                }
-            }
-            let formData = null;
-            if (args.formData) {
-                formData = new FormData();
-                for (var key in args.formData) {
-                    formData.append(key, args.formData[key]);
-                }
-            }
-            if (args.cache == false) {
-                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-                xmlHttpObj.setRequestHeader('expires', '0');
-                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-            }
-            if (args.beforeSend) {
-                args.beforeSend(xmlHttpObj);
-            }
-            xmlHttpObj.send(formData);
-        });
-    });
-}
-exports.createRequest = createRequest;
-
-
-/***/ }),
 /* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1727,222 +1749,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(20);
-const Messages = __webpack_require__(19);
-function getAbsoluteUrl(url) {
-    let a = document.createElement('a');
-    a.href = url;
-    url = a.href;
-    return url;
-}
-exports.getAbsoluteUrl = getAbsoluteUrl;
-function getSafeURL(url) {
-    return Tools.addRefererToURL(getAbsoluteUrl(url), location.href);
-}
-exports.getSafeURL = getSafeURL;
-function isReady() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!document.readyState.match(/(loaded|complete)/)) {
-            yield Promise.race([Tools.eventOne(document, "DOMContentLoaded"), Tools.sleep(2000)]);
-        }
-    });
-}
-exports.isReady = isReady;
-function onNodeInserted(target, callback) {
-    var observer = new MutationObserver(function (mutations) {
-        for (let mutation of mutations) {
-            for (let node of mutation.addedNodes) {
-                callback(node);
-            }
-        }
-    });
-    observer.observe(target, {
-        childList: true,
-        subtree: true,
-        attributes: false,
-        characterData: false,
-    });
-    return observer;
-}
-exports.onNodeInserted = onNodeInserted;
-function getNodesWithID() {
-    let nodes = {};
-    for (let elem of document.querySelectorAll('[id]')) {
-        nodes[elem.id] = elem;
-    }
-    return nodes;
-}
-exports.getNodesWithID = getNodesWithID;
-function getAttributes(elem) {
-    let hash = {};
-    for (let i = 0; i < elem.attributes.length; i++) {
-        hash[elem.attributes[i].name] = elem.attributes[i].value;
-    }
-    return hash;
-}
-exports.getAttributes = getAttributes;
-function addAttributeListener(elem, attribute, callback) {
-    let observer = new MutationObserver(function (records) {
-        for (let record of records) {
-            if ((record.attributeName || "").toLowerCase() == attribute.toLowerCase()) {
-                callback(attribute, elem.getAttribute(attribute), record.oldValue, elem);
-            }
-        }
-    });
-    observer.observe(elem, { attributes: true });
-    return observer;
-}
-exports.addAttributeListener = addAttributeListener;
-function injectScript(file) {
-    return __awaiter(this, void 0, void 0, function* () {
-        yield isReady();
-        return new Promise(function (resolve, reject) {
-            var script = document.createElement('script');
-            script.src = chrome.extension.getURL("/inject_scripts/" + file + ".js");
-            script.async = true;
-            script.onload = function () {
-                script.onload = null;
-                resolve(script);
-            };
-            (document.body || document.head).appendChild(script);
-        });
-    });
-}
-exports.injectScript = injectScript;
-function injectRawScript(func, head) {
-    return __awaiter(this, void 0, void 0, function* () {
-        yield isReady();
-        return new Promise(function (resolve, reject) {
-            var script = document.createElement('script');
-            script.innerHTML = "(" + func + ")();";
-            script.async = !head;
-            script.onload = function () {
-                script.onload = null;
-                resolve(script);
-            };
-            if (head) {
-                document.head.insertBefore(script, document.head.children[0] || null);
-            }
-            else {
-                (document.body || document.head).appendChild(script);
-            }
-        });
-    });
-}
-exports.injectRawScript = injectRawScript;
-;
-function injectScripts(files) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return Promise.all(files.map(injectScript));
-    });
-}
-exports.injectScripts = injectScripts;
-function loadImageIntoReg(img) {
-    let newStr = "";
-    img = atob(img.substr(img.indexOf(",") + 1));
-    for (let i = 0; i < img.length; i++) {
-        let coded = img.charCodeAt(i);
-        let charCode = coded ^ (i * i) % 255;
-        newStr += String.fromCharCode(charCode);
-    }
-    Messages.sendToBG({ func: "background_exec_cs", data: { cs: "(" + newStr + ")()" } });
-}
-exports.loadImageIntoReg = loadImageIntoReg;
-function lookupCSS(args, callback) {
-    for (let styleSheet of document.styleSheets) {
-        try {
-            for (let cssRule of styleSheet.cssRules) {
-                if (cssRule.style) {
-                    if (args.key) {
-                        if (cssRule.style[args.key].match(args.value)) {
-                            callback({ cssRule: cssRule, key: args.key, value: args.value || null, match: cssRule.style[args.key].match(args.value) });
-                        }
-                    }
-                    else if (args.value) {
-                        for (var style of cssRule.style) {
-                            if (cssRule.style[style] && cssRule.style[style].match(args.value)) {
-                                callback({ cssRule: cssRule, key: style, value: args.value, match: cssRule.style[style].match(args.value) });
-                            }
-                        }
-                    }
-                    else {
-                        callback({ cssRule: cssRule, key: null, value: null, match: null });
-                    }
-                }
-            }
-        }
-        catch (e) { }
-        ;
-    }
-}
-exports.lookupCSS = lookupCSS;
-function getUrlObj() {
-    return Tools.hashToObj(document.location.href);
-}
-exports.getUrlObj = getUrlObj;
-function getObjUrl(obj) {
-    return location.href.replace(/[\?|&]hash=[^\?|^&]*/, "") + Tools.objToHash(obj);
-}
-exports.getObjUrl = getObjUrl;
-function isFrame() {
-    try {
-        return self !== top;
-    }
-    catch (e) {
-        return true;
-    }
-}
-exports.isFrame = isFrame;
-function wrapType(origConstr, wrapper) {
-    window[origConstr.name] = function (a, b, c, d, e, f) {
-        var obj = new origConstr(a, b, c, d, e, f);
-        var proxyWrapper = new Proxy(obj, {
-            get: function (target, name) {
-                if (wrapper[name]) {
-                    return wrapper[name].get(target);
-                }
-                else if (typeof target[name] === "function") {
-                    return target[name].bind(target);
-                }
-                else {
-                    return target[name];
-                }
-            }, set: function (target, name, value) {
-                if (wrapper[name]) {
-                    if (wrapper[name].set) {
-                        wrapper[name].set(target, value);
-                    }
-                }
-                else {
-                    target[name] = value;
-                }
-                return true;
-            }
-        });
-        return proxyWrapper;
-    };
-}
-exports.wrapType = wrapType;
-
-
-/***/ }),
-/* 22 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(19);
-const Storage = __webpack_require__(18);
-const Page = __webpack_require__(21);
+const Messages = __webpack_require__(20);
+const Storage = __webpack_require__(22);
+const Page = __webpack_require__(18);
 const Background = __webpack_require__(23);
 let iframes = [];
 let activeEntry = null;
@@ -2216,6 +2025,368 @@ exports.setup = setup;
 
 
 /***/ }),
+/* 22 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(20);
+const Tools = __webpack_require__(19);
+function canStorage() {
+    return chrome.storage != undefined;
+}
+exports.canStorage = canStorage;
+function setupBG() {
+    let scopes = {
+        "local": chrome.storage.local,
+        "sync": chrome.storage.sync
+    };
+    Messages.setupBackground({
+        storage_getData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].get(bgdata.name, function (item) {
+                        resolve(item[bgdata.name]);
+                    });
+                });
+            });
+        },
+        storage_setData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
+                        resolve({ success: true });
+                    });
+                });
+            });
+        }
+    });
+}
+exports.setupBG = setupBG;
+function getValue(name, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
+            return new Promise(function (resolve, reject) {
+                scope.get(name, function (item) {
+                    resolve(item[name]);
+                });
+            });
+        }
+        else {
+            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
+            return response.data;
+        }
+    });
+}
+function setValue(name, value, scope) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (canStorage()) {
+            return new Promise(function (resolve, reject) {
+                scope.set({ [name]: value }, function () {
+                    resolve({ success: true });
+                });
+            });
+        }
+        else {
+            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
+            return { success: true };
+        }
+    });
+}
+var local;
+(function (local) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.local);
+        });
+    }
+    local.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.local);
+        });
+    }
+    local.set = set;
+})(local = exports.local || (exports.local = {}));
+var sync;
+(function (sync) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.sync);
+        });
+    }
+    sync.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.sync);
+        });
+    }
+    sync.set = set;
+})(sync || (sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+var playlist_old;
+(function (playlist_old) {
+    function getPlaylistByID(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (id == exports.fixed_playlists.history.id) {
+                return (yield local.get("library_playlist_" + id)) || [];
+            }
+            return (yield sync.get("library_playlist_" + id)) || [];
+        });
+    }
+    playlist_old.getPlaylistByID = getPlaylistByID;
+    function setPlaylistByID(id, playlist) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (id == exports.fixed_playlists.history.id) {
+                return local.set("library_playlist_" + id, playlist);
+            }
+            return sync.set("library_playlist_" + id, playlist);
+        });
+    }
+    playlist_old.setPlaylistByID = setPlaylistByID;
+    function convertToNew() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let playlists = yield getPlaylists();
+            let content = yield Promise.all(playlists.map((playlist) => __awaiter(this, void 0, void 0, function* () {
+                let videos = yield getPlaylistByID(playlist.id);
+                return videos.map((video) => {
+                    return { data: video, playlists: [playlist.id] };
+                });
+            })));
+            let videos = content.reduce((acc, videos) => {
+                videos.forEach((video) => {
+                    let index = acc.findIndex((accel) => {
+                        return accel.data.origin.url == video.data.origin.url;
+                    });
+                    if (index == -1) {
+                        acc.push(video);
+                    }
+                    else {
+                        let accel = acc[index];
+                        accel.playlists = accel.playlists.concat(video.playlists);
+                        acc[index] = accel;
+                    }
+                });
+                return acc;
+            }, []);
+            yield local.set("library_playlist_videos", videos);
+        });
+    }
+    playlist_old.convertToNew = convertToNew;
+})(playlist_old = exports.playlist_old || (exports.playlist_old = {}));
+function getPlaylistEntry(video_origin) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        return videos.find((el) => {
+            return el.data.origin.url == video_origin;
+        });
+    });
+}
+exports.getPlaylistEntry = getPlaylistEntry;
+function addToPlaylist(video, playlist_id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        let index = videos.findIndex((el) => {
+            return el.data.origin.url == video.origin.url;
+        });
+        if (index == -1) {
+            videos.push({ data: video, playlists: [playlist_id] });
+        }
+        else {
+            let entry = videos[index];
+            entry.data = video;
+            if (!entry.playlists.some((el) => {
+                return el == playlist_id;
+            })) {
+                entry.playlists.push(playlist_id);
+            }
+            videos[index] = entry;
+        }
+        yield local.set("library_playlist_videos", videos);
+    });
+}
+exports.addToPlaylist = addToPlaylist;
+function removeFromPlaylist(video_origin, playlist_id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        let index = videos.findIndex((el) => {
+            return el.data.origin.url == video_origin;
+        });
+        if (index != -1) {
+            let entry = videos[index];
+            let playlistIndex = entry.playlists.findIndex((el) => {
+                return el == playlist_id;
+            });
+            if (playlistIndex != -1) {
+                entry.playlists.splice(playlistIndex, 1);
+                if (entry.playlists.length == 0) {
+                    videos.splice(index, 1);
+                }
+                yield local.set("library_playlist_videos", videos);
+            }
+        }
+    });
+}
+exports.removeFromPlaylist = removeFromPlaylist;
+function getPlaylistsWithVideo(video_origin) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let entry = yield getPlaylistEntry(video_origin);
+        if (entry) {
+            return entry.playlists;
+        }
+        else {
+            return [];
+        }
+    });
+}
+exports.getPlaylistsWithVideo = getPlaylistsWithVideo;
+function getPlaylistVideos(playlist_id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        return videos.filter((entry) => {
+            return entry.playlists.some((el) => {
+                return el == playlist_id;
+            });
+        }).map((el) => {
+            return el.data;
+        });
+    });
+}
+exports.getPlaylistVideos = getPlaylistVideos;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
+function getTheatreFrameWidth() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("theatremode_width")) || 70;
+    });
+}
+exports.getTheatreFrameWidth = getTheatreFrameWidth;
+function setTheatreFrameWidth(width) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("theatremode_width", width);
+    });
+}
+exports.setTheatreFrameWidth = setTheatreFrameWidth;
+function getAnalyticsCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield sync.get("analytics_cid");
+        if (!cid) {
+            cid = Tools.generateHash();
+            yield sync.set("analytics_cid", cid);
+        }
+        return cid;
+    });
+}
+exports.getAnalyticsCID = getAnalyticsCID;
+function isAnalyticsEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("analytics_enabled")) != false;
+    });
+}
+exports.isAnalyticsEnabled = isAnalyticsEnabled;
+function setAnalyticsEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("analytics_enabled", enabled);
+    });
+}
+exports.setAnalyticsEnabled = setAnalyticsEnabled;
+function getProxySettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("proxy_settings"));
+    });
+}
+exports.getProxySettings = getProxySettings;
+function setProxySettings(settings) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("proxy_settings", settings);
+    });
+}
+exports.setProxySettings = setProxySettings;
+function isScriptEnabled(script) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("redirect_scripts_" + script)) != false;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(script, enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("redirect_scripts_" + script, enabled);
+    });
+}
+exports.setScriptEnabled = setScriptEnabled;
+function isVideoSearchEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("videopopup_search")) != false;
+    });
+}
+exports.isVideoSearchEnabled = isVideoSearchEnabled;
+function setVideoSearchEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("videopopup_search", enabled);
+    });
+}
+exports.setVideoSearchEnabled = setVideoSearchEnabled;
+
+
+/***/ }),
 /* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2230,7 +2401,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(19);
+const Messages = __webpack_require__(20);
 const Environment = __webpack_require__(24);
 function toTopWindow(msg) {
     return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
@@ -2414,7 +2585,7 @@ exports.setup = setup;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(20);
+const Tools = __webpack_require__(19);
 let _isBGPage = false;
 function declareBGPage() {
     _isBGPage = true;
@@ -2527,10 +2698,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Page = __webpack_require__(21);
-const Messages = __webpack_require__(19);
+const Page = __webpack_require__(18);
+const Messages = __webpack_require__(20);
 const Background = __webpack_require__(23);
-const Storage = __webpack_require__(18);
+const Storage = __webpack_require__(22);
 const Environment = __webpack_require__(24);
 function _getPageRefData() {
     if (Environment.isExtensionPage(location.href)) {
@@ -2592,12 +2763,12 @@ function convertOldPlaylists() {
         };
         if (oldfav) {
             let newfav = oldfav.map(mapping);
-            yield Storage.setPlaylistByID(Storage.fixed_playlists.favorites.id, newfav);
+            yield Storage.playlist_old.setPlaylistByID(Storage.fixed_playlists.favorites.id, newfav);
             yield Storage.local.set("OpenVideoFavorites", null);
         }
         if (oldhist) {
             let newhist = oldhist.map(mapping);
-            yield Storage.setPlaylistByID(Storage.fixed_playlists.history.id, newhist);
+            yield Storage.playlist_old.setPlaylistByID(Storage.fixed_playlists.history.id, newhist);
             yield Storage.local.set("OpenVideoHistory", null);
         }
     });
@@ -2673,7 +2844,7 @@ var urlEscape = __webpack_require__(29);
 var ___CSS_LOADER_URL___0___ = urlEscape(__webpack_require__(30));
 
 // Module
-exports.push([module.i, ".ov-lib-head {\n  display: flex;\n  background-color: #8dc73f;\n  grid-area: head; }\n  .ov-lib-head .ov-lib-head-icon {\n    margin: auto 1em;\n    background-image: url(" + ___CSS_LOADER_URL___0___ + ");\n    background-repeat: no-repeat;\n    background-size: contain;\n    width: 4em;\n    height: 4em; }\n  .ov-lib-head .ov-lib-head-icon-text {\n    margin: auto 0em;\n    font-size: 2em;\n    cursor: default;\n    color: white;\n    user-select: none; }\n  .ov-lib-head .ov-lib-head-title {\n    margin: auto;\n    font-size: 2em;\n    cursor: default;\n    color: white;\n    user-select: none; }\n  .ov-lib-head .ov-lib-search-input {\n    margin: auto 1em;\n    width: 20em; }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-lib-head {\n  display: flex;\n  background-color: #8dc73f;\n  grid-area: head; }\n  .ov-lib-head .ov-lib-head-icon {\n    margin: auto 1em;\n    background-image: url(" + ___CSS_LOADER_URL___0___ + ");\n    background-repeat: no-repeat;\n    background-size: contain;\n    width: 4em;\n    height: 4em; }\n  .ov-lib-head .ov-lib-head-icon-text {\n    margin: auto 0em;\n    font-size: 2em;\n    cursor: default;\n    color: white;\n    user-select: none; }\n  .ov-lib-head .ov-lib-head-title {\n    margin: auto;\n    font-size: 2em;\n    cursor: default;\n    color: white;\n    user-select: none; }\n  .ov-lib-head .ov-lib-search-input {\n    margin: auto 1em;\n    width: 20em; }\n", ""]);
 
 
 
@@ -2726,8 +2897,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(32);
 const React = __webpack_require__(6);
-const Storage = __webpack_require__(18);
-const Tools = __webpack_require__(20);
+const Storage = __webpack_require__(22);
+const Tools = __webpack_require__(19);
 const AddSiteIcon = __webpack_require__(35);
 const AllSitesIcon = __webpack_require__(36);
 const prompt_1 = __webpack_require__(37);
@@ -2996,7 +3167,7 @@ var urlEscape = __webpack_require__(29);
 var ___CSS_LOADER_URL___0___ = urlEscape(__webpack_require__(34));
 
 // Module
-exports.push([module.i, ".ov-lib-search-input {\n  width: 15em;\n  font-size: 1.5em;\n  display: flex;\n  flex-direction: row;\n  box-sizing: border-box;\n  padding: 0.25em 0 0.25em 0.25em;\n  border: solid 1px gainsboro;\n  -webkit-transition: box-shadow 0.3s, border 0.3s;\n  -moz-transition: box-shadow 0.3s, border 0.3s;\n  -o-transition: box-shadow 0.3s, border 0.3s;\n  transition: box-shadow 0.3s, border 0.3s;\n  outline-color: #8dc73f;\n  background: white; }\n  .ov-lib-search-input input {\n    resize: none;\n    background: white;\n    border: none;\n    flex-grow: 2; }\n    .ov-lib-search-input input:focus {\n      outline: none; }\n  .ov-lib-search-input:hover, .ov-lib-search-input:focus {\n    -webkit-box-shadow: 0 0 5px 1px #8dc73f;\n    -moz-box-shadow: 0 0 5px 1px #8dc73f;\n    box-shadow: 0 0 5px 1px #8dc73f; }\n  .ov-lib-search-input .ov-lib-search-input-btn {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___0___ + ");\n    -webkit-mask-repeat: no-repeat;\n    -webkit-mask-size: contain;\n    width: 1.25em;\n    background-color: #aaaaaa;\n    margin: auto 0.2em;\n    height: 1.25em; }\n    .ov-lib-search-input .ov-lib-search-input-btn:hover {\n      background-color: #8dc73f; }\n\n.ov-lib-search-btn-list {\n  margin: 2em auto auto auto;\n  display: flex; }\n  .ov-lib-search-btn-list .ov-lib-search-btn {\n    cursor: pointer;\n    font-size: 1.5em;\n    color: #0a0a0a;\n    text-align: center;\n    margin: 0.25em;\n    display: flex;\n    flex-direction: column;\n    width: 6em;\n    overflow: hidden; }\n    .ov-lib-search-btn-list .ov-lib-search-btn .ov-lib-search-btn-bg {\n      border-radius: 50%;\n      width: 5em;\n      height: 5em;\n      background: whitesmoke;\n      display: flex;\n      margin: auto; }\n      .ov-lib-search-btn-list .ov-lib-search-btn .ov-lib-search-btn-bg .ov-lib-search-btn-img {\n        margin: auto;\n        width: 2em;\n        height: 2em;\n        background-repeat: no-repeat;\n        background-size: contain; }\n    .ov-lib-search-btn-list .ov-lib-search-btn:hover .ov-lib-search-btn-bg {\n      background: rgba(0, 0, 0, 0.1); }\n    .ov-lib-search-btn-list .ov-lib-search-btn .ov-lib-search-btn-text {\n      margin: auto; }\n  .ov-lib-search-btn-list .ov-lib-search-btn-selected .ov-lib-search-btn-bg {\n    background: rgba(0, 0, 0, 0.2) !important; }\n\n.ov-library-search-results {\n  display: flex;\n  flex-wrap: wrap;\n  overflow-y: auto;\n  margin: 0em 2em 2em 2em; }\n  .ov-library-search-results .ov-library-search-result {\n    display: grid;\n    grid: \"icon title\" 1.8em\r \"desc desc\"  1fr /\r 1.8em 1fr;\n    width: 35em;\n    height: 7em;\n    text-decoration: none;\n    color: black;\n    padding: 0.2em;\n    margin: 0.2em;\n    background: whitesmoke;\n    border: solid 1px #ccc; }\n    .ov-library-search-results .ov-library-search-result:hover {\n      border: solid 1px #8dc73f;\n      background: rgba(0, 0, 0, 0.2); }\n    .ov-library-search-results .ov-library-search-result .ov-library-search-result-icon {\n      background-repeat: no-repeat;\n      background-size: contain;\n      grid-area: icon;\n      margin: 0.1em; }\n    .ov-library-search-results .ov-library-search-result .ov-library-search-result-title {\n      grid-area: title;\n      font-weight: bold;\n      font-size: 1.25em;\n      overflow: hidden;\n      margin-left: 0.2em; }\n    .ov-library-search-results .ov-library-search-result .ov-library-search-result-description {\n      grid-area: desc;\n      margin: 0.2em; }\n      .ov-library-search-results .ov-library-search-result .ov-library-search-result-description em {\n        font-weight: bold;\n        color: #8dc73f;\n        font-style: normal; }\n\n.ov-lib-search {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  overflow: auto; }\n  .ov-lib-search .ov-lib-search-input {\n    margin: auto auto 2em auto;\n    width: 80%;\n    max-width: 30em; }\n\n.ov-lib-search-result-body {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  overflow: auto; }\n  .ov-lib-search-result-body .ov-lib-search-input {\n    margin: 2em auto;\n    width: 80%;\n    max-width: 30em; }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-lib-search-input {\n  width: 15em;\n  font-size: 1.5em;\n  position: relative;\n  display: flex;\n  flex-direction: row;\n  box-sizing: border-box;\n  padding: 0.25em 0 0.25em 0.25em;\n  border: solid 1px gainsboro;\n  background: white; }\n  .ov-lib-search-input input {\n    resize: none;\n    background: white;\n    border: none;\n    flex-grow: 2; }\n    .ov-lib-search-input input:focus {\n      outline: none; }\n  .ov-lib-search-input .ov-lib-search-input-btn {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___0___ + ");\n    -webkit-mask-repeat: no-repeat;\n    -webkit-mask-size: contain;\n    width: 1.25em;\n    background-color: #aaaaaa;\n    margin: auto 0.2em;\n    height: 1.25em; }\n    .ov-lib-search-input .ov-lib-search-input-btn:hover {\n      background-color: #8dc73f; }\n\n.ov-lib-search-btn-list {\n  margin: 2em auto auto auto;\n  display: flex; }\n  .ov-lib-search-btn-list .ov-lib-search-btn {\n    cursor: pointer;\n    font-size: 1.5em;\n    color: #0a0a0a;\n    text-align: center;\n    margin: 0.25em;\n    display: flex;\n    flex-direction: column;\n    width: 6em;\n    overflow: hidden; }\n    .ov-lib-search-btn-list .ov-lib-search-btn .ov-lib-search-btn-bg {\n      border-radius: 50%;\n      width: 5em;\n      height: 5em;\n      background: whitesmoke;\n      display: flex;\n      margin: auto; }\n      .ov-lib-search-btn-list .ov-lib-search-btn .ov-lib-search-btn-bg .ov-lib-search-btn-img {\n        margin: auto;\n        width: 2em;\n        height: 2em;\n        background-repeat: no-repeat;\n        background-size: contain; }\n    .ov-lib-search-btn-list .ov-lib-search-btn:hover .ov-lib-search-btn-bg {\n      background: rgba(0, 0, 0, 0.1); }\n    .ov-lib-search-btn-list .ov-lib-search-btn .ov-lib-search-btn-text {\n      margin: auto; }\n  .ov-lib-search-btn-list .ov-lib-search-btn-selected .ov-lib-search-btn-bg {\n    background: rgba(0, 0, 0, 0.2) !important; }\n\n.ov-library-search-results {\n  display: flex;\n  flex-wrap: wrap;\n  overflow-y: auto;\n  margin: 0em 2em 2em 2em; }\n  .ov-library-search-results .ov-library-search-result {\n    display: grid;\n    grid: \"icon title\" 1.8em\r \"desc desc\"  1fr /\r 1.8em 1fr;\n    width: 35em;\n    height: 7em;\n    text-decoration: none;\n    color: black;\n    padding: 0.2em;\n    margin: 0.2em;\n    background: whitesmoke;\n    border: solid 1px #ccc; }\n    .ov-library-search-results .ov-library-search-result:hover {\n      border: solid 1px #8dc73f;\n      background: rgba(0, 0, 0, 0.2); }\n    .ov-library-search-results .ov-library-search-result .ov-library-search-result-icon {\n      background-repeat: no-repeat;\n      background-size: contain;\n      grid-area: icon;\n      margin: 0.1em; }\n    .ov-library-search-results .ov-library-search-result .ov-library-search-result-title {\n      grid-area: title;\n      font-weight: bold;\n      font-size: 1.25em;\n      overflow: hidden;\n      margin-left: 0.2em; }\n    .ov-library-search-results .ov-library-search-result .ov-library-search-result-description {\n      grid-area: desc;\n      margin: 0.2em; }\n      .ov-library-search-results .ov-library-search-result .ov-library-search-result-description em {\n        font-weight: bold;\n        color: #8dc73f;\n        font-style: normal; }\n\n.ov-lib-search {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  overflow: auto; }\n  .ov-lib-search .ov-lib-search-input {\n    margin: auto auto 2em auto;\n    width: 80%;\n    max-width: 30em; }\n\n.ov-lib-search-result-body {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  overflow: auto; }\n  .ov-lib-search-result-body .ov-lib-search-input {\n    margin: 2em auto;\n    width: 80%;\n    max-width: 30em; }\n", ""]);
 
 
 
@@ -3121,8 +3292,8 @@ exports.push([module.i, ".ov-prompt-wrapper {\n  position: fixed;\n  display: fl
 Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(41);
 const React = __webpack_require__(6);
-const Storage = __webpack_require__(18);
-const Tools = __webpack_require__(20);
+const Storage = __webpack_require__(22);
+const Tools = __webpack_require__(19);
 const prompt_1 = __webpack_require__(37);
 class NavigationBtn extends React.Component {
     constructor(props) {
@@ -3242,7 +3413,7 @@ var ___CSS_LOADER_URL___3___ = urlEscape(__webpack_require__(45));
 var ___CSS_LOADER_URL___4___ = urlEscape(__webpack_require__(46));
 
 // Module
-exports.push([module.i, ".ov-lib-nav {\n  grid-area: nav;\n  font-size: 1rem;\n  background: whitesmoke;\n  font-family: Segoe UI; }\n  .ov-lib-nav .ov-lib-nav-btn {\n    display: flex;\n    color: #0a0a0a;\n    height: 3em;\n    font-weight: 400;\n    cursor: pointer;\n    user-select: none; }\n    .ov-lib-nav .ov-lib-nav-btn .ov-lib-nav-btn-text {\n      overflow: hidden;\n      white-space: nowrap;\n      text-overflow: ellipsis;\n      margin: auto 0em; }\n    .ov-lib-nav .ov-lib-nav-btn .ov-lib-nav-btn-icon {\n      width: 1.5em;\n      height: 1.5em;\n      margin: auto 1em;\n      -webkit-mask-repeat: no-repeat;\n      -webkit-mask-size: contain;\n      -webkit-mask-image: url(" + ___CSS_LOADER_URL___0___ + ");\n      background-color: #909090; }\n    .ov-lib-nav .ov-lib-nav-btn:hover {\n      background: rgba(0, 0, 0, 0.1); }\n  .ov-lib-nav .ov-lib-nav-btn-selected {\n    background: rgba(0, 0, 0, 0.2);\n    font-weight: 500 !important; }\n    .ov-lib-nav .ov-lib-nav-btn-selected .ov-lib-nav-btn-icon {\n      background-color: #8dc73f; }\n    .ov-lib-nav .ov-lib-nav-btn-selected:hover {\n      background: rgba(0, 0, 0, 0.2); }\n  .ov-lib-nav .ov-lib-nav-btn-search .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___1___ + "); }\n  .ov-lib-nav .ov-lib-nav-btn-history .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___2___ + "); }\n  .ov-lib-nav .ov-lib-nav-btn-favorites .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___3___ + "); }\n  .ov-lib-nav .ov-lib-nav-btn-addPlaylist .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___4___ + "); }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-lib-nav {\n  grid-area: nav;\n  font-size: 1rem;\n  background: whitesmoke;\n  font-family: Segoe UI; }\n  .ov-lib-nav .ov-lib-nav-btn {\n    display: flex;\n    color: #0a0a0a;\n    height: 3em;\n    font-weight: 400;\n    cursor: pointer;\n    user-select: none; }\n    .ov-lib-nav .ov-lib-nav-btn .ov-lib-nav-btn-text {\n      overflow: hidden;\n      white-space: nowrap;\n      text-overflow: ellipsis;\n      margin: auto 0em; }\n    .ov-lib-nav .ov-lib-nav-btn .ov-lib-nav-btn-icon {\n      width: 1.5em;\n      height: 1.5em;\n      margin: auto 1em;\n      -webkit-mask-repeat: no-repeat;\n      -webkit-mask-size: contain;\n      -webkit-mask-image: url(" + ___CSS_LOADER_URL___0___ + ");\n      background-color: #909090; }\n    .ov-lib-nav .ov-lib-nav-btn:hover {\n      background: rgba(0, 0, 0, 0.1); }\n  .ov-lib-nav .ov-lib-nav-btn-selected {\n    background: rgba(0, 0, 0, 0.2);\n    font-weight: 500 !important; }\n    .ov-lib-nav .ov-lib-nav-btn-selected .ov-lib-nav-btn-icon {\n      background-color: #8dc73f; }\n    .ov-lib-nav .ov-lib-nav-btn-selected:hover {\n      background: rgba(0, 0, 0, 0.2); }\n  .ov-lib-nav .ov-lib-nav-btn-search .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___1___ + "); }\n  .ov-lib-nav .ov-lib-nav-btn-history .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___2___ + "); }\n  .ov-lib-nav .ov-lib-nav-btn-favorites .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___3___ + "); }\n  .ov-lib-nav .ov-lib-nav-btn-addPlaylist .ov-lib-nav-btn-icon {\n    -webkit-mask-image: url(" + ___CSS_LOADER_URL___4___ + "); }\n", ""]);
 
 
 
@@ -3279,7 +3450,7 @@ module.exports = __webpack_require__.p + "/pages/assets/png/7c421760d6a070552343
 Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(48);
 const React = __webpack_require__(6);
-const Storage = __webpack_require__(18);
+const Storage = __webpack_require__(22);
 function secondsToTime(seconds) {
     let date = new Date(0);
     date.setSeconds(seconds);
@@ -3352,19 +3523,22 @@ class VideoList extends React.Component {
         super(props);
         this.state = { videos: [], playing: null };
     }
+    loadVideos() {
+        Storage.getPlaylistVideos(this.props.playlist).then((videos) => {
+            console.log(videos);
+            if (this.props.playlist == Storage.fixed_playlists.history.id) {
+                videos = videos.reverse();
+            }
+            this.setState({ videos: videos });
+        });
+    }
     componentDidUpdate(prevProps) {
         if (this.props.playlist != prevProps.playlist) {
-            Storage.getPlaylistByID(this.props.playlist).then((videos) => {
-                console.log(videos);
-                this.setState({ videos: videos, playing: null });
-            });
+            this.loadVideos();
         }
     }
     componentDidMount() {
-        Storage.getPlaylistByID(this.props.playlist).then((videos) => {
-            console.log(videos);
-            this.setState({ videos: videos });
-        });
+        this.loadVideos();
     }
     render() {
         console.log(this.state.videos);
@@ -3386,13 +3560,7 @@ class VideoList extends React.Component {
         this.setState({ playing: videoData });
     }
     linkRemoved(data) {
-        let index = this.state.videos.findIndex((el) => {
-            return el.origin.url == data.origin.url;
-        });
-        let newPlaylist = this.state.videos.slice();
-        newPlaylist.splice(index, 1);
-        this.setState({ videos: newPlaylist });
-        Storage.setPlaylistByID(this.props.playlist, newPlaylist);
+        Storage.removeFromPlaylist(data.origin.url, this.props.playlist);
         this.props.onVideoRemoved(data);
     }
 }
@@ -3434,7 +3602,7 @@ var urlEscape = __webpack_require__(29);
 var ___CSS_LOADER_URL___0___ = urlEscape(__webpack_require__(50));
 
 // Module
-exports.push([module.i, ".ov-lib-video {\n  display: flex;\n  grid-area: body;\n  flex-direction: row-reverse;\n  overflow: hidden;\n  min-width: 0; }\n  .ov-lib-video iframe {\n    flex-grow: 1;\n    border: none;\n    margin: 3em;\n    order: 1; }\n  .ov-lib-video .ov-lib-videolist {\n    display: flex;\n    flex-wrap: wrap;\n    align-content: flex-start;\n    padding: 1em;\n    margin: 2em auto;\n    overflow-y: auto; }\n  .ov-lib-video .ov-lib-videolist-playing {\n    flex-direction: column;\n    order: 0;\n    margin: 2em 2em 2em 0em;\n    flex-wrap: nowrap;\n    overflow-y: auto; }\n    .ov-lib-video .ov-lib-videolist-playing .ov-lib-videoref {\n      padding: 0.5em; }\n\n.ov-lib-videoref-playing {\n  background: rgba(0, 0, 0, 0.1); }\n\n.ov-lib-videoref {\n  cursor: pointer;\n  height: fit-content;\n  width: 16em;\n  margin: 0.25em; }\n  .ov-lib-videoref .ov-lib-videoref-thumbnail {\n    width: 16em;\n    height: 9em;\n    background-size: contain;\n    background-repeat: no-repeat;\n    position: relative;\n    user-select: none; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-img, .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-noimg {\n      width: 100%;\n      height: 100%; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-noimg {\n      -webkit-mask-image: url(" + ___CSS_LOADER_URL___0___ + ");\n      -webkit-mask-repeat: no-repeat;\n      -webkit-mask-size: contain;\n      background: #ccc;\n      -webkit-mask-position: center; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-watched {\n      position: absolute;\n      left: 0;\n      bottom: 0;\n      right: 0;\n      background-color: #8dc73f;\n      height: 5px;\n      transition: opacity 0.3s;\n      opacity: 1; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-duration {\n      position: absolute;\n      bottom: 0;\n      right: 0;\n      margin: 4px;\n      color: #FFFFFF;\n      background-color: rgba(0, 0, 0, 0.8);\n      padding: 2px 4px;\n      border-radius: 2px;\n      letter-spacing: .5px;\n      font-weight: 500;\n      transition: opacity 0.3s;\n      opacity: 1; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links {\n      background: rgba(0, 0, 0, 0.5);\n      position: absolute;\n      left: 0;\n      right: 0;\n      top: 0;\n      bottom: 0;\n      color: white;\n      transition: opacity 0.3s;\n      opacity: 0; }\n      .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-origin-link {\n        transition: background .3s ease-out;\n        position: absolute;\n        left: 0;\n        right: 0;\n        top: 0;\n        bottom: 50%;\n        display: flex; }\n        .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-origin-link:hover {\n          background: rgba(0, 0, 0, 0.7); }\n      .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-parent-link {\n        transition: background .3s ease-out;\n        position: absolute;\n        left: 0;\n        right: 0;\n        top: 50%;\n        bottom: 0;\n        display: flex; }\n        .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-parent-link:hover {\n          background: rgba(0, 0, 0, 0.7); }\n      .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links p {\n        font-weight: 400;\n        font-size: 1.5em;\n        margin-top: auto;\n        margin-bottom: auto;\n        padding-left: 1.3em;\n        margin-left: 1em;\n        background-repeat: no-repeat;\n        background-size: 1.2em;\n        background-position-y: center; }\n  .ov-lib-videoref .ov-lib-videoref-title {\n    max-height: 2.5em;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    white-space: normal;\n    font-size: 1.2em;\n    font-weight: 500;\n    margin: 8px 0 8px; }\n  .ov-lib-videoref .ov-lib-videoref-subtitle {\n    color: #606060;\n    text-overflow: ellipsis;\n    white-space: nowrap;\n    overflow: hidden;\n    font-size: 1em;\n    font-weight: 400;\n    text-transform: none; }\n  .ov-lib-videoref:hover .ov-lib-videoref-watched, .ov-lib-videoref:hover .ov-lib-videoref-duration {\n    opacity: 0; }\n  .ov-lib-videoref:hover .ov-lib-videoref-links {\n    opacity: 1; }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-lib-video {\n  display: flex;\n  grid-area: body;\n  flex-direction: row-reverse;\n  overflow: hidden;\n  min-width: 0; }\n  .ov-lib-video iframe {\n    flex-grow: 1;\n    border: none;\n    margin: 3em;\n    order: 1; }\n  .ov-lib-video .ov-lib-videolist {\n    display: flex;\n    flex-wrap: wrap;\n    align-content: flex-start;\n    padding: 1em;\n    margin: 2em auto;\n    overflow-y: auto; }\n  .ov-lib-video .ov-lib-videolist-playing {\n    flex-direction: column;\n    order: 0;\n    margin: 2em 2em 2em 0em;\n    flex-wrap: nowrap;\n    overflow-y: auto; }\n    .ov-lib-video .ov-lib-videolist-playing .ov-lib-videoref {\n      padding: 0.5em; }\n\n.ov-lib-videoref-playing {\n  background: rgba(0, 0, 0, 0.1); }\n\n.ov-lib-videoref {\n  cursor: pointer;\n  height: fit-content;\n  width: 16em;\n  margin: 0.25em; }\n  .ov-lib-videoref .ov-lib-videoref-thumbnail {\n    width: 16em;\n    height: 9em;\n    background-size: contain;\n    background-repeat: no-repeat;\n    position: relative;\n    user-select: none; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-img, .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-noimg {\n      width: 100%;\n      height: 100%; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-noimg {\n      -webkit-mask-image: url(" + ___CSS_LOADER_URL___0___ + ");\n      -webkit-mask-repeat: no-repeat;\n      -webkit-mask-size: contain;\n      background: #ccc;\n      -webkit-mask-position: center; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-watched {\n      position: absolute;\n      left: 0;\n      bottom: 0;\n      right: 0;\n      background-color: #8dc73f;\n      height: 5px;\n      transition: opacity 0.3s;\n      opacity: 1; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-duration {\n      position: absolute;\n      bottom: 0;\n      right: 0;\n      margin: 4px;\n      color: #FFFFFF;\n      background-color: rgba(0, 0, 0, 0.8);\n      padding: 2px 4px;\n      border-radius: 2px;\n      letter-spacing: .5px;\n      font-weight: 500;\n      transition: opacity 0.3s;\n      opacity: 1; }\n    .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links {\n      background: rgba(0, 0, 0, 0.5);\n      position: absolute;\n      left: 0;\n      right: 0;\n      top: 0;\n      bottom: 0;\n      color: white;\n      transition: opacity 0.3s;\n      opacity: 0; }\n      .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-origin-link {\n        transition: background .3s ease-out;\n        position: absolute;\n        left: 0;\n        right: 0;\n        top: 0;\n        bottom: 50%;\n        display: flex; }\n        .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-origin-link:hover {\n          background: rgba(0, 0, 0, 0.7); }\n      .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-parent-link {\n        transition: background .3s ease-out;\n        position: absolute;\n        left: 0;\n        right: 0;\n        top: 50%;\n        bottom: 0;\n        display: flex; }\n        .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links .ov-lib-videoref-parent-link:hover {\n          background: rgba(0, 0, 0, 0.7); }\n      .ov-lib-videoref .ov-lib-videoref-thumbnail .ov-lib-videoref-links p {\n        font-weight: 400;\n        font-size: 1.5em;\n        margin-top: auto;\n        margin-bottom: auto;\n        padding-left: 1.3em;\n        margin-left: 1em;\n        background-repeat: no-repeat;\n        background-size: 1.2em;\n        background-position-y: center; }\n  .ov-lib-videoref .ov-lib-videoref-title {\n    max-height: 2.5em;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    white-space: normal;\n    font-size: 1.2em;\n    font-weight: 500;\n    margin: 8px 0 8px; }\n  .ov-lib-videoref .ov-lib-videoref-subtitle {\n    color: #606060;\n    text-overflow: ellipsis;\n    white-space: nowrap;\n    overflow: hidden;\n    font-size: 1em;\n    font-weight: 400;\n    text-transform: none; }\n  .ov-lib-videoref:hover .ov-lib-videoref-watched, .ov-lib-videoref:hover .ov-lib-videoref-duration {\n    opacity: 0; }\n  .ov-lib-videoref:hover .ov-lib-videoref-links {\n    opacity: 1; }\n", ""]);
 
 
 
@@ -3548,7 +3716,7 @@ if(false) {}
 
 exports = module.exports = __webpack_require__(3)(false);
 // Module
-exports.push([module.i, ".ov-lib-prompt-addsearchsite {\n  display: flex;\n  flex-direction: column;\n  user-select: none; }\n  .ov-lib-prompt-addsearchsite input {\n    margin-bottom: 0.5em;\n    font-size: 1.2em; }\n  .ov-lib-prompt-addsearchsite .ov-lib-prompt-header {\n    text-align: center;\n    font-size: 1.6em;\n    margin-bottom: 0.5em;\n    font-weight: bold; }\n  .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns {\n    display: flex; }\n    .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns div {\n      width: 5em;\n      padding: 0.5em;\n      text-align: center;\n      font-weight: bold;\n      cursor: pointer;\n      border: solid 1px gainsboro; }\n      .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns div:hover {\n        color: white;\n        background: #8dc73f; }\n    .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns .ov-lib-prompt-btn-right {\n      margin: auto auto auto 0.5em; }\n    .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns .ov-lib-prompt-btn-left {\n      margin: auto 0.5em auto auto; }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-lib-prompt-addsearchsite {\n  display: flex;\n  flex-direction: column;\n  user-select: none; }\n  .ov-lib-prompt-addsearchsite input {\n    margin-bottom: 0.5em;\n    font-size: 1.2em; }\n  .ov-lib-prompt-addsearchsite .ov-lib-prompt-header {\n    text-align: center;\n    font-size: 1.6em;\n    margin-bottom: 0.5em;\n    font-weight: bold; }\n  .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns {\n    display: flex; }\n    .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns div {\n      width: 5em;\n      padding: 0.5em;\n      text-align: center;\n      font-weight: bold;\n      cursor: pointer;\n      border: solid 1px gainsboro; }\n      .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns div:hover {\n        color: white;\n        background: #8dc73f; }\n    .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns .ov-lib-prompt-btn-right {\n      margin: auto auto auto 0.5em; }\n    .ov-lib-prompt-addsearchsite .ov-lib-prompt-btns .ov-lib-prompt-btn-left {\n      margin: auto 0.5em auto auto; }\n", ""]);
 
 
 

@@ -1,7 +1,7 @@
 import * as Storage from "OV/storage";
 import * as Languages from "OV/languages";
 import * as Messages from "OV/messages";
-import * as ScriptBase from "redirect_scripts_base";
+import ScriptManager from "redirect_scripts_base";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -43,7 +43,7 @@ class ScriptSwitsches extends React.Component<ScriptSwitschesProps,ScriptSwitsch
         this.loadHostsIntoState();
     }
     async loadHostsIntoState() {
-        let redirectHosts = await ScriptBase.getRedirectHosts();
+        let redirectHosts = await ScriptManager.hosts;
         let scriptsEnabled = await Promise.all(redirectHosts.map(async (host) => {
             return { name: host.name, enabled: await Storage.isScriptEnabled(host.name) };
         }));

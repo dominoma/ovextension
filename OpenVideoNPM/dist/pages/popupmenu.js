@@ -154,258 +154,6 @@
 /************************************************************************/
 /******/ ({
 
-/***/ 18:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(19);
-const Tools = __webpack_require__(20);
-function canStorage() {
-    return chrome.storage != undefined;
-}
-exports.canStorage = canStorage;
-function setupBG() {
-    let scopes = {
-        "local": chrome.storage.local,
-        "sync": chrome.storage.sync
-    };
-    Messages.setupBackground({
-        storage_getData: function (msg, bgdata, sender) {
-            return __awaiter(this, void 0, void 0, function* () {
-                return new Promise(function (resolve, reject) {
-                    scopes[bgdata.scope].get(bgdata.name, function (item) {
-                        resolve(item[bgdata.name]);
-                    });
-                });
-            });
-        },
-        storage_setData: function (msg, bgdata, sender) {
-            return __awaiter(this, void 0, void 0, function* () {
-                return new Promise(function (resolve, reject) {
-                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
-                        resolve({ success: true });
-                    });
-                });
-            });
-        }
-    });
-}
-exports.setupBG = setupBG;
-function getValue(name, scope) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (canStorage()) {
-            return new Promise(function (resolve, reject) {
-                scope.get(name, function (item) {
-                    resolve(item[name]);
-                });
-            });
-        }
-        else {
-            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
-            return response.data;
-        }
-    });
-}
-function setValue(name, value, scope) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (canStorage()) {
-            return new Promise(function (resolve, reject) {
-                scope.set({ [name]: value }, function () {
-                    resolve({ success: true });
-                });
-            });
-        }
-        else {
-            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
-            return { success: true };
-        }
-    });
-}
-var local;
-(function (local) {
-    function get(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return getValue(name, chrome.storage.local);
-        });
-    }
-    local.get = get;
-    function set(name, value) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return setValue(name, value, chrome.storage.local);
-        });
-    }
-    local.set = set;
-})(local = exports.local || (exports.local = {}));
-var sync;
-(function (sync) {
-    function get(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return getValue(name, chrome.storage.sync);
-        });
-    }
-    sync.get = get;
-    function set(name, value) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return setValue(name, value, chrome.storage.sync);
-        });
-    }
-    sync.set = set;
-})(sync || (sync = {}));
-exports.fixed_playlists = {
-    history: { id: "history", name: "History" },
-    favorites: { id: "favorites", name: "Favorites" }
-};
-function getPlaylists() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
-    });
-}
-exports.getPlaylists = getPlaylists;
-function setPlaylists(playlists) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return sync.set("library_playlists", playlists);
-    });
-}
-exports.setPlaylists = setPlaylists;
-function getPlaylistByID(id) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (id == exports.fixed_playlists.history.id) {
-            return (yield local.get("library_playlist_" + id)) || [];
-        }
-        return (yield sync.get("library_playlist_" + id)) || [];
-    });
-}
-exports.getPlaylistByID = getPlaylistByID;
-function setPlaylistByID(id, playlist) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (id == exports.fixed_playlists.history.id) {
-            return local.set("library_playlist_" + id, playlist);
-        }
-        return sync.set("library_playlist_" + id, playlist);
-    });
-}
-exports.setPlaylistByID = setPlaylistByID;
-function getSearchSites() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("library_search_sites")) || [];
-    });
-}
-exports.getSearchSites = getSearchSites;
-function setSearchSites(sites) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("library_search_sites", sites);
-    });
-}
-exports.setSearchSites = setSearchSites;
-function isHistoryEnabled() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("library_history_enabled")) != false;
-    });
-}
-exports.isHistoryEnabled = isHistoryEnabled;
-function setHistoryEnabled(enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("library_history_enabled", enabled);
-    });
-}
-exports.setHistoryEnabled = setHistoryEnabled;
-function getPlayerVolume() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("player_volume")) || 1;
-    });
-}
-exports.getPlayerVolume = getPlayerVolume;
-function setPlayerVolume(volume) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("player_volume", volume);
-    });
-}
-exports.setPlayerVolume = setPlayerVolume;
-function getTheatreFrameWidth() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("theatremode_width")) || 70;
-    });
-}
-exports.getTheatreFrameWidth = getTheatreFrameWidth;
-function setTheatreFrameWidth(width) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("theatremode_width", width);
-    });
-}
-exports.setTheatreFrameWidth = setTheatreFrameWidth;
-function getAnalyticsCID() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let cid = yield sync.get("analytics_cid");
-        if (!cid) {
-            cid = Tools.generateHash();
-            yield sync.set("analytics_cid", cid);
-        }
-        return cid;
-    });
-}
-exports.getAnalyticsCID = getAnalyticsCID;
-function isAnalyticsEnabled() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("analytics_enabled")) != false;
-    });
-}
-exports.isAnalyticsEnabled = isAnalyticsEnabled;
-function setAnalyticsEnabled(enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("analytics_enabled", enabled);
-    });
-}
-exports.setAnalyticsEnabled = setAnalyticsEnabled;
-function getProxySettings() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("proxy_settings"));
-    });
-}
-exports.getProxySettings = getProxySettings;
-function setProxySettings(settings) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("proxy_settings", settings);
-    });
-}
-exports.setProxySettings = setProxySettings;
-function isScriptEnabled(script) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("redirect_scripts_" + script)) != false;
-    });
-}
-exports.isScriptEnabled = isScriptEnabled;
-function setScriptEnabled(script, enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("redirect_scripts_" + script, enabled);
-    });
-}
-exports.setScriptEnabled = setScriptEnabled;
-function isVideoSearchEnabled() {
-    return __awaiter(this, void 0, void 0, function* () {
-        return (yield sync.get("videopopup_search")) != false;
-    });
-}
-exports.isVideoSearchEnabled = isVideoSearchEnabled;
-function setVideoSearchEnabled(enabled) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield sync.set("videopopup_search", enabled);
-    });
-}
-exports.setVideoSearchEnabled = setVideoSearchEnabled;
-
-
-/***/ }),
-
 /***/ 19:
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -420,7 +168,343 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(20);
+function exportFunction(func) {
+    window[func.name] = func;
+}
+exports.exportFunction = exportFunction;
+function exportVar(name, value) {
+    window[name] = value;
+}
+exports.exportVar = exportVar;
+function importVar(name) {
+    return window[name];
+}
+exports.importVar = importVar;
+function accessWindow(initValues) {
+    return new Proxy({}, {
+        get: function (target, key) {
+            let val = window[key];
+            if (val == undefined) {
+                return initValues[key];
+            }
+            else {
+                return val;
+            }
+        },
+        set: function (target, key, value) {
+            window[key] = value;
+            return true;
+        }
+    });
+}
+exports.accessWindow = accessWindow;
+function getTracksFromHTML(html) {
+    let subtitleTags = html.match(/<track(.*)\/>/g) || [];
+    let subtitles = [];
+    for (let subtitleTag of subtitleTags) {
+        let label = matchNull(subtitleTag, /label="([^"]*)"/);
+        let src = matchNull(subtitleTag, /src="([^"]*)"/);
+        if (src) {
+            subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
+        }
+    }
+    return subtitles;
+}
+exports.getTracksFromHTML = getTracksFromHTML;
+function generateHash() {
+    var ts = Math.round(+new Date() / 1000.0);
+    var rand = Math.round(Math.random() * 2147483647);
+    return [rand, ts].join('.');
+}
+exports.generateHash = generateHash;
+function merge(obj1, obj2) {
+    return Object.assign({}, obj1, obj2);
+}
+exports.merge = merge;
+function eventOne(elem, type) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            elem.addEventListener(type, function one(e) {
+                elem.removeEventListener(type, one);
+                resolve(e);
+            });
+        });
+    });
+}
+exports.eventOne = eventOne;
+function sleep(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(function (resolve, reject) {
+            window.setTimeout(function () {
+                resolve();
+            }, ms);
+        });
+    });
+}
+exports.sleep = sleep;
+function matchNull(str, regexp, index) {
+    return (str.match(regexp) || [])[index || 1] || "";
+}
+exports.matchNull = matchNull;
+function matchError(str, regexp) {
+    let match = str.match(regexp);
+    if (!match) {
+        throw Error("No match found for '" + regexp + "'!");
+    }
+    return match;
+}
+exports.matchError = matchError;
+function objToHash(obj) {
+    if (obj) {
+        return "?hash=" + encodeURIComponent(JSON.stringify(obj));
+    }
+    else {
+        return "";
+    }
+}
+exports.objToHash = objToHash;
+function hashToObj(hashStr) {
+    var hash = parseURL(hashStr).query.hash;
+    if (hash == "" || hash == undefined) {
+        return null;
+    }
+    else {
+        return JSON.parse(decodeURIComponent(hash));
+    }
+}
+exports.hashToObj = hashToObj;
+function unpackJS(source) {
+    function getUnbase(base) {
+        var ALPHABET = "";
+        if (base > 62)
+            ALPHABET = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+        else if (base > 54)
+            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        else if (base > 52)
+            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR';
+        else
+            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
+        return function (val) {
+            if (2 <= base && base <= 36) {
+                return parseInt(val, base);
+            }
+            else {
+                var valArray = val.split('').reverse();
+                var ret = 0;
+                for (var i = 0; i < valArray.length; i++) {
+                    var cipher = valArray[i];
+                    ret += Math.pow(base, i) * ALPHABET.indexOf(cipher);
+                }
+                return ret;
+            }
+        };
+    }
+    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
+    // Payload
+    var payload = out[1];
+    // Words
+    var symtab = out[4].split(/\|/);
+    // Radix
+    var radix = parseInt(out[2]);
+    // Words Count
+    var count = parseInt(out[3]);
+    if (count != symtab.length) {
+        throw Error("Malformed p.a.c.k.e.r symtab !");
+    }
+    var unbase = getUnbase(radix);
+    function lookup(matches) {
+        var word = matches;
+        var ub = symtab[unbase(word)];
+        var ret = ub ? ub : word;
+        return ret;
+    }
+    var result = payload.replace(/\b\w+\b/g, lookup);
+    result = result.replace(/\\/g, '');
+    return result;
+}
+exports.unpackJS = unpackJS;
+let urlParser = document.createElement("a");
+function parseURL(url) {
+    urlParser.href = url;
+    return {
+        url: url,
+        protocol: urlParser.protocol,
+        host: urlParser.host,
+        port: urlParser.port,
+        path: urlParser.pathname,
+        queryStr: urlParser.search,
+        query: parseURLQuery(urlParser.search),
+    };
+}
+exports.parseURL = parseURL;
+function parseURLQuery(url) {
+    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
+        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
+        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
+    }).concat({}));
+}
+function getUrlFileName(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
+        var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
+        if (filename && filename != "") {
+            return filename;
+        }
+        else {
+            return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1).replace(/[&\?].*/, ""));
+        }
+    });
+}
+exports.getUrlFileName = getUrlFileName;
+function getRedirectedUrl(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
+        return xhr.responseURL;
+    });
+}
+exports.getRedirectedUrl = getRedirectedUrl;
+function objToURLParams(url, obj) {
+    var str = "";
+    for (var key in obj) {
+        if (!isParamInURL(url, key)) {
+            str += "&" + key + "=" + encodeURIComponent(obj[key]);
+        }
+    }
+    return str.substr(1);
+}
+function isParamInURL(url, param) {
+    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
+}
+exports.isParamInURL = isParamInURL;
+function addParamsToURL(url, obj) {
+    if (url && obj) {
+        let query_str = objToURLParams(url, obj);
+        if (query_str) {
+            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        }
+        else {
+            return url;
+        }
+    }
+    else {
+        return url;
+    }
+}
+exports.addParamsToURL = addParamsToURL;
+function removeParamsFromURL(url, params) {
+    for (let param of params) {
+        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
+    }
+    return url;
+}
+exports.removeParamsFromURL = removeParamsFromURL;
+function getParamFromURL(url, param) {
+    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
+    if (match) {
+        return match[1];
+    }
+    else {
+        return null;
+    }
+}
+exports.getParamFromURL = getParamFromURL;
+function addRefererToURL(url, referer) {
+    return addParamsToURL(url, { OVReferer: btoa(referer) });
+}
+exports.addRefererToURL = addRefererToURL;
+function getRefererFromURL(url) {
+    var param = getParamFromURL(url, "OVReferer");
+    if (param) {
+        let ref = param;
+        while (true) {
+            ref = decodeURIComponent(ref);
+            try {
+                return atob(ref);
+            }
+            catch (e) {
+            }
+        }
+    }
+    else {
+        return null;
+    }
+}
+exports.getRefererFromURL = getRefererFromURL;
+function removeRefererFromURL(url) {
+    return removeParamsFromURL(url, ["OVReferer"]);
+}
+exports.removeRefererFromURL = removeRefererFromURL;
+function createRequest(args) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => {
+            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
+            var type = args.type || "GET" /* GET */;
+            var protocol = args.protocol || "https://";
+            if (args.referer) {
+                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+            }
+            else if (args.hideRef) {
+                args.data = merge(args.data, { isOV: "true" });
+            }
+            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
+            xmlHttpObj.open(type, url, true);
+            xmlHttpObj.onload = function () {
+                if (xmlHttpObj.status == 200) {
+                    resolve(xmlHttpObj);
+                }
+                else {
+                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
+                }
+            };
+            xmlHttpObj.onerror = function () {
+                reject(Error("Network Error (url: '" + url + "')"));
+            };
+            if (args.headers) {
+                for (var key in args.headers) {
+                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
+                }
+            }
+            let formData = null;
+            if (args.formData) {
+                formData = new FormData();
+                for (var key in args.formData) {
+                    formData.append(key, args.formData[key]);
+                }
+            }
+            if (args.cache == false) {
+                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
+                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
+                xmlHttpObj.setRequestHeader('expires', '0');
+                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
+                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
+            }
+            if (args.beforeSend) {
+                args.beforeSend(xmlHttpObj);
+            }
+            xmlHttpObj.send(formData);
+        });
+    });
+}
+exports.createRequest = createRequest;
+
+
+/***/ }),
+
+/***/ 20:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Tools = __webpack_require__(19);
 var Status;
 (function (Status) {
     Status["Request"] = "Request";
@@ -676,7 +760,7 @@ exports.sendToTab = sendToTab;
 
 /***/ }),
 
-/***/ 20:
+/***/ 22:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -690,303 +774,351 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-function exportFunction(func) {
-    window[func.name] = func;
+const Messages = __webpack_require__(20);
+const Tools = __webpack_require__(19);
+function canStorage() {
+    return chrome.storage != undefined;
 }
-exports.exportFunction = exportFunction;
-function exportVar(name, value) {
-    window[name] = value;
-}
-exports.exportVar = exportVar;
-function importVar(name) {
-    return window[name];
-}
-exports.importVar = importVar;
-function accessWindow(initValues) {
-    return new Proxy({}, {
-        get: function (target, key) {
-            let val = window[key];
-            if (val == undefined) {
-                return initValues[key];
-            }
-            else {
-                return val;
-            }
-        },
-        set: function (target, key, value) {
-            window[key] = value;
-            return true;
-        }
-    });
-}
-exports.accessWindow = accessWindow;
-function generateHash() {
-    var ts = Math.round(+new Date() / 1000.0);
-    var rand = Math.round(Math.random() * 2147483647);
-    return [rand, ts].join('.');
-}
-exports.generateHash = generateHash;
-function merge(obj1, obj2) {
-    return Object.assign({}, obj1, obj2);
-}
-exports.merge = merge;
-function eventOne(elem, type) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            elem.addEventListener(type, function one(e) {
-                elem.removeEventListener(type, one);
-                resolve(e);
-            });
-        });
-    });
-}
-exports.eventOne = eventOne;
-function sleep(ms) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(function (resolve, reject) {
-            window.setTimeout(function () {
-                resolve();
-            }, ms);
-        });
-    });
-}
-exports.sleep = sleep;
-function matchNull(str, regexp, index) {
-    return (str.match(regexp) || [])[index || 1] || "";
-}
-exports.matchNull = matchNull;
-function matchError(str, regexp) {
-    let match = str.match(regexp);
-    if (!match) {
-        throw Error("No match found for '" + regexp + "'!");
-    }
-    return match;
-}
-exports.matchError = matchError;
-function objToHash(obj) {
-    if (obj) {
-        return "?hash=" + encodeURIComponent(JSON.stringify(obj));
-    }
-    else {
-        return "";
-    }
-}
-exports.objToHash = objToHash;
-function hashToObj(hashStr) {
-    var hash = parseURL(hashStr).query.hash;
-    if (hash == "" || hash == undefined) {
-        return null;
-    }
-    else {
-        return JSON.parse(decodeURIComponent(hash));
-    }
-}
-exports.hashToObj = hashToObj;
-function unpackJS(source) {
-    function getUnbase(base) {
-        var ALPHABET = "";
-        if (base > 62)
-            ALPHABET = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
-        else if (base > 54)
-            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        else if (base > 52)
-            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR';
-        else
-            ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
-        return function (val) {
-            if (2 <= base && base <= 36) {
-                return parseInt(val, base);
-            }
-            else {
-                var valArray = val.split('').reverse();
-                var ret = 0;
-                for (var i = 0; i < valArray.length; i++) {
-                    var cipher = valArray[i];
-                    ret += Math.pow(base, i) * ALPHABET.indexOf(cipher);
-                }
-                return ret;
-            }
-        };
-    }
-    var out = source.match(/}\('(.*)', *(\d+), *(\d+), *'(.*?)'\.split\('\|'\)/) || [];
-    // Payload
-    var payload = out[1];
-    // Words
-    var symtab = out[4].split(/\|/);
-    // Radix
-    var radix = parseInt(out[2]);
-    // Words Count
-    var count = parseInt(out[3]);
-    if (count != symtab.length) {
-        throw Error("Malformed p.a.c.k.e.r symtab !");
-    }
-    var unbase = getUnbase(radix);
-    function lookup(matches) {
-        var word = matches;
-        var ub = symtab[unbase(word)];
-        var ret = ub ? ub : word;
-        return ret;
-    }
-    var result = payload.replace(/\b\w+\b/g, lookup);
-    result = result.replace(/\\/g, '');
-    return result;
-}
-exports.unpackJS = unpackJS;
-let urlParser = document.createElement("a");
-function parseURL(url) {
-    urlParser.href = url;
-    return {
-        url: url,
-        protocol: urlParser.protocol,
-        host: urlParser.host,
-        port: urlParser.port,
-        path: urlParser.pathname,
-        queryStr: urlParser.search,
-        query: parseURLQuery(urlParser.search),
+exports.canStorage = canStorage;
+function setupBG() {
+    let scopes = {
+        "local": chrome.storage.local,
+        "sync": chrome.storage.sync
     };
-}
-exports.parseURL = parseURL;
-function parseURLQuery(url) {
-    return Object.assign.apply(null, (url.match(/[\?&]([^\?&]*)/g) || []).map(function (el) {
-        let match = el.match(/[\?&]([^=]*)=?(.*)/) || [];
-        return { [decodeURIComponent(match[1])]: decodeURIComponent(match[2]) || true };
-    }).concat({}));
-}
-function getUrlFileName(url) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
-        var filename = ((xhr.getResponseHeader("content-disposition") || "").match(/filename="([^"]*)/) || [])[1];
-        if (filename && filename != "") {
-            return filename;
-        }
-        else {
-            return decodeURIComponent(url.substring(url.lastIndexOf('/') + 1).replace(/[&\?].*/, ""));
+    Messages.setupBackground({
+        storage_getData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].get(bgdata.name, function (item) {
+                        resolve(item[bgdata.name]);
+                    });
+                });
+            });
+        },
+        storage_setData: function (msg, bgdata, sender) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return new Promise(function (resolve, reject) {
+                    scopes[bgdata.scope].set({ [bgdata.name]: bgdata.value }, function () {
+                        resolve({ success: true });
+                    });
+                });
+            });
         }
     });
 }
-exports.getUrlFileName = getUrlFileName;
-function getRedirectedUrl(url) {
+exports.setupBG = setupBG;
+function getValue(name, scope) {
     return __awaiter(this, void 0, void 0, function* () {
-        let xhr = yield createRequest({ url: url, type: "HEAD" /* HEAD */ });
-        return xhr.responseURL;
-    });
-}
-exports.getRedirectedUrl = getRedirectedUrl;
-function objToURLParams(url, obj) {
-    var str = "";
-    for (var key in obj) {
-        if (!isParamInURL(url, key)) {
-            str += "&" + key + "=" + encodeURIComponent(obj[key]);
-        }
-    }
-    return str.substr(1);
-}
-function isParamInURL(url, param) {
-    return new RegExp("[\\?|&]" + param + "=", "i").test(url);
-}
-exports.isParamInURL = isParamInURL;
-function addParamsToURL(url, obj) {
-    if (url && obj) {
-        let query_str = objToURLParams(url, obj);
-        if (query_str) {
-            return url + (url.lastIndexOf("?") < url.lastIndexOf("/") ? "?" : "&") + query_str;
+        if (canStorage()) {
+            return new Promise(function (resolve, reject) {
+                scope.get(name, function (item) {
+                    resolve(item[name]);
+                });
+            });
         }
         else {
-            return url;
+            let response = yield Messages.sendToBG({ func: "storage_getData", data: { scope: scope, name: name } });
+            return response.data;
         }
-    }
-    else {
-        return url;
-    }
+    });
 }
-exports.addParamsToURL = addParamsToURL;
-function removeParamsFromURL(url, params) {
-    for (let param of params) {
-        url = url.replace(new RegExp("[\\?&]" + param + "=[^\\?&]*", "i"), "");
-    }
-    return url;
-}
-exports.removeParamsFromURL = removeParamsFromURL;
-function getParamFromURL(url, param) {
-    var match = url.match(new RegExp("[\\?&]" + param + "=([^\\?&]*)", "i"));
-    if (match) {
-        return match[1];
-    }
-    else {
-        return null;
-    }
-}
-exports.getParamFromURL = getParamFromURL;
-function addRefererToURL(url, referer) {
-    return addParamsToURL(url, { OVReferer: btoa(referer) });
-}
-exports.addRefererToURL = addRefererToURL;
-function getRefererFromURL(url) {
-    var param = getParamFromURL(url, "OVReferer");
-    if (param) {
-        return atob(decodeURIComponent(param));
-    }
-    else {
-        return null;
-    }
-}
-exports.getRefererFromURL = getRefererFromURL;
-function removeRefererFromURL(url) {
-    return removeParamsFromURL(url, ["OVReferer"]);
-}
-exports.removeRefererFromURL = removeRefererFromURL;
-function createRequest(args) {
+function setValue(name, value, scope) {
     return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            let xmlHttpObj = args.xmlHttpObj || new XMLHttpRequest();
-            var type = args.type || "GET" /* GET */;
-            var protocol = args.protocol || "https://";
-            if (args.referer) {
-                args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+        if (canStorage()) {
+            return new Promise(function (resolve, reject) {
+                scope.set({ [name]: value }, function () {
+                    resolve({ success: true });
+                });
+            });
+        }
+        else {
+            yield Messages.sendToBG({ func: "storage_setData", data: { scope: scope, name: name, value: value } });
+            return { success: true };
+        }
+    });
+}
+var local;
+(function (local) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.local);
+        });
+    }
+    local.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.local);
+        });
+    }
+    local.set = set;
+})(local = exports.local || (exports.local = {}));
+var sync;
+(function (sync) {
+    function get(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return getValue(name, chrome.storage.sync);
+        });
+    }
+    sync.get = get;
+    function set(name, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return setValue(name, value, chrome.storage.sync);
+        });
+    }
+    sync.set = set;
+})(sync || (sync = {}));
+exports.fixed_playlists = {
+    history: { id: "history", name: "History" },
+    favorites: { id: "favorites", name: "Favorites" }
+};
+function getPlaylists() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_playlists")) || [exports.fixed_playlists.history, exports.fixed_playlists.favorites];
+    });
+}
+exports.getPlaylists = getPlaylists;
+function setPlaylists(playlists) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return sync.set("library_playlists", playlists);
+    });
+}
+exports.setPlaylists = setPlaylists;
+var playlist_old;
+(function (playlist_old) {
+    function getPlaylistByID(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (id == exports.fixed_playlists.history.id) {
+                return (yield local.get("library_playlist_" + id)) || [];
             }
-            else if (args.hideRef) {
-                args.data = merge(args.data, { isOV: "true" });
+            return (yield sync.get("library_playlist_" + id)) || [];
+        });
+    }
+    playlist_old.getPlaylistByID = getPlaylistByID;
+    function setPlaylistByID(id, playlist) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (id == exports.fixed_playlists.history.id) {
+                return local.set("library_playlist_" + id, playlist);
             }
-            var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
-            xmlHttpObj.open(type, url, true);
-            xmlHttpObj.onload = function () {
-                if (xmlHttpObj.status == 200) {
-                    resolve(xmlHttpObj);
-                }
-                else {
-                    reject(Error(xmlHttpObj.statusText + " (url: '" + url + "')"));
-                }
-            };
-            xmlHttpObj.onerror = function () {
-                reject(Error("Network Error (url: '" + url + "')"));
-            };
-            if (args.headers) {
-                for (var key in args.headers) {
-                    xmlHttpObj.setRequestHeader(key, args.headers[key]);
-                }
-            }
-            let formData = null;
-            if (args.formData) {
-                formData = new FormData();
-                for (var key in args.formData) {
-                    formData.append(key, args.formData[key]);
-                }
-            }
-            if (args.cache == false) {
-                xmlHttpObj.setRequestHeader('cache-control', 'no-cache, must-revalidate, post-check=0, pre-check=0');
-                xmlHttpObj.setRequestHeader('cache-control', 'max-age=0');
-                xmlHttpObj.setRequestHeader('expires', '0');
-                xmlHttpObj.setRequestHeader('expires', 'Tue, 01 Jan 1980 1:00:00 GMT');
-                xmlHttpObj.setRequestHeader('pragma', 'no-cache');
-            }
-            if (args.beforeSend) {
-                args.beforeSend(xmlHttpObj);
-            }
-            xmlHttpObj.send(formData);
+            return sync.set("library_playlist_" + id, playlist);
+        });
+    }
+    playlist_old.setPlaylistByID = setPlaylistByID;
+    function convertToNew() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let playlists = yield getPlaylists();
+            let content = yield Promise.all(playlists.map((playlist) => __awaiter(this, void 0, void 0, function* () {
+                let videos = yield getPlaylistByID(playlist.id);
+                return videos.map((video) => {
+                    return { data: video, playlists: [playlist.id] };
+                });
+            })));
+            let videos = content.reduce((acc, videos) => {
+                videos.forEach((video) => {
+                    let index = acc.findIndex((accel) => {
+                        return accel.data.origin.url == video.data.origin.url;
+                    });
+                    if (index == -1) {
+                        acc.push(video);
+                    }
+                    else {
+                        let accel = acc[index];
+                        accel.playlists = accel.playlists.concat(video.playlists);
+                        acc[index] = accel;
+                    }
+                });
+                return acc;
+            }, []);
+            yield local.set("library_playlist_videos", videos);
+        });
+    }
+    playlist_old.convertToNew = convertToNew;
+})(playlist_old = exports.playlist_old || (exports.playlist_old = {}));
+function getPlaylistEntry(video_origin) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        return videos.find((el) => {
+            return el.data.origin.url == video_origin;
         });
     });
 }
-exports.createRequest = createRequest;
+exports.getPlaylistEntry = getPlaylistEntry;
+function addToPlaylist(video, playlist_id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        let index = videos.findIndex((el) => {
+            return el.data.origin.url == video.origin.url;
+        });
+        if (index == -1) {
+            videos.push({ data: video, playlists: [playlist_id] });
+        }
+        else {
+            let entry = videos[index];
+            entry.data = video;
+            if (!entry.playlists.some((el) => {
+                return el == playlist_id;
+            })) {
+                entry.playlists.push(playlist_id);
+            }
+            videos[index] = entry;
+        }
+        yield local.set("library_playlist_videos", videos);
+    });
+}
+exports.addToPlaylist = addToPlaylist;
+function removeFromPlaylist(video_origin, playlist_id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        let index = videos.findIndex((el) => {
+            return el.data.origin.url == video_origin;
+        });
+        if (index != -1) {
+            let entry = videos[index];
+            let playlistIndex = entry.playlists.findIndex((el) => {
+                return el == playlist_id;
+            });
+            if (playlistIndex != -1) {
+                entry.playlists.splice(playlistIndex, 1);
+                if (entry.playlists.length == 0) {
+                    videos.splice(index, 1);
+                }
+                yield local.set("library_playlist_videos", videos);
+            }
+        }
+    });
+}
+exports.removeFromPlaylist = removeFromPlaylist;
+function getPlaylistsWithVideo(video_origin) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let entry = yield getPlaylistEntry(video_origin);
+        if (entry) {
+            return entry.playlists;
+        }
+        else {
+            return [];
+        }
+    });
+}
+exports.getPlaylistsWithVideo = getPlaylistsWithVideo;
+function getPlaylistVideos(playlist_id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let videos = yield local.get("library_playlist_videos");
+        return videos.filter((entry) => {
+            return entry.playlists.some((el) => {
+                return el == playlist_id;
+            });
+        }).map((el) => {
+            return el.data;
+        });
+    });
+}
+exports.getPlaylistVideos = getPlaylistVideos;
+function getSearchSites() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_search_sites")) || [];
+    });
+}
+exports.getSearchSites = getSearchSites;
+function setSearchSites(sites) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_search_sites", sites);
+    });
+}
+exports.setSearchSites = setSearchSites;
+function isHistoryEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("library_history_enabled")) != false;
+    });
+}
+exports.isHistoryEnabled = isHistoryEnabled;
+function setHistoryEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("library_history_enabled", enabled);
+    });
+}
+exports.setHistoryEnabled = setHistoryEnabled;
+function getPlayerVolume() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("player_volume")) || 1;
+    });
+}
+exports.getPlayerVolume = getPlayerVolume;
+function setPlayerVolume(volume) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("player_volume", volume);
+    });
+}
+exports.setPlayerVolume = setPlayerVolume;
+function getTheatreFrameWidth() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("theatremode_width")) || 70;
+    });
+}
+exports.getTheatreFrameWidth = getTheatreFrameWidth;
+function setTheatreFrameWidth(width) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("theatremode_width", width);
+    });
+}
+exports.setTheatreFrameWidth = setTheatreFrameWidth;
+function getAnalyticsCID() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cid = yield sync.get("analytics_cid");
+        if (!cid) {
+            cid = Tools.generateHash();
+            yield sync.set("analytics_cid", cid);
+        }
+        return cid;
+    });
+}
+exports.getAnalyticsCID = getAnalyticsCID;
+function isAnalyticsEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("analytics_enabled")) != false;
+    });
+}
+exports.isAnalyticsEnabled = isAnalyticsEnabled;
+function setAnalyticsEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("analytics_enabled", enabled);
+    });
+}
+exports.setAnalyticsEnabled = setAnalyticsEnabled;
+function getProxySettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("proxy_settings"));
+    });
+}
+exports.getProxySettings = getProxySettings;
+function setProxySettings(settings) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("proxy_settings", settings);
+    });
+}
+exports.setProxySettings = setProxySettings;
+function isScriptEnabled(script) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("redirect_scripts_" + script)) != false;
+    });
+}
+exports.isScriptEnabled = isScriptEnabled;
+function setScriptEnabled(script, enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("redirect_scripts_" + script, enabled);
+    });
+}
+exports.setScriptEnabled = setScriptEnabled;
+function isVideoSearchEnabled() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return (yield sync.get("videopopup_search")) != false;
+    });
+}
+exports.isVideoSearchEnabled = isVideoSearchEnabled;
+function setVideoSearchEnabled(enabled) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield sync.set("videopopup_search", enabled);
+    });
+}
+exports.setVideoSearchEnabled = setVideoSearchEnabled;
 
 
 /***/ }),
@@ -1005,7 +1137,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(19);
+const Messages = __webpack_require__(20);
 const Environment = __webpack_require__(24);
 function toTopWindow(msg) {
     return Messages.send({ data: msg.data, func: msg.func, bgdata: { func: "background_toTopWindow", data: msg.frameId } });
@@ -1190,7 +1322,7 @@ exports.setup = setup;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(20);
+const Tools = __webpack_require__(19);
 let _isBGPage = false;
 function declareBGPage() {
     _isBGPage = true;
@@ -1919,10 +2051,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(62);
 const Languages = __webpack_require__(55);
-const Messages = __webpack_require__(19);
+const Messages = __webpack_require__(20);
 const Environment = __webpack_require__(24);
 const Proxy = __webpack_require__(64);
-const Storage = __webpack_require__(18);
+const Storage = __webpack_require__(22);
 const Background = __webpack_require__(23);
 const React = __webpack_require__(6);
 const ReactDOM = __webpack_require__(11);
@@ -2034,7 +2166,7 @@ if(false) {}
 
 exports = module.exports = __webpack_require__(3)(false);
 // Module
-exports.push([module.i, ".ov-popupmenu {\n  display: flex;\n  flex-direction: column;\n  width: 13em;\n  user-select: none; }\n  .ov-popupmenu .ov-popupmenu-button {\n    color: white;\n    font-size: 1.5em;\n    padding: 0.5em;\n    background: #8dc73f;\n    margin: 0.2em;\n    cursor: pointer;\n    text-align: center; }\n  .ov-popupmenu .ov-popupmenu-proxy-btn {\n    display: grid;\n    grid: \"disable disable reload\" 1.5em\r \"country custom  reload\" 1em\r /1fr     1em     2.5em;\n    background: #8dc73f;\n    font-size: 1.5em;\n    margin: 0.2em; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-disable {\n      grid-area: disable;\n      color: white;\n      background: #ccc;\n      padding: 0.08em 0;\n      text-align: center;\n      font-size: 0.7em;\n      margin: 0.27em;\n      cursor: pointer; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-country {\n      grid-area: country;\n      font-size: 0.8em;\n      color: white;\n      background: #8dc73f;\n      font-size: 0.6em;\n      margin: auto; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-custom {\n      grid-area: custom;\n      background: #8dc73f;\n      font-size: 0.6em;\n      margin: auto;\n      color: white;\n      cursor: pointer; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-reload {\n      grid-area: reload;\n      -webkit-mask-repeat: no-repeat;\n      -webkit-mask-size: contain;\n      -webkit-mask-image: url(\"https://image.flaticon.com/icons/png/512/61/61225.png\");\n      background: white;\n      margin: 0.5em;\n      cursor: pointer; }\n  .ov-popupmenu .ov-popupmenu-patreonbutton {\n    background-image: url(\"https://c5.patreon.com/external/logo/become_a_patron_button@2x.png\");\n    background-position: center;\n    background-size: contain;\n    height: 2.5em;\n    font-size: 1.5em;\n    margin: 0.2em;\n    cursor: pointer; }\n  .ov-popupmenu .ov-popupmenu-footer {\n    margin: auto 0.2em 0 0.2em;\n    display: flex; }\n    .ov-popupmenu .ov-popupmenu-footer .ov-popupmenu-link {\n      color: #ccc;\n      margin: 0 0.2em;\n      cursor: pointer; }\n", ""]);
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\n.ov-popupmenu {\n  display: flex;\n  flex-direction: column;\n  width: 13em;\n  user-select: none; }\n  .ov-popupmenu .ov-popupmenu-button {\n    color: white;\n    font-size: 1.5em;\n    padding: 0.5em;\n    background: #8dc73f;\n    margin: 0.2em;\n    cursor: pointer;\n    text-align: center; }\n  .ov-popupmenu .ov-popupmenu-proxy-btn {\n    display: grid;\n    grid: \"disable disable reload\" 1.5em\r \"country custom  reload\" 1em\r /1fr     1em     2.5em;\n    background: #8dc73f;\n    font-size: 1.5em;\n    margin: 0.2em; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-disable {\n      grid-area: disable;\n      color: white;\n      background: #ccc;\n      padding: 0.08em 0;\n      text-align: center;\n      font-size: 0.7em;\n      margin: 0.27em;\n      cursor: pointer; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-country {\n      grid-area: country;\n      font-size: 0.8em;\n      color: white;\n      background: #8dc73f;\n      font-size: 0.6em;\n      margin: auto; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-custom {\n      grid-area: custom;\n      background: #8dc73f;\n      font-size: 0.6em;\n      margin: auto;\n      color: white;\n      cursor: pointer; }\n    .ov-popupmenu .ov-popupmenu-proxy-btn .ov-popupmenu-proxy-reload {\n      grid-area: reload;\n      -webkit-mask-repeat: no-repeat;\n      -webkit-mask-size: contain;\n      -webkit-mask-image: url(\"https://image.flaticon.com/icons/png/512/61/61225.png\");\n      background: white;\n      margin: 0.5em;\n      cursor: pointer; }\n  .ov-popupmenu .ov-popupmenu-patreonbutton {\n    background-image: url(\"https://c5.patreon.com/external/logo/become_a_patron_button@2x.png\");\n    background-position: center;\n    background-size: contain;\n    height: 2.5em;\n    font-size: 1.5em;\n    margin: 0.2em;\n    cursor: pointer; }\n  .ov-popupmenu .ov-popupmenu-footer {\n    margin: auto 0.2em 0 0.2em;\n    display: flex; }\n    .ov-popupmenu .ov-popupmenu-footer .ov-popupmenu-link {\n      color: #ccc;\n      margin: 0 0.2em;\n      cursor: pointer; }\n", ""]);
 
 
 
@@ -2054,10 +2186,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tools = __webpack_require__(20);
-const Messages = __webpack_require__(19);
+const Tools = __webpack_require__(19);
+const Messages = __webpack_require__(20);
 const Environment = __webpack_require__(24);
-const Storage = __webpack_require__(18);
+const Storage = __webpack_require__(22);
 function canProxy() {
     return chrome.proxy != undefined;
 }

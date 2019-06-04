@@ -26,6 +26,18 @@ export function accessWindow<T>(initValues: T) {
         }
     }) as T;
 }
+export function getTracksFromHTML(html : string) {
+    let subtitleTags = html.match(/<track(.*)\/>/g) || [];
+    let subtitles = [];
+    for (let subtitleTag of subtitleTags) {
+        let label = matchNull(subtitleTag, /label="([^"]*)"/);
+        let src = matchNull(subtitleTag, /src="([^"]*)"/);
+        if (src) {
+            subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
+        }
+    }
+    return subtitles;
+}
 export function generateHash(): string {
     var ts = Math.round(+new Date() / 1000.0);
     var rand = Math.round(Math.random() * 2147483647);
@@ -215,7 +227,16 @@ export function addRefererToURL(url: string, referer: string) {
 export function getRefererFromURL(url: string) {
     var param = getParamFromURL(url, "OVReferer");
     if (param) {
-        return atob(decodeURIComponent(param));
+        let ref = param;
+        while(true) {
+            ref = decodeURIComponent(ref);
+            try {
+                return atob(ref);
+            }
+            catch(e) {
+
+            }
+        }
     }
     else {
         return null;

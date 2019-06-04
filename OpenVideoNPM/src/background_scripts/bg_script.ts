@@ -4,7 +4,7 @@ import * as Tools from "OV/tools";
 import * as Environment from "OV/environment";
 import * as Background from "Messages/background";
 import * as Messages from "OV/messages";
-import * as ScriptBase from "redirect_scripts_base";
+import ScriptManager from "redirect_scripts_base";
 import * as RedirectScripts from "../RedirectScripts";
 import * as Analytics from "OV/analytics";
 import * as VideoHistory from "Messages/videohistory";
@@ -12,7 +12,7 @@ import * as VideoHistory from "Messages/videohistory";
 async function LoadBGScripts() {
     //OV.proxy.addHostsFromScripts(ScriptBase.getRedirectHosts());
     Proxy.addHostsToList(["oloadcdn.", "198.16.68.146", "playercdn.", "fruithosted.", "fx.fastcontentdelivery."]);
-    let scripts = await ScriptBase.getRedirectHosts();
+    let scripts = await ScriptManager.hosts;
     Proxy.addHostsToList(scripts.map((el) => {
         return el.scripts.map((el) => {
             return el.urlPattern;
@@ -25,13 +25,14 @@ Environment.declareBGPage();
 Background.setup();
 Proxy.setupBG();
 Storage.setupBG();
-ScriptBase.setupBG();
+ScriptManager.setupBG();
 Analytics.setupBG();
 RedirectScripts.install();
 
 Proxy.loadFromStorage();
 
 VideoHistory.convertOldPlaylists();
+Storage.playlist_old.convertToNew();
 
 LoadBGScripts();
 chrome.runtime.setUninstallURL("https://goo.gl/forms/conIBydrACtZQR0A2");
@@ -44,7 +45,7 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 });
 chrome.runtime.onInstalled.addListener(async function(details) {
     if (details.reason == "install" || details.reason == "update") {
-        let redirectHosts = await ScriptBase.getRedirectHosts();
+        let redirectHosts = await ScriptManager.hosts;
         for(let script of redirectHosts) {
             Storage.setScriptEnabled(script.name, true);
         }

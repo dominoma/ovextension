@@ -59,12 +59,12 @@ export async function convertOldPlaylists() {
     };
     if(oldfav) {
         let newfav = oldfav.map(mapping);
-        await Storage.setPlaylistByID(Storage.fixed_playlists.favorites.id, newfav);
+        await Storage.playlist_old.setPlaylistByID(Storage.fixed_playlists.favorites.id, newfav);
         await Storage.local.set("OpenVideoFavorites", null)
     }
     if(oldhist) {
         let newhist = oldhist.map(mapping);
-        await Storage.setPlaylistByID(Storage.fixed_playlists.history.id, newhist);
+        await Storage.playlist_old.setPlaylistByID(Storage.fixed_playlists.history.id, newhist);
         await Storage.local.set("OpenVideoHistory", null)
     }
 }

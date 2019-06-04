@@ -130,19 +130,22 @@ export class VideoList extends React.Component<VideoListProps, VideoListState> {
         super(props);
         this.state = { videos: [], playing: null };
     }
+    loadVideos() {
+        Storage.getPlaylistVideos(this.props.playlist).then((videos)=>{
+            console.log(videos);
+            if(this.props.playlist == Storage.fixed_playlists.history.id) {
+                videos = videos.reverse();
+            }
+            this.setState({ videos: videos });
+        });
+    }
     componentDidUpdate(prevProps : VideoListProps) {
         if(this.props.playlist != prevProps.playlist) {
-            Storage.getPlaylistByID(this.props.playlist).then((videos)=>{
-                console.log(videos);
-                this.setState({ videos: videos, playing: null });
-            });
+            this.loadVideos();
         }
     }
     componentDidMount() {
-        Storage.getPlaylistByID(this.props.playlist).then((videos)=>{
-            console.log(videos);
-            this.setState({ videos: videos });
-        });
+        this.loadVideos();
     }
     render() {
         console.log(this.state.videos);
@@ -179,13 +182,7 @@ export class VideoList extends React.Component<VideoListProps, VideoListState> {
         this.setState({ playing: videoData });
     }
     linkRemoved(data: VideoTypes.VideoRefData) {
-        let index = this.state.videos.findIndex((el)=>{
-            return el.origin.url == data.origin.url;
-        });
-        let newPlaylist = this.state.videos.slice();
-        newPlaylist.splice(index, 1);
-        this.setState({ videos: newPlaylist });
-        Storage.setPlaylistByID(this.props.playlist, newPlaylist);
+        Storage.removeFromPlaylist(data.origin.url, this.props.playlist);
         this.props.onVideoRemoved(data);
     }
 }

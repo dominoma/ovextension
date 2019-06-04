@@ -2,16 +2,12 @@
 .ov-lib-search-input {
 	width: 15em;
 	font-size: 1.5em;
+	position: relative;
 	display:flex;
   	flex-direction:row;
 	box-sizing: border-box;
 	padding: 0.25em 0 0.25em 0.25em;
 	border: solid 1px gainsboro;
-	-webkit-transition: box-shadow 0.3s, border 0.3s;
-	-moz-transition: box-shadow 0.3s, border 0.3s;
-	-o-transition: box-shadow 0.3s, border 0.3s;
-	transition: box-shadow 0.3s, border 0.3s;
-	outline-color: $OVPrimaryColor;
 	background: white;
 	input {
 		resize: none;
@@ -23,11 +19,8 @@
 			outline: none;
 		}
 	}
-	&:hover, &:focus {
-		-webkit-box-shadow: 0 0 5px 1px $OVPrimaryColor;
-		-moz-box-shadow: 0 0 5px 1px $OVPrimaryColor;
-		box-shadow: 0 0 5px 1px $OVPrimaryColor;
-	}
+
+
 	.ov-lib-search-input-btn {
 		-webkit-mask-image: url('../assets/icons/musica-searcher.svg');
 		-webkit-mask-repeat: no-repeat;
