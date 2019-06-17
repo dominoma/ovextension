@@ -6,10 +6,15 @@ import * as Page  from "OV/page";
 import * as VideoTypes from "video_types";
 
 class MyCloudScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i)
     }
-    async document_start() {
+
+    get runAsContentScript() {
+        return true;
+    }
+
+    async getVideoData() {
 
         await Page.isReady();
 

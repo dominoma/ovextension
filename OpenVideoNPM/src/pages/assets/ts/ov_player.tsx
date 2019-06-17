@@ -203,13 +203,13 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
 
         console.log("player is ready");
         this.player!.on("ratechange", () => {
-            Analytics.fireEvent("PlaybackRate", "PlayerEvent", this.props.videoData.origin.url);
+            Analytics.playerEvent("PlaybackRate");
         });
         FullscreenToggle.on("click", () => {
             window.setTimeout(() => {
                 if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && this.player!.isFullscreen()) {
                     console.log("FULLSCREEN ERROR");
-                    Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + this.props.videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version)
+                    Analytics.fullscreenError(this.props.videoData.origin.url, (this.props.videoData.parent || {} as any).url)
                 }
             }, 1000);
         });
@@ -234,7 +234,9 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
             Storage.setPlayerVolume(this.player!.volume());
         });
         this.player!.one('loadedmetadata', () => {
-            Analytics.fireEvent("VideoFromHost", Tools.parseURL(this.props.videoData.origin.url).host, "");
+            if(this.props.isPopup) {
+                Analytics.videoFromHost(this.props.videoData.origin.url);
+            }
             this.loadFromHistory();
         });
         this.player!.el().addEventListener("mouseleave", () => {
@@ -254,7 +256,7 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
                 if ((this.player! as any).readyState() == 0) {
                     //if(Response.status == 404 || Response.status == 400 || Response.status == 403) {
 
-                    Analytics.fireEvent(this.props.videoData.origin.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: this.player!.error()!.message, url: this.props.videoData.origin.url })));
+                    Analytics.hosterError(this.props.videoData.origin.name,{ msg: this.player!.error()!.message, url: this.props.videoData.origin.url });
                     //}
                     //document.location.replace(Hash.vidSiteUrl + (Hash.vidSiteUrl.indexOf("?") == -1 ? "?" : "&") + "ignoreRequestCheck=true");
                 }

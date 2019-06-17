@@ -4,10 +4,10 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class VidToScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?vidto\.[^\/,^\.]{2,}\//i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?vidto\.[^\/,^\.]{2,}\//i)
     }
-    async document_start() {
+    async getVideoData() {
         if (this.details.url.indexOf("embed-") == -1 && this.details.url.indexOf(".html") != -1) {
             this.details.url = this.details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
         }

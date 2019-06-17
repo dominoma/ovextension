@@ -180,6 +180,27 @@ function importVar(name) {
     return window[name];
 }
 exports.importVar = importVar;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+exports.convertToError = convertToError;
 function accessWindow(initValues) {
     return new Proxy({}, {
         get: function (target, key) {
@@ -519,26 +540,6 @@ function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
 exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
 function getErrorData(e) {
     if (e) {
         return { message: e.message, stack: e.stack, name: e.name };
@@ -559,7 +560,7 @@ function setErrorData(data) {
     }
 }
 function toErrorData(e) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 function sendMsgByEvent(data, toBG) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -1365,11 +1366,11 @@ function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 exports.getSupportUrl = getSupportUrl;
-function getErrorMsg(data) {
+function getErrorMsg(error) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 exports.getErrorMsg = getErrorMsg;

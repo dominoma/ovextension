@@ -3,10 +3,10 @@ import { RedirectHost, RedirectScript } from "redirect_scripts_base";
 import * as Tools from "OV/tools";
 
 class VeryStreamScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?(verystream)\.[^\/,^\.]{2,}\/e\/([a-zA-Z0-9]*)/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?(verystream)\.[^\/,^\.]{2,}\/e\/([a-zA-Z0-9]*)/i)
     }
-    async document_start() {
+    async getVideoData() {
         let xhr = await Tools.createRequest({
             url: this.details.url,
             hideRef: true

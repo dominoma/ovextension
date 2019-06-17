@@ -81,12 +81,12 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 150);
+/******/ 	return __webpack_require__(__webpack_require__.s = 167);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 150:
+/***/ 167:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -107,7 +107,7 @@ const Environment = __webpack_require__(24);
 const Background = __webpack_require__(23);
 const Messages = __webpack_require__(20);
 const redirect_scripts_base_1 = __webpack_require__(56);
-const RedirectScripts = __webpack_require__(151);
+const RedirectScripts = __webpack_require__(69);
 const Analytics = __webpack_require__(58);
 const VideoHistory = __webpack_require__(25);
 function LoadBGScripts() {
@@ -117,7 +117,7 @@ function LoadBGScripts() {
         let scripts = yield redirect_scripts_base_1.default.hosts;
         Proxy.addHostsToList(scripts.map((el) => {
             return el.scripts.map((el) => {
-                return el.urlPattern;
+                return el.url;
             });
         }).reduce((acc, el) => {
             return acc.concat(el);
@@ -128,9 +128,9 @@ Environment.declareBGPage();
 Background.setup();
 Proxy.setupBG();
 Storage.setupBG();
+RedirectScripts.install();
 redirect_scripts_base_1.default.setupBG();
 Analytics.setupBG();
-RedirectScripts.install();
 Proxy.loadFromStorage();
 VideoHistory.convertOldPlaylists();
 Storage.playlist_old.convertToNew();
@@ -222,1142 +222,6 @@ catch (e) {
         urls: ["*://*/*OVReferer=*", "*://*/*isOV*", "*://*/*ovreferer=*", "*://*/*isov*"]
     }, ['blocking', 'requestHeaders']);
 }
-
-
-/***/ }),
-
-/***/ 151:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Page = __webpack_require__(18);
-const Tools = __webpack_require__(19);
-const Environment = __webpack_require__(24);
-const flashx_1 = __webpack_require__(152);
-const FruitStreams_1 = __webpack_require__(153);
-const MP4Upload_1 = __webpack_require__(154);
-const MyCloud_1 = __webpack_require__(155);
-const OpenLoad_1 = __webpack_require__(156);
-const RapidVideo_1 = __webpack_require__(157);
-const SpeedVid_1 = __webpack_require__(158);
-const StreamCloud_1 = __webpack_require__(159);
-const VeryStream_1 = __webpack_require__(160);
-const VevIO_1 = __webpack_require__(161);
-const VidCloud_1 = __webpack_require__(162);
-const VidLox_1 = __webpack_require__(163);
-const Vidoza_1 = __webpack_require__(164);
-const VidTo_1 = __webpack_require__(165);
-const Vidzi_1 = __webpack_require__(166);
-const Vivo_1 = __webpack_require__(167);
-function install() {
-    if (!Page.isFrame() && !Environment.isBackgroundScript() && !Tools.importVar("imgLoaded")) {
-        Page.loadImageIntoReg(`data:image/png;base64,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`);
-        Tools.exportVar("imgLoaded", true);
-    }
-    redirect_scripts_base_1.default.addRedirectHost(new flashx_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new FruitStreams_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new MP4Upload_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new MyCloud_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new OpenLoad_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new RapidVideo_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new SpeedVid_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new StreamCloud_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new VeryStream_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new VevIO_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new VidCloud_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new VidLox_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new Vidoza_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new VidTo_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new Vidzi_1.default());
-    redirect_scripts_base_1.default.addRedirectHost(new Vivo_1.default());
-}
-exports.install = install;
-
-
-/***/ }),
-
-/***/ 152:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class FlashXScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?flashx\.[^\/,^\.]{2,}\/(embed.php\?c=(.*)|(.*)\.jsp|playvideo\-(.*)\.html\?playvid)/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let getVideoCode = () => __awaiter(this, void 0, void 0, function* () {
-                if (this.details.match[5]) {
-                    return this.details.match[5];
-                }
-                else {
-                    yield Promise.all([
-                        Tools.createRequest({ url: "https://flashx.co/counter.cgi" }),
-                        Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6" })
-                    ]);
-                    return this.details.match[3] || this.details.match[4];
-                }
-            });
-            let videoCode = yield getVideoCode();
-            let xhr = yield Tools.createRequest({ url: "https://flashx.co/playvideo-" + videoCode + ".html?playvid", hideRef: true });
-            let HTML = xhr.responseText;
-            this.checkForSubtitles(HTML);
-            if (xhr.status != 200 || HTML.indexOf("Sorry, file was deleted or the link is expired!") != -1) {
-                throw Error("No Video!");
-            }
-            let srcHashStr = HTML.match(/updateSrc\(([^\)]*)\)/)[1];
-            srcHashStr = srcHashStr.substr(0, srcHashStr.lastIndexOf(",")) + "]";
-            srcHashStr = srcHashStr.replace(/src:/g, '"src":');
-            srcHashStr = srcHashStr.replace(/label:/g, '"label":');
-            srcHashStr = srcHashStr.replace(/res:/g, '"res":');
-            srcHashStr = srcHashStr.replace(/type:/g, '"type":');
-            srcHashStr = srcHashStr.replace(/'/g, '"');
-            console.log(srcHashStr);
-            let src = JSON.parse(srcHashStr);
-            let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
-            return {
-                src: [{ src: src[0].src, type: src[0].type, label: "SD" }],
-                poster: poster,
-                tracks: [],
-                title: "FlashX Video"
-            };
-        });
-    }
-}
-class FlashX extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [FlashXScript];
-    }
-}
-exports.default = FlashX;
-
-
-/***/ }),
-
-/***/ 153:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class FruitStreamsScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            function resolveVideo(hashCode, intVal) {
-                let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
-                let retVal = '';
-                hashCode = hashCode.replace(/[^A-Za-z0-9\+\/\=]/g, '');
-                for (let hashIndex = 0; hashIndex < hashCode.length; hashIndex += 4) {
-                    let hashCharCode_0 = chars.indexOf(hashCode.charAt(hashIndex));
-                    let hashCharCode_1 = chars.indexOf(hashCode.charAt(hashIndex + 1));
-                    let hashCharCode_2 = chars.indexOf(hashCode.charAt(hashIndex + 2));
-                    let hashCharCode_3 = chars.indexOf(hashCode.charAt(hashIndex + 3));
-                    retVal = retVal + String.fromCharCode(((hashCharCode_0 << 0x2) | (hashCharCode_1 >> 0x4)) ^ intVal);
-                    if (hashCharCode_2 != 0x40) {
-                        retVal = retVal + String.fromCharCode(((hashCharCode_1 & 0xf) << 0x4) | (hashCharCode_2 >> 0x2));
-                    }
-                    if (hashCharCode_3 != 0x40) {
-                        retVal = retVal + String.fromCharCode(((hashCharCode_2 & 0x3) << 0x6) | hashCharCode_3);
-                    }
-                }
-                return retVal;
-            }
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.responseText;
-            this.checkForSubtitles(HTML);
-            if (xhr.status != 200 || HTML.indexOf("We are unable to find the video you're looking for.") != -1) {
-                throw Error("No Video!");
-            }
-            let funcParams = HTML.match(/src:d\('([^']*)',([^\)]*)/);
-            let funcStr = funcParams[1];
-            let funcInt = parseInt(funcParams[2]);
-            let src = { type: "video/mp4", src: "https:" + resolveVideo(funcStr, funcInt), label: "SD" };
-            let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
-            let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
-            let subtitles = Tools.getTracksFromHTML(HTML);
-            return { src: [src], poster: poster, title: title, tracks: subtitles };
-        });
-    }
-}
-class FruitStreams extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [FruitStreamsScript];
-    }
-}
-exports.default = FruitStreams;
-
-
-/***/ }),
-
-/***/ 154:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class MP4UploadScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?mp4upload\.[^\/,^\.]{2,}\/embed\-.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.response;
-            this.checkForSubtitles(HTML);
-            if (HTML.indexOf("File was deleted") != -1) {
-                throw Error("No Video!");
-            }
-            let evalStr = HTML.match(/(eval\(function\(p,a,c,k,e,d\).*\.split\('\|'\)\)\))/)[1];
-            let code = Tools.unpackJS(evalStr);
-            let src = code.match(/player\.src\("([^"]*)"/)[1];
-            let poster = code.match(/player\.poster\("([^"]*)"/)[1];
-            return {
-                src: [{ type: "video/mp4", src: src, label: "SD" }],
-                poster: poster,
-                title: "MP4Upload Video",
-                tracks: []
-            };
-        });
-    }
-}
-class MP4Upload extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [MP4UploadScript];
-    }
-}
-exports.default = MP4Upload;
-
-
-/***/ }),
-
-/***/ 155:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-const Page = __webpack_require__(18);
-class MyCloudScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield Page.isReady();
-            let HTML = document.documentElement.innerHTML;
-            let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-            let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)[1]);
-            let srces = [];
-            for (let src of rawsrces) {
-                srces.push({ src: src.file, type: "application/x-mpegURL", label: "SD" });
-            }
-            ;
-            let poster = Tools.matchNull(HTML, /image: '([^']*)'/);
-            let trackFile = Tools.getParamFromURL(this.details.url, "sub.file");
-            let trackLabel = Tools.getParamFromURL(this.details.url, "sub.label") || "English";
-            return {
-                src: srces,
-                poster: poster,
-                title: title,
-                tracks: trackFile ? [{ src: decodeURIComponent(decodeURIComponent(trackFile)), label: trackLabel, kind: "Captions", default: true }] : []
-            };
-        });
-    }
-}
-class MyCloud extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [MyCloudScript];
-    }
-}
-exports.default = MyCloud;
-
-
-/***/ }),
-
-/***/ 156:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-const Analytics = __webpack_require__(58);
-class OpenLoadScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.details.url.indexOf("openload.co") == -1) {
-                this.details.url = this.details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "oload.services");
-            }
-            if (this.details.url.indexOf("/f/") != -1) {
-                Analytics.fireEvent("OpenLoad over File", "Utils", this.details.url);
-                this.details.url = this.details.url.replace("/f/", "/embed/");
-            }
-            function getStreamUrl(longString, varAtbytes, varAt_1x4bfb36) {
-                let streamUrl = "";
-                let hexByteArr = [];
-                for (let i = 0; i < 9 * 8; i += 8) {
-                    hexByteArr.push(parseInt(longString.substring(i, i + 8), 16));
-                }
-                longString = longString.substring(9 * 8);
-                let iterator = 0;
-                for (let arrIterator = 0; iterator < longString.length; arrIterator++) {
-                    let maxHex = 64;
-                    let value = 0;
-                    let currHex = 255;
-                    for (let byteIterator = 0; currHex >= maxHex; byteIterator += 6) {
-                        if (iterator + 1 >= longString.length) {
-                            maxHex = 0x8F;
-                        }
-                        currHex = parseInt(longString.substring(iterator, iterator + 2), 16);
-                        value += (currHex & 63) << byteIterator;
-                        iterator += 2;
-                    }
-                    let bytes = value ^ hexByteArr[arrIterator % 9] ^ varAtbytes ^ varAt_1x4bfb36;
-                    let usedBytes = maxHex * 2 + 127;
-                    for (let i = 0; i < 4; i++) {
-                        let urlChar = String.fromCharCode(((bytes & usedBytes) >> 8 * i) - 1);
-                        if (urlChar != "$") {
-                            streamUrl += urlChar;
-                        }
-                        usedBytes = usedBytes << 8;
-                    }
-                }
-                //console.log(streamUrl)
-                return streamUrl;
-            }
-            console.log(this.details.url);
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.responseText;
-            this.checkForSubtitles(HTML);
-            console.log(xhr.responseURL);
-            if (xhr.status != 200 || HTML.indexOf("We can't find the file you are looking for. It maybe got deleted by the owner or was removed due a copyright violation.") != -1 || HTML.indexOf("The file you are looking for was blocked.") != -1) {
-                console.log(xhr.status, HTML);
-                throw Error("No Video");
-            }
-            let thumbnailUrl = Tools.matchNull(HTML, /poster="([^"]*)"/);
-            let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
-            let subtitles = Tools.getTracksFromHTML(HTML);
-            console.log(HTML);
-            let longString = HTML.match(/<p[^>]*>([^<]*)<\/p>/)[1];
-            console.log(longString);
-            let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)[1];
-            let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)[1];
-            let keyResult1 = 0;
-            let keyResult2 = 0;
-            //console.log(longString, keyNum1, keyNum2);
-            try {
-                let keyNum1_Oct = parseInt(keyNum1.match(/parseInt\('(.*)',8\)/)[1], 8);
-                let keyNum1_Sub = parseInt(keyNum1.match(/\)\-([^\+]*)\+/)[1]);
-                let keyNum1_Div = parseInt(keyNum1.match(/\/\(([^\-]*)\-/)[1]);
-                let keyNum1_Sub2 = parseInt(keyNum1.match(/\+0x4\-([^\)]*)\)/)[1]);
-                keyResult1 = (keyNum1_Oct - keyNum1_Sub + 4 - keyNum1_Sub2) / (keyNum1_Div - 8);
-                let keyNum2_Oct = parseInt(keyNum2.match(/\('([^']*)',/)[1], 8);
-                let keyNum2_Sub = parseInt(keyNum2.substr(keyNum2.indexOf(")-") + 2));
-                keyResult2 = keyNum2_Oct - keyNum2_Sub;
-                //console.log(keyNum1, keyNum2);
-            }
-            catch (e) {
-                //console.error(e.stack);
-                throw Error("Key Numbers not parsed!");
-            }
-            return {
-                src: [{
-                        type: "video/mp4",
-                        src: "https://"
-                            + Tools.parseURL(this.details.url).host
-                            + "/stream/" + getStreamUrl(longString, keyResult1, keyResult2)
-                            + "?mime=true",
-                        label: "SD"
-                    }],
-                poster: thumbnailUrl,
-                title: title,
-                tracks: subtitles
-            };
-        });
-    }
-}
-class OpenLoad extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [OpenLoadScript];
-    }
-}
-exports.default = OpenLoad;
-
-
-/***/ }),
-
-/***/ 157:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class RapidVideoScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?rapidvideo\.[^\/,^\.]{2,}\/(\?v=[^&\?]*|e\/.+|v\/.+)/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.details.url = this.details.url.replace(/(\/?\?v=|\/v\/)/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");
-            let parser = new DOMParser();
-            function checkResponse(xhr) {
-                if (xhr.response.indexOf("To continue, please type the characters below") != -1) {
-                    location.href = Tools.addParamsToURL(location.href, { ovignore: "true" });
-                }
-            }
-            let getVideoInfo = () => __awaiter(this, void 0, void 0, function* () {
-                let xhr = yield Tools.createRequest({ url: this.details.url, referer: this.details.url });
-                checkResponse(xhr);
-                this.checkForSubtitles(xhr.response);
-                let html = parser.parseFromString(xhr.response, "text/html");
-                let title = html.title;
-                let videoTag = html.getElementsByTagName("video")[0];
-                let poster = videoTag.poster;
-                let tracksHTML = videoTag.getElementsByTagName("track");
-                let tracks = [];
-                for (let track of tracksHTML) {
-                    tracks.push({ src: track.src, label: track.label, kind: track.kind, default: track.default });
-                }
-                let urlsHTML = html.querySelectorAll('a[href*="https://www.rapidvideo.com/e/"]');
-                let urls = [];
-                for (let url of urlsHTML) {
-                    urls.push(url.href);
-                }
-                if (urls.length == 0) {
-                    urls.push(this.details.url);
-                }
-                return { title: title, poster: poster, tracks: tracks, urls: urls };
-            });
-            let getVideoSrc = (url) => __awaiter(this, void 0, void 0, function* () {
-                let xhr = yield Tools.createRequest({ url: url, referer: this.details.url });
-                checkResponse(xhr);
-                let html = parser.parseFromString(xhr.response, "text/html");
-                let source = html.getElementsByTagName("source")[0];
-                return {
-                    src: source.src,
-                    label: source.title,
-                    type: source.type,
-                    res: parseInt(source.dataset.res)
-                };
-            });
-            function getVideoSrces(info) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    let videos = yield Promise.all(info.urls.map(getVideoSrc));
-                    videos[videos.length - 1].default = true;
-                    return { src: videos, poster: info.poster, title: info.title, tracks: info.tracks };
-                });
-            }
-            let info = yield getVideoInfo();
-            let srces = yield getVideoSrces(info);
-            return srces;
-        });
-    }
-}
-class RapidVideo extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [RapidVideoScript];
-    }
-}
-exports.default = RapidVideo;
-
-
-/***/ }),
-
-/***/ 158:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class SpeedVidScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?speedvid\.[^\/,^\.]{2,}\/[^\/]+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.details.url.indexOf("sn-") != -1) {
-                this.details.url = "https://www.speedvid.net/" + this.details.url.match(/sn\-([^\-]*)\-/i)[1];
-            }
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.responseText;
-            this.checkForSubtitles(HTML);
-            if (xhr.status != 200 || HTML.indexOf("<Title>Watch </Title>") == -1) {
-                throw Error("No Video!");
-            }
-            let image = Tools.matchNull(HTML, /image:'([^']*)'/);
-            let src = HTML.match(/file: '([^']*)'/)[1];
-            let title = Tools.matchNull(HTML, /div class="dltitre">([^<]*)<\/div>/);
-            return {
-                src: [{ src: src, type: "video/mp4", label: "SD" }],
-                title: title,
-                poster: image,
-                tracks: []
-            };
-        });
-    }
-}
-class SpeedVid extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [SpeedVidScript];
-    }
-}
-exports.default = SpeedVid;
-
-
-/***/ }),
-
-/***/ 159:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-const Page = __webpack_require__(18);
-class StreamCloudScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?streamcloud\.[^\/,^\.]{2,}\/([^\.]+)(\.html)?/i);
-    }
-    get hidePage() {
-        return false;
-    }
-    document_idle() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let button = document.getElementsByName('imhuman')[0];
-            if (button == undefined) {
-                throw new Error("No Video!");
-            }
-            yield Page.awaitAttributeValue(button, "class", "button gray blue");
-            let xhr = yield Tools.createRequest({
-                url: this.details.url,
-                type: "POST" /* POST */,
-                protocol: "http://",
-                formData: {
-                    op: "download1",
-                    id: this.details.match[2].match(/([^\/]*)(\/.*)?/)[1]
-                }
-            });
-            let HTML = xhr.response;
-            this.checkForSubtitles(HTML);
-            let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
-            let src = videoHashStr.match(/file: "([^"]*)"/)[1];
-            let poster = Tools.matchNull(videoHashStr, /image: "([^"]*)"/);
-            let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-            return {
-                src: [{
-                        type: "video/mp4",
-                        src: src,
-                        label: "SD"
-                    }],
-                title: title,
-                poster: poster,
-                tracks: []
-            };
-        });
-    }
-}
-class StreamCloud extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [StreamCloudScript];
-    }
-}
-exports.default = StreamCloud;
-
-
-/***/ }),
-
-/***/ 160:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VeryStreamScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?(verystream)\.[^\/,^\.]{2,}\/e\/([a-zA-Z0-9]*)/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let xhr = yield Tools.createRequest({
-                url: this.details.url,
-                hideRef: true
-            });
-            let html = xhr.response;
-            this.checkForSubtitles(html);
-            let videoLink = html.match(/<p.*id="videolink".*>([^<]*)<\/p>/)[1];
-            let src = {
-                src: "/gettoken/" + videoLink + "?mime=true",
-                type: "video/mp4",
-                label: "SD"
-            };
-            let title = Tools.matchNull(html, /<meta.*name="og:title".*content="([^"]*)".*>/);
-            let poster = Tools.matchNull(html, /<video.*poster="([^"]*)".*>/);
-            return {
-                src: [src],
-                tracks: [],
-                title: title || "",
-                poster: poster || ""
-            };
-        });
-    }
-}
-class VeryStream extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VeryStreamScript];
-    }
-}
-exports.default = VeryStream;
-
-
-/***/ }),
-
-/***/ 161:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-const Page = __webpack_require__(18);
-class VevIOScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let getVideoCode = () => __awaiter(this, void 0, void 0, function* () {
-                if (this.details.url.indexOf("embed") == -1) {
-                    let xhr = yield Tools.createRequest({ url: this.details.url });
-                    if (xhr.response.indexOf('class="video-main"') != -1) {
-                        return this.details.url.substr(this.details.url.lastIndexOf("/"));
-                    }
-                    else {
-                        throw Error("Not a Video!");
-                    }
-                }
-                else {
-                    return this.details.url.substr(this.details.url.lastIndexOf("/") + 1);
-                }
-            });
-            let videoCode = yield getVideoCode();
-            let xhrs = yield Promise.all([
-                Page.injectFunction((sendMsg) => {
-                    let open = XMLHttpRequest.prototype.open;
-                    XMLHttpRequest.prototype.open = function (method, url) {
-                        if (method == "POST" && url.indexOf("/api/serve/video") != -1) {
-                            this.addEventListener("readystatechange", () => {
-                                if (this.readyState == 4) {
-                                    sendMsg(JSON.parse(this.response));
-                                }
-                            });
-                        }
-                        return open.apply(this, arguments);
-                    };
-                }),
-                Tools.createRequest({ url: "https://vev.io/api/serve/video/" + videoCode })
-            ]);
-            let videoJSON = xhrs[0];
-            let videoDesc = JSON.parse(xhrs[1].response);
-            let srces = [];
-            for (let key in videoJSON.qualities) {
-                srces.push({ label: key, src: videoJSON.qualities[key], type: "video/mp4" });
-            }
-            srces = srces.reverse();
-            srces[0].default = true;
-            return {
-                src: srces,
-                poster: videoJSON.poster,
-                tracks: videoJSON.subtitles,
-                title: videoDesc.video.title
-            };
-        });
-    }
-}
-class VevIO extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VevIOScript];
-    }
-}
-exports.default = VevIO;
-
-
-/***/ }),
-
-/***/ 162:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VidCloudScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?(vidcloud|vcstream|loadvid|megaxfer)\.[^\/,^\.]{2,}\/embed\/([a-zA-Z0-9]*)/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let embedID = this.details.match[3];
-            let xhrs = yield Promise.all([
-                Tools.createRequest({
-                    url: "https://vidcloud.co/player",
-                    data: { fid: embedID },
-                    referer: this.details.url
-                }),
-                Tools.createRequest({
-                    url: "https://vidcloud.co/download",
-                    type: "POST" /* POST */,
-                    formData: { file_id: embedID },
-                    referer: this.details.url
-                })
-            ]);
-            let html = xhrs[0].response;
-            let dlhtml = xhrs[1].response;
-            console.log(dlhtml);
-            let rawRes = dlhtml.match(/href=\\"([^"]*)\\" download=\\"([^"]*)\\"[^>]*>([^<]*)</g);
-            let dlsrces = [];
-            for (let res of rawRes) {
-                let matches = res.match(/href=\\"([^"]*)\\" download=\\"([^"]*)\\"[^>]*>([^<]*)</);
-                dlsrces.push({ src: matches[1], filename: "[" + matches[3] + "]" + matches[2], type: "video/mp4" });
-            }
-            console.log(html);
-            let rawSrces = JSON.parse("[" + JSON.parse("\"" + html.match(/.*sources = \[([^\]]*)/)[1] + "\"") + "]");
-            let rawTracks = JSON.parse("[" + JSON.parse("\"" + html.match(/.*tracks = \[([^\]]*)/)[1] + "\"") + "]");
-            let title = JSON.parse('"' + Tools.matchNull(html, /title: '([^']*)'/) + '"');
-            let poster = JSON.parse('"' + Tools.matchNull(html, /image: '([^']*)'/) + '"');
-            let srces = [];
-            for (let i = 0; i < rawSrces.length; i++) {
-                srces.push({ src: rawSrces[i].file, type: "application/x-mpegURL", dlsrc: dlsrces[0], label: "SD" });
-            }
-            let tracks = [];
-            for (let track of rawTracks) {
-                tracks.push({ src: track.file, label: track.label, default: track.default || false, kind: track.kind });
-            }
-            return {
-                src: srces,
-                tracks: tracks,
-                title: title,
-                poster: poster
-            };
-        });
-    }
-}
-class VidCloud extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VidCloudScript];
-    }
-}
-exports.default = VidCloud;
-
-
-/***/ }),
-
-/***/ 163:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VidLoxScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?vidlox\.[^\/,^\.]{2,}\/embed\-.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.response;
-            this.checkForSubtitles(HTML);
-            console.log(HTML);
-            let src = JSON.parse(HTML.match(/sources: (\[.*\]),/)[1])[0];
-            //let title = HTML.match(/<title>([<"]*)<\/title>/i)[1];
-            let poster = Tools.matchNull(HTML, /poster: "([^"]*)"/);
-            return {
-                src: [{ type: "application/x-mpegURL", src: src, label: "SD" }],
-                poster: poster,
-                title: "VidLox Video",
-                tracks: []
-            };
-        });
-    }
-}
-class VidLox extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VidLoxScript];
-    }
-}
-exports.default = VidLox;
-
-
-/***/ }),
-
-/***/ 164:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VidozaScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?vidoza\.[^\/,^\.]{2,}\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.response;
-            this.checkForSubtitles(HTML);
-            if (this.details.url.indexOf("/embed") == -1) {
-                if (HTML.indexOf("videojs('player')") == -1) {
-                    throw Error("No Video!");
-                }
-                else {
-                    location.href = location.href.replace("vidoza.net/", "vidoza.net/embed-").replace(/\.html.*/, ".html");
-                    throw Error("No embed Video! Redirecting...");
-                }
-            }
-            else {
-                let rawsources = JSON.parse(HTML.match(/sourcesCode: (\[\{.*\}\])/)[1].replace(/src:/g, '"src":').replace(/type:/g, '"type":').replace(/label:/g, '"label":').replace(/res:/g, '"res":'));
-                let sources = [];
-                for (let src of rawsources) {
-                    sources.push({ src: src.src, label: src.res, type: src.type });
-                }
-                let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-                let poster = Tools.matchNull(HTML, /poster: "([^"]*)"/);
-                return {
-                    src: sources,
-                    poster: poster,
-                    title: title,
-                    tracks: []
-                };
-            }
-        });
-    }
-}
-class Vidoza extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VidozaScript];
-    }
-}
-exports.default = Vidoza;
-
-
-/***/ }),
-
-/***/ 165:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VidToScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?vidto\.[^\/,^\.]{2,}\//i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.details.url.indexOf("embed-") == -1 && this.details.url.indexOf(".html") != -1) {
-                this.details.url = this.details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
-            }
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.responseText;
-            if (xhr.status != 200 || HTML.indexOf("File Does not Exist, or Has Been Removed") != -1) {
-                throw Error("No Video!");
-            }
-            this.checkForSubtitles(HTML);
-            let playerHashStr = "{" + HTML.match(/\.setup\(\{(.*)duration:/)[1] + "}";
-            let sources = playerHashStr.match(/sources:(.*\}\]),/)[1];
-            sources = sources.replace(/file:/g, '"src":');
-            sources = sources.replace(/label:/g, '"label":');
-            let srcObj = JSON.parse(sources);
-            srcObj[0].default = true;
-            let image = Tools.matchNull(playerHashStr, /image: "([^"]*)"/);
-            return {
-                src: srcObj,
-                title: "VidTo.me video",
-                poster: image,
-                tracks: []
-            };
-        });
-    }
-}
-class VidTo extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VidToScript];
-    }
-}
-exports.default = VidTo;
-
-
-/***/ }),
-
-/***/ 166:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VidziScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?vidzi\.[^\/,^\.]{2,}\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.details.url.indexOf("embed-") != -1) {
-                if (this.details.url.indexOf("-") == this.details.url.lastIndexOf("-")) {
-                    this.details.url = this.details.url.replace("embed-", "");
-                }
-                else {
-                    this.details.url = "https://www.vidzi.tv/" + this.details.url.match(/embed\-([^\-]*)\-/)[1];
-                }
-                console.log(this.details.url);
-            }
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.responseText;
-            this.checkForSubtitles(HTML);
-            if (xhr.status != 200 || HTML.indexOf("file was deleted") != -1 || HTML.indexOf("yt-uix-form-textarea share-embed-code") == -1) {
-                throw Error("No Video!");
-            }
-            let videoHash = HTML.match(/jwplayer\("vplayer"\)\.setup\(\{(.*)\}\);/)[1];
-            let image = Tools.matchNull(videoHash, /image: "([^"]*)"/);
-            let src = videoHash.match(/sources: \[\{file: "([^"]*)"/)[1];
-            let title = Tools.matchNull(HTML, /<title>([<"]*)<\/title>/i);
-            return {
-                src: [{ src: src, type: "application/x-mpegURL", label: "SD" }],
-                title: title,
-                poster: image,
-                tracks: []
-            };
-        });
-    }
-}
-class Vidzi extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VidziScript];
-    }
-}
-exports.default = Vidzi;
-
-
-/***/ }),
-
-/***/ 167:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const redirect_scripts_base_1 = __webpack_require__(56);
-const Tools = __webpack_require__(19);
-class VivoScript extends redirect_scripts_base_1.RedirectScript {
-    constructor(hostname) {
-        super(hostname, /https?:\/\/(www\.)?vivo\.[^\/,^\.]{2,}\/.+/i);
-    }
-    document_start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
-            let HTML = xhr.response;
-            this.checkForSubtitles(HTML);
-            let videoURL = atob(HTML.match(/data-stream="([^"]*)"/)[1]);
-            let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
-            return {
-                src: [{ type: "video/mp4", src: videoURL, label: "SD" }],
-                title: title,
-                tracks: [],
-                poster: ""
-            };
-        });
-    }
-}
-class Vivo extends redirect_scripts_base_1.RedirectHost {
-    getScripts() {
-        return [VivoScript];
-    }
-}
-exports.default = Vivo;
 
 
 /***/ }),
@@ -1644,6 +508,27 @@ function importVar(name) {
     return window[name];
 }
 exports.importVar = importVar;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+exports.convertToError = convertToError;
 function accessWindow(initValues) {
     return new Proxy({}, {
         get: function (target, key) {
@@ -1983,26 +868,6 @@ function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
 exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
 function getErrorData(e) {
     if (e) {
         return { message: e.message, stack: e.stack, name: e.name };
@@ -2023,7 +888,7 @@ function setErrorData(data) {
     }
 }
 function toErrorData(e) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 function sendMsgByEvent(data, toBG) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -2829,11 +1694,11 @@ function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 exports.getSupportUrl = getSupportUrl;
-function getErrorMsg(data) {
+function getErrorMsg(error) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 exports.getErrorMsg = getErrorMsg;
@@ -3003,12 +1868,12 @@ const Storage = __webpack_require__(22);
 const VideoHistory = __webpack_require__(25);
 const Page = __webpack_require__(18);
 class RedirectScript {
-    constructor(hostname, urlPattern) {
+    constructor(hostname, url, urlPattern) {
         this.urlPattern_ = urlPattern;
         this.details_ = {
-            url: location.href,
-            match: location.href.match(this.urlPattern_),
-            hostname: hostname
+            url,
+            match: url.match(this.urlPattern_),
+            hostname
         };
     }
     get urlPattern() {
@@ -3020,61 +1885,74 @@ class RedirectScript {
     get hidePage() {
         return true;
     }
+    get runAsContentScript() {
+        return false;
+    }
     get canExec() {
-        return this.urlPattern_.test(location.href)
+        return this.details_.match
             && Tools.parseURL(location.href).query["ovignore"] != "true";
     }
     checkForSubtitles(html) {
         if (html.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
-            Analytics.fireEvent(this.details.hostname, "TracksFound", this.details.url);
+            Analytics.tracksFound(this.details.hostname, this.details.url);
         }
-    }
-    document_start() {
-        return null;
-    }
-    document_idle() {
-        return null;
-    }
-    document_end() {
-        return null;
     }
 }
 exports.RedirectScript = RedirectScript;
 class RedirectHost {
+    constructor(url) {
+        this.url_ = url;
+        this.scripts = this.getScripts().map(ctor => new ctor(this.hostname, this.url_));
+        this.runnable_ = this.scripts.find(script => script.canExec) || null;
+    }
+    get url() {
+        return this.url_;
+    }
     get hostname() {
         return this.constructor.name;
     }
-    get isEnabled() {
+    getJSON() {
+        return {
+            scripts: this.scripts.map((script) => {
+                return { url: script.urlPattern };
+            })
+        };
+    }
+    isEnabled() {
         return Storage.isScriptEnabled(this.hostname);
     }
+    get runAsContentScript() {
+        return !!this.runnable_ && this.runnable_.runAsContentScript;
+    }
     get canExec() {
-        return this.getScripts().map((ctor) => {
-            return new ctor(this.hostname);
-        }).some((el) => {
-            return el.canExec;
-        });
+        return !!this.runnable_;
+    }
+    get hidePage() {
+        return !!this.runnable_ && this.runnable_.hidePage;
+    }
+    get runAsPlayerScript() {
+        return !!this.runnable_ && !this.runnable_.runAsContentScript;
     }
     getFavicon() {
-        let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
-        if (link) {
+        /*let link = html.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+        if(link) {
             let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
-            if (favicon) {
+            if(favicon) {
                 return favicon[1];
             }
-        }
-        return "https://s2.googleusercontent.com/s2/favicons?domain_url=" + location.host;
+        }*/
+        return "https://s2.googleusercontent.com/s2/favicons?domain_url=" + Tools.parseURL(this.url_);
     }
     getVideoData(rawVideoData) {
         return __awaiter(this, void 0, void 0, function* () {
             let parent = null;
-            console.log(Page.isFrame());
             if (Page.isFrame()) {
                 parent = yield VideoHistory.getPageRefData();
             }
             let videoData = Tools.merge(rawVideoData, {
                 origin: {
                     name: this.hostname,
-                    url: location.href,
+                    url: this.url_,
                     icon: this.getFavicon()
                 },
                 parent: parent
@@ -3082,34 +1960,13 @@ class RedirectHost {
             return VideoTypes.makeURLsSave(videoData);
         });
     }
-    run(scope, onScriptExecute, onScriptExecuted) {
+    extractVideoData() {
         return __awaiter(this, void 0, void 0, function* () {
-            let scripts = this.getScripts().map((ctor) => {
-                return new ctor(this.hostname);
-            });
-            let script = scripts.find((script) => {
-                return script.canExec;
-            });
-            if (script) {
-                try {
-                    let promise = script[scope]();
-                    if (promise) {
-                        document.documentElement.hidden = script.hidePage;
-                        yield onScriptExecute();
-                        let rawVideoData = yield promise;
-                        let videoData = yield this.getVideoData(rawVideoData);
-                        yield onScriptExecuted(videoData);
-                        location.replace(Environment.getVidPlaySiteUrl(videoData));
-                        return true;
-                    }
-                }
-                catch (error) {
-                    document.documentElement.hidden = false;
-                    console.error(error);
-                    Analytics.fireEvent(this.hostname, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                }
+            if (!this.canExec) {
+                throw new Error(`Script '${this.hostname}' can't execute on url '${this.url_}'`);
             }
-            return false;
+            let videoData = yield this.runnable_.getVideoData();
+            return this.getVideoData(videoData);
         });
     }
 }
@@ -3119,44 +1976,16 @@ class RedirectHostsManager {
         this.hosts_ = [];
     }
     addRedirectHost(host) {
-        let hostExists = this.hosts_.some((el) => {
-            return el.hostname == host.hostname;
-        });
-        if (hostExists) {
-            throw new Error("A host with name '" + host.hostname + "'  is already registred!");
-        }
-        else {
-            this.hosts_.push(host);
-        }
+        this.hosts_.push(host);
     }
-    run(scope, onScriptExecute, onScriptExecuted) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let host = this.hosts_.find((host) => {
-                return host.canExec;
-            });
-            if (host) {
-                let enabled = yield host.isEnabled;
-                if (enabled) {
-                    let hasExec = yield host.run(scope, onScriptExecute, onScriptExecuted);
-                    if (hasExec) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        });
+    getHosts(url) {
+        return this.hosts_.map(ctor => new ctor(url));
     }
     getJSON() {
-        return this.hosts_.map((el) => {
-            return {
-                name: el.hostname,
-                scripts: el.getScripts().map((ctor) => {
-                    return {
-                        urlPattern: (new ctor(el.hostname)).urlPattern
-                    };
-                })
-            };
-        });
+        return this.getHosts("").map(host => ({
+            name: host.hostname,
+            scripts: host.getJSON().scripts
+        }));
     }
     getRedirectHosts() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3169,6 +1998,49 @@ class RedirectHostsManager {
             }
         });
     }
+    getVideoData(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let runnable = this.getHosts(url).find(host => host.canExec);
+            if (!runnable) {
+                throw new Error(`No matching script for url '${url}'`);
+            }
+            else {
+                return runnable.extractVideoData();
+            }
+        });
+    }
+    executeContentScript() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let runnable = this.getHosts(location.href).find(host => host.canExec);
+            if (runnable) {
+                let enabled = yield runnable.isEnabled();
+                if (enabled) {
+                    try {
+                        document.documentElement.hidden = runnable.hidePage;
+                        let videoData = yield runnable.extractVideoData();
+                        location.replace(Environment.getVidPlaySiteUrl(videoData));
+                        return true;
+                    }
+                    catch (error) {
+                        document.documentElement.hidden = false;
+                        console.error(error);
+                        Analytics.hosterError(runnable.hostname, error);
+                    }
+                }
+            }
+            return false;
+        });
+    }
+    getHostsEnabled() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield Promise.all(this.getJSON().map((el) => __awaiter(this, void 0, void 0, function* () {
+                return { name: el.name, enabled: yield Storage.isScriptEnabled(el.name) };
+            })))).reduce((acc, el) => {
+                acc[el.name] = el.enabled;
+                return acc;
+            }, {});
+        });
+    }
     setupBG() {
         return __awaiter(this, void 0, void 0, function* () {
             Messages.setupBackground({
@@ -3176,6 +2048,16 @@ class RedirectHostsManager {
                     return this.getJSON();
                 })
             });
+            let enabled = yield this.getHostsEnabled();
+            chrome.webRequest.onBeforeRequest.addListener((details) => {
+                let query = Tools.parseURL(details.url).query;
+                if (!query["isOV"] && !query["OVReferer"]) {
+                    let host = this.getHosts(details.url).find(el => el.runAsPlayerScript);
+                    if (host && enabled[host.hostname]) {
+                        return { redirectUrl: Environment.getVidPlaySiteUrl({ url: details.url }) };
+                    }
+                }
+            }, { urls: ["<all_urls>"] }, ["blocking"]);
         });
     }
     get hosts() {
@@ -3287,7 +2169,42 @@ function fireEvent(category, action, label) {
         yield send({ t: "event", ec: category, ea: action, el: label });
     });
 }
-exports.fireEvent = fireEvent;
+function hosterUsed(hoster) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "HosterUsed", "");
+    });
+}
+exports.hosterUsed = hosterUsed;
+function hosterError(hoster, error) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "Error", JSON.stringify(Environment.getErrorMsg(error)));
+    });
+}
+exports.hosterError = hosterError;
+function tracksFound(hoster, url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "TracksFound", url);
+    });
+}
+exports.tracksFound = tracksFound;
+function playerEvent(event) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(event, "PlayerEvent", "");
+    });
+}
+exports.playerEvent = playerEvent;
+function videoFromHost(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent("VideoFromHost", Tools.parseURL(url).host, "");
+    });
+}
+exports.videoFromHost = videoFromHost;
+function fullscreenError(url, parentUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent("FullscreenError", "FullscreenError", `IFrame: '${url}'\nPage: '${parentUrl}'\nVersion: ${Environment.getManifest().version}`);
+    });
+}
+exports.fullscreenError = fullscreenError;
 
 
 /***/ }),
@@ -3602,6 +2519,1151 @@ function _addHostsToList(newHosts) {
         }
     });
 }
+
+
+/***/ }),
+
+/***/ 69:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Page = __webpack_require__(18);
+const Tools = __webpack_require__(19);
+const Environment = __webpack_require__(24);
+const flashx_1 = __webpack_require__(70);
+const FruitStreams_1 = __webpack_require__(71);
+const MP4Upload_1 = __webpack_require__(72);
+const MyCloud_1 = __webpack_require__(73);
+const OpenLoad_1 = __webpack_require__(74);
+const RapidVideo_1 = __webpack_require__(75);
+const SpeedVid_1 = __webpack_require__(76);
+const StreamCloud_1 = __webpack_require__(77);
+const VeryStream_1 = __webpack_require__(78);
+const VevIO_1 = __webpack_require__(79);
+const VidCloud_1 = __webpack_require__(80);
+const VidLox_1 = __webpack_require__(81);
+const Vidoza_1 = __webpack_require__(82);
+const VidTo_1 = __webpack_require__(83);
+const Vidzi_1 = __webpack_require__(84);
+const Vivo_1 = __webpack_require__(85);
+function install() {
+    if (!Page.isFrame() && !Environment.isBackgroundScript() && !Tools.importVar("imgLoaded")) {
+        Page.loadImageIntoReg(`data:image/png;base64,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`);
+        Tools.exportVar("imgLoaded", true);
+    }
+    redirect_scripts_base_1.default.addRedirectHost(flashx_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(FruitStreams_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(MP4Upload_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(MyCloud_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(OpenLoad_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(RapidVideo_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(SpeedVid_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(StreamCloud_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(VeryStream_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(VevIO_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(VidCloud_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(VidLox_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(Vidoza_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(VidTo_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(Vidzi_1.default);
+    redirect_scripts_base_1.default.addRedirectHost(Vivo_1.default);
+}
+exports.install = install;
+
+
+/***/ }),
+
+/***/ 70:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class FlashXScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?flashx\.[^\/,^\.]{2,}\/(embed.php\?c=(.*)|(.*)\.jsp|playvideo\-(.*)\.html\?playvid)/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let getVideoCode = () => __awaiter(this, void 0, void 0, function* () {
+                if (this.details.match[5]) {
+                    return this.details.match[5];
+                }
+                else {
+                    yield Promise.all([
+                        Tools.createRequest({ url: "https://flashx.co/counter.cgi", hideRef: true }),
+                        Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6", hideRef: true })
+                    ]);
+                    return this.details.match[3] || this.details.match[4];
+                }
+            });
+            let videoCode = yield getVideoCode();
+            let xhr = yield Tools.createRequest({ url: "https://flashx.co/playvideo-" + videoCode + ".html?playvid", hideRef: true });
+            let HTML = xhr.responseText;
+            this.checkForSubtitles(HTML);
+            if (xhr.status != 200 || HTML.indexOf("Sorry, file was deleted or the link is expired!") != -1) {
+                throw Error("No Video!");
+            }
+            let srcHashStr = HTML.match(/updateSrc\(([^\)]*)\)/)[1];
+            srcHashStr = srcHashStr.substr(0, srcHashStr.lastIndexOf(",")) + "]";
+            srcHashStr = srcHashStr.replace(/src:/g, '"src":');
+            srcHashStr = srcHashStr.replace(/label:/g, '"label":');
+            srcHashStr = srcHashStr.replace(/res:/g, '"res":');
+            srcHashStr = srcHashStr.replace(/type:/g, '"type":');
+            srcHashStr = srcHashStr.replace(/'/g, '"');
+            console.log(srcHashStr);
+            let src = JSON.parse(srcHashStr);
+            let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
+            return {
+                src: [{ src: src[0].src, type: src[0].type, label: "SD" }],
+                poster: poster,
+                tracks: [],
+                title: "FlashX Video"
+            };
+        });
+    }
+}
+class FlashX extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [FlashXScript];
+    }
+}
+exports.default = FlashX;
+
+
+/***/ }),
+
+/***/ 71:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class FruitStreamsScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            function resolveVideo(hashCode, intVal) {
+                let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
+                let retVal = '';
+                hashCode = hashCode.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+                for (let hashIndex = 0; hashIndex < hashCode.length; hashIndex += 4) {
+                    let hashCharCode_0 = chars.indexOf(hashCode.charAt(hashIndex));
+                    let hashCharCode_1 = chars.indexOf(hashCode.charAt(hashIndex + 1));
+                    let hashCharCode_2 = chars.indexOf(hashCode.charAt(hashIndex + 2));
+                    let hashCharCode_3 = chars.indexOf(hashCode.charAt(hashIndex + 3));
+                    retVal = retVal + String.fromCharCode(((hashCharCode_0 << 0x2) | (hashCharCode_1 >> 0x4)) ^ intVal);
+                    if (hashCharCode_2 != 0x40) {
+                        retVal = retVal + String.fromCharCode(((hashCharCode_1 & 0xf) << 0x4) | (hashCharCode_2 >> 0x2));
+                    }
+                    if (hashCharCode_3 != 0x40) {
+                        retVal = retVal + String.fromCharCode(((hashCharCode_2 & 0x3) << 0x6) | hashCharCode_3);
+                    }
+                }
+                return retVal;
+            }
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.responseText;
+            this.checkForSubtitles(HTML);
+            if (xhr.status != 200 || HTML.indexOf("We are unable to find the video you're looking for.") != -1) {
+                throw Error("No Video!");
+            }
+            let funcParams = HTML.match(/src:d\('([^']*)',([^\)]*)/);
+            let funcStr = funcParams[1];
+            let funcInt = parseInt(funcParams[2]);
+            let src = { type: "video/mp4", src: "https:" + resolveVideo(funcStr, funcInt), label: "SD" };
+            let poster = Tools.matchNull(HTML, /poster="([^"]*)"/);
+            let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
+            let subtitles = Tools.getTracksFromHTML(HTML);
+            return { src: [src], poster: poster, title: title, tracks: subtitles };
+        });
+    }
+}
+class FruitStreams extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [FruitStreamsScript];
+    }
+}
+exports.default = FruitStreams;
+
+
+/***/ }),
+
+/***/ 72:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class MP4UploadScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?mp4upload\.[^\/,^\.]{2,}\/embed\-.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.response;
+            this.checkForSubtitles(HTML);
+            if (HTML.indexOf("File was deleted") != -1) {
+                throw Error("No Video!");
+            }
+            let evalStr = HTML.match(/(eval\(function\(p,a,c,k,e,d\).*\.split\('\|'\)\)\))/)[1];
+            let code = Tools.unpackJS(evalStr);
+            let src = code.match(/player\.src\("([^"]*)"/)[1];
+            let poster = code.match(/player\.poster\("([^"]*)"/)[1];
+            return {
+                src: [{ type: "video/mp4", src: src, label: "SD" }],
+                poster: poster,
+                title: "MP4Upload Video",
+                tracks: []
+            };
+        });
+    }
+}
+class MP4Upload extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [MP4UploadScript];
+    }
+}
+exports.default = MP4Upload;
+
+
+/***/ }),
+
+/***/ 73:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+const Page = __webpack_require__(18);
+class MyCloudScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i);
+    }
+    get runAsContentScript() {
+        return true;
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield Page.isReady();
+            let HTML = document.documentElement.innerHTML;
+            let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+            let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)[1]);
+            let srces = [];
+            for (let src of rawsrces) {
+                srces.push({ src: src.file, type: "application/x-mpegURL", label: "SD" });
+            }
+            ;
+            let poster = Tools.matchNull(HTML, /image: '([^']*)'/);
+            let trackFile = Tools.getParamFromURL(this.details.url, "sub.file");
+            let trackLabel = Tools.getParamFromURL(this.details.url, "sub.label") || "English";
+            return {
+                src: srces,
+                poster: poster,
+                title: title,
+                tracks: trackFile ? [{ src: decodeURIComponent(decodeURIComponent(trackFile)), label: trackLabel, kind: "Captions", default: true }] : []
+            };
+        });
+    }
+}
+class MyCloud extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [MyCloudScript];
+    }
+}
+exports.default = MyCloud;
+
+
+/***/ }),
+
+/***/ 74:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class OpenLoadScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.details.url.indexOf("openload.co") == -1) {
+                this.details.url = this.details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "oload.services");
+            }
+            if (this.details.url.indexOf("/f/") != -1) {
+                this.details.url = this.details.url.replace("/f/", "/embed/");
+            }
+            function getStreamUrl(longString, varAtbytes, varAt_1x4bfb36) {
+                let streamUrl = "";
+                let hexByteArr = [];
+                for (let i = 0; i < 9 * 8; i += 8) {
+                    hexByteArr.push(parseInt(longString.substring(i, i + 8), 16));
+                }
+                longString = longString.substring(9 * 8);
+                let iterator = 0;
+                for (let arrIterator = 0; iterator < longString.length; arrIterator++) {
+                    let maxHex = 64;
+                    let value = 0;
+                    let currHex = 255;
+                    for (let byteIterator = 0; currHex >= maxHex; byteIterator += 6) {
+                        if (iterator + 1 >= longString.length) {
+                            maxHex = 0x8F;
+                        }
+                        currHex = parseInt(longString.substring(iterator, iterator + 2), 16);
+                        value += (currHex & 63) << byteIterator;
+                        iterator += 2;
+                    }
+                    let bytes = value ^ hexByteArr[arrIterator % 9] ^ varAtbytes ^ varAt_1x4bfb36;
+                    let usedBytes = maxHex * 2 + 127;
+                    for (let i = 0; i < 4; i++) {
+                        let urlChar = String.fromCharCode(((bytes & usedBytes) >> 8 * i) - 1);
+                        if (urlChar != "$") {
+                            streamUrl += urlChar;
+                        }
+                        usedBytes = usedBytes << 8;
+                    }
+                }
+                //console.log(streamUrl)
+                return streamUrl;
+            }
+            console.log(this.details.url);
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.responseText;
+            this.checkForSubtitles(HTML);
+            console.log(xhr.responseURL);
+            if (xhr.status != 200 || HTML.indexOf("We can't find the file you are looking for. It maybe got deleted by the owner or was removed due a copyright violation.") != -1 || HTML.indexOf("The file you are looking for was blocked.") != -1) {
+                console.log(xhr.status, HTML);
+                throw Error("No Video");
+            }
+            let thumbnailUrl = Tools.matchNull(HTML, /poster="([^"]*)"/);
+            let title = Tools.matchNull(HTML, /meta name="og:title" content="([^"]*)"/);
+            let subtitles = Tools.getTracksFromHTML(HTML);
+            console.log(HTML);
+            let longString = HTML.match(/<p[^>]*>([^<]*)<\/p>/)[1];
+            console.log(longString);
+            let keyNum1 = HTML.match(/\_0x45ae41\[\_0x5949\('0xf'\)\]\(_0x30725e,(.*)\),\_1x4bfb36/)[1];
+            let keyNum2 = HTML.match(/\_1x4bfb36=(.*);/)[1];
+            let keyResult1 = 0;
+            let keyResult2 = 0;
+            //console.log(longString, keyNum1, keyNum2);
+            try {
+                let keyNum1_Oct = parseInt(keyNum1.match(/parseInt\('(.*)',8\)/)[1], 8);
+                let keyNum1_Sub = parseInt(keyNum1.match(/\)\-([^\+]*)\+/)[1]);
+                let keyNum1_Div = parseInt(keyNum1.match(/\/\(([^\-]*)\-/)[1]);
+                let keyNum1_Sub2 = parseInt(keyNum1.match(/\+0x4\-([^\)]*)\)/)[1]);
+                keyResult1 = (keyNum1_Oct - keyNum1_Sub + 4 - keyNum1_Sub2) / (keyNum1_Div - 8);
+                let keyNum2_Oct = parseInt(keyNum2.match(/\('([^']*)',/)[1], 8);
+                let keyNum2_Sub = parseInt(keyNum2.substr(keyNum2.indexOf(")-") + 2));
+                keyResult2 = keyNum2_Oct - keyNum2_Sub;
+                //console.log(keyNum1, keyNum2);
+            }
+            catch (e) {
+                //console.error(e.stack);
+                throw Error("Key Numbers not parsed!");
+            }
+            return {
+                src: [{
+                        type: "video/mp4",
+                        src: "https://"
+                            + Tools.parseURL(this.details.url).host
+                            + "/stream/" + getStreamUrl(longString, keyResult1, keyResult2)
+                            + "?mime=true",
+                        label: "SD"
+                    }],
+                poster: thumbnailUrl,
+                title: title,
+                tracks: subtitles
+            };
+        });
+    }
+}
+class OpenLoad extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [OpenLoadScript];
+    }
+}
+exports.default = OpenLoad;
+
+
+/***/ }),
+
+/***/ 75:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class RapidVideoScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?rapidvideo\.[^\/,^\.]{2,}\/(\?v=[^&\?]*|e\/.+|v\/.+)/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.details.url = this.details.url.replace(/(\/?\?v=|\/v\/)/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");
+            let parser = new DOMParser();
+            function checkResponse(xhr) {
+                if (xhr.response.indexOf("To continue, please type the characters below") != -1) {
+                    location.href = Tools.addParamsToURL(location.href, { ovignore: "true" });
+                }
+            }
+            let getVideoInfo = () => __awaiter(this, void 0, void 0, function* () {
+                let xhr = yield Tools.createRequest({ url: this.details.url, referer: this.details.url });
+                checkResponse(xhr);
+                this.checkForSubtitles(xhr.response);
+                let html = parser.parseFromString(xhr.response, "text/html");
+                let title = html.title;
+                let videoTag = html.getElementsByTagName("video")[0];
+                let poster = videoTag.poster;
+                let tracksHTML = videoTag.getElementsByTagName("track");
+                let tracks = [];
+                for (let track of tracksHTML) {
+                    tracks.push({ src: track.src, label: track.label, kind: track.kind, default: track.default });
+                }
+                let urlsHTML = html.querySelectorAll('a[href*="https://www.rapidvideo.com/e/"]');
+                let urls = [];
+                for (let url of urlsHTML) {
+                    urls.push(url.href);
+                }
+                if (urls.length == 0) {
+                    urls.push(this.details.url);
+                }
+                return { title: title, poster: poster, tracks: tracks, urls: urls };
+            });
+            let getVideoSrc = (url) => __awaiter(this, void 0, void 0, function* () {
+                let xhr = yield Tools.createRequest({ url: url, referer: this.details.url });
+                checkResponse(xhr);
+                let html = parser.parseFromString(xhr.response, "text/html");
+                let source = html.getElementsByTagName("source")[0];
+                return {
+                    src: source.src,
+                    label: source.title,
+                    type: source.type,
+                    res: parseInt(source.dataset.res)
+                };
+            });
+            function getVideoSrces(info) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let videos = yield Promise.all(info.urls.map(getVideoSrc));
+                    videos[videos.length - 1].default = true;
+                    return { src: videos, poster: info.poster, title: info.title, tracks: info.tracks };
+                });
+            }
+            let info = yield getVideoInfo();
+            let srces = yield getVideoSrces(info);
+            return srces;
+        });
+    }
+}
+class RapidVideo extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [RapidVideoScript];
+    }
+}
+exports.default = RapidVideo;
+
+
+/***/ }),
+
+/***/ 76:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class SpeedVidScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?speedvid\.[^\/,^\.]{2,}\/[^\/]+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.details.url.indexOf("sn-") != -1) {
+                this.details.url = "https://www.speedvid.net/" + this.details.url.match(/sn\-([^\-]*)\-/i)[1];
+            }
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.responseText;
+            this.checkForSubtitles(HTML);
+            if (xhr.status != 200 || HTML.indexOf("<Title>Watch </Title>") == -1) {
+                throw Error("No Video!");
+            }
+            let image = Tools.matchNull(HTML, /image:'([^']*)'/);
+            let src = HTML.match(/file: '([^']*)'/)[1];
+            let title = Tools.matchNull(HTML, /div class="dltitre">([^<]*)<\/div>/);
+            return {
+                src: [{ src: src, type: "video/mp4", label: "SD" }],
+                title: title,
+                poster: image,
+                tracks: []
+            };
+        });
+    }
+}
+class SpeedVid extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [SpeedVidScript];
+    }
+}
+exports.default = SpeedVid;
+
+
+/***/ }),
+
+/***/ 77:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+const Page = __webpack_require__(18);
+class StreamCloudScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?streamcloud\.[^\/,^\.]{2,}\/([^\.]+)(\.html)?/i);
+    }
+    get hidePage() {
+        return false;
+    }
+    get runAsContentScript() {
+        return true;
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield Page.isReady();
+            let button = document.getElementsByName('imhuman')[0];
+            if (button == undefined) {
+                throw new Error("No Video!");
+            }
+            yield Page.awaitAttributeValue(button, "class", "button gray blue");
+            let xhr = yield Tools.createRequest({
+                url: this.details.url,
+                type: "POST" /* POST */,
+                protocol: "http://",
+                formData: {
+                    op: "download1",
+                    id: this.details.match[2].match(/([^\/]*)(\/.*)?/)[1]
+                },
+                hideRef: true
+            });
+            let HTML = xhr.response;
+            this.checkForSubtitles(HTML);
+            let videoHashStr = HTML.match(/jwplayer\("mediaplayer"\)\.setup\(([^\)]*)/)[1];
+            let src = videoHashStr.match(/file: "([^"]*)"/)[1];
+            let poster = Tools.matchNull(videoHashStr, /image: "([^"]*)"/);
+            let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+            return {
+                src: [{
+                        type: "video/mp4",
+                        src: src,
+                        label: "SD"
+                    }],
+                title: title,
+                poster: poster,
+                tracks: []
+            };
+        });
+    }
+}
+class StreamCloud extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [StreamCloudScript];
+    }
+}
+exports.default = StreamCloud;
+
+
+/***/ }),
+
+/***/ 78:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VeryStreamScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?(verystream)\.[^\/,^\.]{2,}\/e\/([a-zA-Z0-9]*)/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let xhr = yield Tools.createRequest({
+                url: this.details.url,
+                hideRef: true
+            });
+            let html = xhr.response;
+            this.checkForSubtitles(html);
+            let videoLink = html.match(/<p.*id="videolink".*>([^<]*)<\/p>/)[1];
+            let src = {
+                src: "/gettoken/" + videoLink + "?mime=true",
+                type: "video/mp4",
+                label: "SD"
+            };
+            let title = Tools.matchNull(html, /<meta.*name="og:title".*content="([^"]*)".*>/);
+            let poster = Tools.matchNull(html, /<video.*poster="([^"]*)".*>/);
+            return {
+                src: [src],
+                tracks: [],
+                title: title || "",
+                poster: poster || ""
+            };
+        });
+    }
+}
+class VeryStream extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VeryStreamScript];
+    }
+}
+exports.default = VeryStream;
+
+
+/***/ }),
+
+/***/ 79:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+const Page = __webpack_require__(18);
+class VevIOScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i);
+    }
+    get runAsContentScript() {
+        return true;
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let getVideoCode = () => __awaiter(this, void 0, void 0, function* () {
+                if (this.details.url.indexOf("embed") == -1) {
+                    let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+                    if (xhr.response.indexOf('class="video-main"') != -1) {
+                        return this.details.url.substr(this.details.url.lastIndexOf("/"));
+                    }
+                    else {
+                        throw Error("Not a Video!");
+                    }
+                }
+                else {
+                    return this.details.url.substr(this.details.url.lastIndexOf("/") + 1);
+                }
+            });
+            let videoCode = yield getVideoCode();
+            let xhrs = yield Promise.all([
+                Page.injectFunction((sendMsg) => {
+                    let open = XMLHttpRequest.prototype.open;
+                    XMLHttpRequest.prototype.open = function (method, url) {
+                        if (method == "POST" && url.indexOf("/api/serve/video") != -1) {
+                            this.addEventListener("readystatechange", () => {
+                                if (this.readyState == 4) {
+                                    sendMsg(JSON.parse(this.response));
+                                }
+                            });
+                        }
+                        return open.apply(this, arguments);
+                    };
+                }),
+                Tools.createRequest({ url: "https://vev.io/api/serve/video/" + videoCode, hideRef: true })
+            ]);
+            let videoJSON = xhrs[0];
+            let videoDesc = JSON.parse(xhrs[1].response);
+            let srces = [];
+            for (let key in videoJSON.qualities) {
+                srces.push({ label: key, src: videoJSON.qualities[key], type: "video/mp4" });
+            }
+            srces = srces.reverse();
+            srces[0].default = true;
+            return {
+                src: srces,
+                poster: videoJSON.poster,
+                tracks: videoJSON.subtitles,
+                title: videoDesc.video.title
+            };
+        });
+    }
+}
+class VevIO extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VevIOScript];
+    }
+}
+exports.default = VevIO;
+
+
+/***/ }),
+
+/***/ 80:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VidCloudScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?(vidcloud|vcstream|loadvid|megaxfer)\.[^\/,^\.]{2,}\/embed\/([a-zA-Z0-9]*)/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let embedID = this.details.match[3];
+            let xhrs = yield Promise.all([
+                Tools.createRequest({
+                    url: "https://vidcloud.co/player",
+                    data: { fid: embedID },
+                    referer: this.details.url
+                }),
+                Tools.createRequest({
+                    url: "https://vidcloud.co/download",
+                    type: "POST" /* POST */,
+                    formData: { file_id: embedID },
+                    referer: this.details.url
+                })
+            ]);
+            let html = xhrs[0].response;
+            let dlhtml = xhrs[1].response;
+            console.log(dlhtml);
+            let rawRes = dlhtml.match(/href=\\"([^"]*)\\" download=\\"([^"]*)\\"[^>]*>([^<]*)</g);
+            let dlsrces = [];
+            for (let res of rawRes) {
+                let matches = res.match(/href=\\"([^"]*)\\" download=\\"([^"]*)\\"[^>]*>([^<]*)</);
+                dlsrces.push({ src: matches[1], filename: "[" + matches[3] + "]" + matches[2], type: "video/mp4" });
+            }
+            console.log(html);
+            let rawSrces = JSON.parse("[" + JSON.parse("\"" + html.match(/.*sources = \[([^\]]*)/)[1] + "\"") + "]");
+            let rawTracks = JSON.parse("[" + JSON.parse("\"" + html.match(/.*tracks = \[([^\]]*)/)[1] + "\"") + "]");
+            let title = JSON.parse('"' + Tools.matchNull(html, /title: '([^']*)'/) + '"');
+            let poster = JSON.parse('"' + Tools.matchNull(html, /image: '([^']*)'/) + '"');
+            let srces = [];
+            for (let i = 0; i < rawSrces.length; i++) {
+                srces.push({ src: rawSrces[i].file, type: "application/x-mpegURL", dlsrc: dlsrces[0], label: "SD" });
+            }
+            let tracks = [];
+            for (let track of rawTracks) {
+                tracks.push({ src: track.file, label: track.label, default: track.default || false, kind: track.kind });
+            }
+            return {
+                src: srces,
+                tracks: tracks,
+                title: title,
+                poster: poster
+            };
+        });
+    }
+}
+class VidCloud extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VidCloudScript];
+    }
+}
+exports.default = VidCloud;
+
+
+/***/ }),
+
+/***/ 81:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VidLoxScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?vidlox\.[^\/,^\.]{2,}\/embed\-.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.response;
+            this.checkForSubtitles(HTML);
+            console.log(HTML);
+            let src = JSON.parse(HTML.match(/sources: (\[.*\]),/)[1])[0];
+            //let title = HTML.match(/<title>([<"]*)<\/title>/i)[1];
+            let poster = Tools.matchNull(HTML, /poster: "([^"]*)"/);
+            return {
+                src: [{ type: "application/x-mpegURL", src: src, label: "SD" }],
+                poster: poster,
+                title: "VidLox Video",
+                tracks: []
+            };
+        });
+    }
+}
+class VidLox extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VidLoxScript];
+    }
+}
+exports.default = VidLox;
+
+
+/***/ }),
+
+/***/ 82:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VidozaScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?vidoza\.[^\/,^\.]{2,}\/.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.response;
+            this.checkForSubtitles(HTML);
+            if (this.details.url.indexOf("/embed") == -1) {
+                if (HTML.indexOf("videojs('player')") == -1) {
+                    throw Error("No Video!");
+                }
+                else {
+                    location.href = location.href.replace("vidoza.net/", "vidoza.net/embed-").replace(/\.html.*/, ".html");
+                    throw Error("No embed Video! Redirecting...");
+                }
+            }
+            else {
+                let rawsources = JSON.parse(HTML.match(/sourcesCode: (\[\{.*\}\])/)[1].replace(/src:/g, '"src":').replace(/type:/g, '"type":').replace(/label:/g, '"label":').replace(/res:/g, '"res":'));
+                let sources = [];
+                for (let src of rawsources) {
+                    sources.push({ src: src.src, label: src.res, type: src.type });
+                }
+                let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+                let poster = Tools.matchNull(HTML, /poster: "([^"]*)"/);
+                return {
+                    src: sources,
+                    poster: poster,
+                    title: title,
+                    tracks: []
+                };
+            }
+        });
+    }
+}
+class Vidoza extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VidozaScript];
+    }
+}
+exports.default = Vidoza;
+
+
+/***/ }),
+
+/***/ 83:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VidToScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?vidto\.[^\/,^\.]{2,}\//i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.details.url.indexOf("embed-") == -1 && this.details.url.indexOf(".html") != -1) {
+                this.details.url = this.details.url.replace(/vidto\.[^\/,^\.]{2,}\//, "vidto.me/embed-");
+            }
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.responseText;
+            if (xhr.status != 200 || HTML.indexOf("File Does not Exist, or Has Been Removed") != -1) {
+                throw Error("No Video!");
+            }
+            this.checkForSubtitles(HTML);
+            let playerHashStr = "{" + HTML.match(/\.setup\(\{(.*)duration:/)[1] + "}";
+            let sources = playerHashStr.match(/sources:(.*\}\]),/)[1];
+            sources = sources.replace(/file:/g, '"src":');
+            sources = sources.replace(/label:/g, '"label":');
+            let srcObj = JSON.parse(sources);
+            srcObj[0].default = true;
+            let image = Tools.matchNull(playerHashStr, /image: "([^"]*)"/);
+            return {
+                src: srcObj,
+                title: "VidTo.me video",
+                poster: image,
+                tracks: []
+            };
+        });
+    }
+}
+class VidTo extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VidToScript];
+    }
+}
+exports.default = VidTo;
+
+
+/***/ }),
+
+/***/ 84:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VidziScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?vidzi\.[^\/,^\.]{2,}\/.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.details.url.indexOf("embed-") != -1) {
+                if (this.details.url.indexOf("-") == this.details.url.lastIndexOf("-")) {
+                    this.details.url = this.details.url.replace("embed-", "");
+                }
+                else {
+                    this.details.url = "https://www.vidzi.tv/" + this.details.url.match(/embed\-([^\-]*)\-/)[1];
+                }
+                console.log(this.details.url);
+            }
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.responseText;
+            this.checkForSubtitles(HTML);
+            if (xhr.status != 200 || HTML.indexOf("file was deleted") != -1 || HTML.indexOf("yt-uix-form-textarea share-embed-code") == -1) {
+                throw Error("No Video!");
+            }
+            let videoHash = HTML.match(/jwplayer\("vplayer"\)\.setup\(\{(.*)\}\);/)[1];
+            let image = Tools.matchNull(videoHash, /image: "([^"]*)"/);
+            let src = videoHash.match(/sources: \[\{file: "([^"]*)"/)[1];
+            let title = Tools.matchNull(HTML, /<title>([<"]*)<\/title>/i);
+            return {
+                src: [{ src: src, type: "application/x-mpegURL", label: "SD" }],
+                title: title,
+                poster: image,
+                tracks: []
+            };
+        });
+    }
+}
+class Vidzi extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VidziScript];
+    }
+}
+exports.default = Vidzi;
+
+
+/***/ }),
+
+/***/ 85:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const redirect_scripts_base_1 = __webpack_require__(56);
+const Tools = __webpack_require__(19);
+class VivoScript extends redirect_scripts_base_1.RedirectScript {
+    constructor(hostname, url) {
+        super(hostname, url, /https?:\/\/(www\.)?vivo\.[^\/,^\.]{2,}\/.+/i);
+    }
+    getVideoData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let xhr = yield Tools.createRequest({ url: this.details.url, hideRef: true });
+            let HTML = xhr.response;
+            this.checkForSubtitles(HTML);
+            let videoURL = atob(HTML.match(/data-stream="([^"]*)"/)[1]);
+            let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
+            return {
+                src: [{ type: "video/mp4", src: videoURL, label: "SD" }],
+                title: title,
+                tracks: [],
+                poster: ""
+            };
+        });
+    }
+}
+class Vivo extends redirect_scripts_base_1.RedirectHost {
+    getScripts() {
+        return [VivoScript];
+    }
+}
+exports.default = Vivo;
 
 
 /***/ })

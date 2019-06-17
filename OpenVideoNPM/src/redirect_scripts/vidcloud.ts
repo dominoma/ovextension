@@ -4,10 +4,10 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class VidCloudScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?(vidcloud|vcstream|loadvid|megaxfer)\.[^\/,^\.]{2,}\/embed\/([a-zA-Z0-9]*)/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?(vidcloud|vcstream|loadvid|megaxfer)\.[^\/,^\.]{2,}\/embed\/([a-zA-Z0-9]*)/i)
     }
-    async document_start() {
+    async getVideoData() {
         let embedID = this.details.match[3];
         let xhrs = await Promise.all([
             Tools.createRequest({

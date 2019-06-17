@@ -1039,6 +1039,27 @@ function importVar(name) {
     return window[name];
 }
 exports.importVar = importVar;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+exports.convertToError = convertToError;
 function accessWindow(initValues) {
     return new Proxy({}, {
         get: function (target, key) {
@@ -1377,26 +1398,6 @@ function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
 exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
 function getErrorData(e) {
     if (e) {
         return { message: e.message, stack: e.stack, name: e.name };
@@ -1417,7 +1418,7 @@ function setErrorData(data) {
     }
 }
 function toErrorData(e) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 function sendMsgByEvent(data, toBG) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -2221,11 +2222,11 @@ function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 exports.getSupportUrl = getSupportUrl;
-function getErrorMsg(data) {
+function getErrorMsg(error) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 exports.getErrorMsg = getErrorMsg;
@@ -2585,12 +2586,12 @@ const Storage = __webpack_require__(22);
 const VideoHistory = __webpack_require__(25);
 const Page = __webpack_require__(18);
 class RedirectScript {
-    constructor(hostname, urlPattern) {
+    constructor(hostname, url, urlPattern) {
         this.urlPattern_ = urlPattern;
         this.details_ = {
-            url: location.href,
-            match: location.href.match(this.urlPattern_),
-            hostname: hostname
+            url,
+            match: url.match(this.urlPattern_),
+            hostname
         };
     }
     get urlPattern() {
@@ -2602,61 +2603,74 @@ class RedirectScript {
     get hidePage() {
         return true;
     }
+    get runAsContentScript() {
+        return false;
+    }
     get canExec() {
-        return this.urlPattern_.test(location.href)
+        return this.details_.match
             && Tools.parseURL(location.href).query["ovignore"] != "true";
     }
     checkForSubtitles(html) {
         if (html.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
-            Analytics.fireEvent(this.details.hostname, "TracksFound", this.details.url);
+            Analytics.tracksFound(this.details.hostname, this.details.url);
         }
-    }
-    document_start() {
-        return null;
-    }
-    document_idle() {
-        return null;
-    }
-    document_end() {
-        return null;
     }
 }
 exports.RedirectScript = RedirectScript;
 class RedirectHost {
+    constructor(url) {
+        this.url_ = url;
+        this.scripts = this.getScripts().map(ctor => new ctor(this.hostname, this.url_));
+        this.runnable_ = this.scripts.find(script => script.canExec) || null;
+    }
+    get url() {
+        return this.url_;
+    }
     get hostname() {
         return this.constructor.name;
     }
-    get isEnabled() {
+    getJSON() {
+        return {
+            scripts: this.scripts.map((script) => {
+                return { url: script.urlPattern };
+            })
+        };
+    }
+    isEnabled() {
         return Storage.isScriptEnabled(this.hostname);
     }
+    get runAsContentScript() {
+        return !!this.runnable_ && this.runnable_.runAsContentScript;
+    }
     get canExec() {
-        return this.getScripts().map((ctor) => {
-            return new ctor(this.hostname);
-        }).some((el) => {
-            return el.canExec;
-        });
+        return !!this.runnable_;
+    }
+    get hidePage() {
+        return !!this.runnable_ && this.runnable_.hidePage;
+    }
+    get runAsPlayerScript() {
+        return !!this.runnable_ && !this.runnable_.runAsContentScript;
     }
     getFavicon() {
-        let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
-        if (link) {
+        /*let link = html.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+        if(link) {
             let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
-            if (favicon) {
+            if(favicon) {
                 return favicon[1];
             }
-        }
-        return "https://s2.googleusercontent.com/s2/favicons?domain_url=" + location.host;
+        }*/
+        return "https://s2.googleusercontent.com/s2/favicons?domain_url=" + Tools.parseURL(this.url_);
     }
     getVideoData(rawVideoData) {
         return __awaiter(this, void 0, void 0, function* () {
             let parent = null;
-            console.log(Page.isFrame());
             if (Page.isFrame()) {
                 parent = yield VideoHistory.getPageRefData();
             }
             let videoData = Tools.merge(rawVideoData, {
                 origin: {
                     name: this.hostname,
-                    url: location.href,
+                    url: this.url_,
                     icon: this.getFavicon()
                 },
                 parent: parent
@@ -2664,34 +2678,13 @@ class RedirectHost {
             return VideoTypes.makeURLsSave(videoData);
         });
     }
-    run(scope, onScriptExecute, onScriptExecuted) {
+    extractVideoData() {
         return __awaiter(this, void 0, void 0, function* () {
-            let scripts = this.getScripts().map((ctor) => {
-                return new ctor(this.hostname);
-            });
-            let script = scripts.find((script) => {
-                return script.canExec;
-            });
-            if (script) {
-                try {
-                    let promise = script[scope]();
-                    if (promise) {
-                        document.documentElement.hidden = script.hidePage;
-                        yield onScriptExecute();
-                        let rawVideoData = yield promise;
-                        let videoData = yield this.getVideoData(rawVideoData);
-                        yield onScriptExecuted(videoData);
-                        location.replace(Environment.getVidPlaySiteUrl(videoData));
-                        return true;
-                    }
-                }
-                catch (error) {
-                    document.documentElement.hidden = false;
-                    console.error(error);
-                    Analytics.fireEvent(this.hostname, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })));
-                }
+            if (!this.canExec) {
+                throw new Error(`Script '${this.hostname}' can't execute on url '${this.url_}'`);
             }
-            return false;
+            let videoData = yield this.runnable_.getVideoData();
+            return this.getVideoData(videoData);
         });
     }
 }
@@ -2701,44 +2694,16 @@ class RedirectHostsManager {
         this.hosts_ = [];
     }
     addRedirectHost(host) {
-        let hostExists = this.hosts_.some((el) => {
-            return el.hostname == host.hostname;
-        });
-        if (hostExists) {
-            throw new Error("A host with name '" + host.hostname + "'  is already registred!");
-        }
-        else {
-            this.hosts_.push(host);
-        }
+        this.hosts_.push(host);
     }
-    run(scope, onScriptExecute, onScriptExecuted) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let host = this.hosts_.find((host) => {
-                return host.canExec;
-            });
-            if (host) {
-                let enabled = yield host.isEnabled;
-                if (enabled) {
-                    let hasExec = yield host.run(scope, onScriptExecute, onScriptExecuted);
-                    if (hasExec) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        });
+    getHosts(url) {
+        return this.hosts_.map(ctor => new ctor(url));
     }
     getJSON() {
-        return this.hosts_.map((el) => {
-            return {
-                name: el.hostname,
-                scripts: el.getScripts().map((ctor) => {
-                    return {
-                        urlPattern: (new ctor(el.hostname)).urlPattern
-                    };
-                })
-            };
-        });
+        return this.getHosts("").map(host => ({
+            name: host.hostname,
+            scripts: host.getJSON().scripts
+        }));
     }
     getRedirectHosts() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2751,6 +2716,49 @@ class RedirectHostsManager {
             }
         });
     }
+    getVideoData(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let runnable = this.getHosts(url).find(host => host.canExec);
+            if (!runnable) {
+                throw new Error(`No matching script for url '${url}'`);
+            }
+            else {
+                return runnable.extractVideoData();
+            }
+        });
+    }
+    executeContentScript() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let runnable = this.getHosts(location.href).find(host => host.canExec);
+            if (runnable) {
+                let enabled = yield runnable.isEnabled();
+                if (enabled) {
+                    try {
+                        document.documentElement.hidden = runnable.hidePage;
+                        let videoData = yield runnable.extractVideoData();
+                        location.replace(Environment.getVidPlaySiteUrl(videoData));
+                        return true;
+                    }
+                    catch (error) {
+                        document.documentElement.hidden = false;
+                        console.error(error);
+                        Analytics.hosterError(runnable.hostname, error);
+                    }
+                }
+            }
+            return false;
+        });
+    }
+    getHostsEnabled() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield Promise.all(this.getJSON().map((el) => __awaiter(this, void 0, void 0, function* () {
+                return { name: el.name, enabled: yield Storage.isScriptEnabled(el.name) };
+            })))).reduce((acc, el) => {
+                acc[el.name] = el.enabled;
+                return acc;
+            }, {});
+        });
+    }
     setupBG() {
         return __awaiter(this, void 0, void 0, function* () {
             Messages.setupBackground({
@@ -2758,6 +2766,16 @@ class RedirectHostsManager {
                     return this.getJSON();
                 })
             });
+            let enabled = yield this.getHostsEnabled();
+            chrome.webRequest.onBeforeRequest.addListener((details) => {
+                let query = Tools.parseURL(details.url).query;
+                if (!query["isOV"] && !query["OVReferer"]) {
+                    let host = this.getHosts(details.url).find(el => el.runAsPlayerScript);
+                    if (host && enabled[host.hostname]) {
+                        return { redirectUrl: Environment.getVidPlaySiteUrl({ url: details.url }) };
+                    }
+                }
+            }, { urls: ["<all_urls>"] }, ["blocking"]);
         });
     }
     get hosts() {
@@ -2867,7 +2885,42 @@ function fireEvent(category, action, label) {
         yield send({ t: "event", ec: category, ea: action, el: label });
     });
 }
-exports.fireEvent = fireEvent;
+function hosterUsed(hoster) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "HosterUsed", "");
+    });
+}
+exports.hosterUsed = hosterUsed;
+function hosterError(hoster, error) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "Error", JSON.stringify(Environment.getErrorMsg(error)));
+    });
+}
+exports.hosterError = hosterError;
+function tracksFound(hoster, url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "TracksFound", url);
+    });
+}
+exports.tracksFound = tracksFound;
+function playerEvent(event) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(event, "PlayerEvent", "");
+    });
+}
+exports.playerEvent = playerEvent;
+function videoFromHost(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent("VideoFromHost", Tools.parseURL(url).host, "");
+    });
+}
+exports.videoFromHost = videoFromHost;
+function fullscreenError(url, parentUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent("FullscreenError", "FullscreenError", `IFrame: '${url}'\nPage: '${parentUrl}'\nVersion: ${Environment.getManifest().version}`);
+    });
+}
+exports.fullscreenError = fullscreenError;
 
 
 /***/ }),

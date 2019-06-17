@@ -19,18 +19,18 @@ export const enum RunScopes {
     document_idle = "document_idle",
     document_end = "document_end"
 }
-type RedirectScriptCtor = new (hostname : string) => RedirectScript;
+type RedirectScriptCtor = new (hostname : string, url : string) => RedirectScript;
 export abstract class RedirectScript {
 
     private readonly urlPattern_ : RegExp;
     private readonly details_ : ScriptDetails;
 
-    constructor(hostname : string, urlPattern : RegExp) {
+    constructor(hostname : string, url: string, urlPattern : RegExp) {
         this.urlPattern_ = urlPattern;
         this.details_ = {
-            url: location.href,
-            match: location.href.match(this.urlPattern_)!,
-            hostname: hostname
+            url,
+            match: url.match(this.urlPattern_)!,
+            hostname
         }
     }
 
@@ -46,72 +46,95 @@ export abstract class RedirectScript {
         return true;
     }
 
+    get runAsContentScript() {
+        return false;
+    }
+
     get canExec() {
-        return this.urlPattern_.test(location.href)
+        return this.details_.match
             && Tools.parseURL(location.href).query["ovignore"] != "true";
     }
 
     checkForSubtitles(html : string) {
         if (html.match(/(<track[^>]*src=|\.vtt|"?tracks"?: \[\{)/)) {
-            Analytics.fireEvent(this.details.hostname, "TracksFound", this.details.url)
+            Analytics.tracksFound(this.details.hostname, this.details.url)
         }
     }
 
-    document_start() : Promise<VideoTypes.RawVideoData> | null {
-        return null;
-    }
-
-    document_idle() : Promise<VideoTypes.RawVideoData> | null {
-        return null;
-    }
-
-    document_end() : Promise<VideoTypes.RawVideoData> | null {
-        return null;
-    }
+    abstract getVideoData() : Promise<VideoTypes.RawVideoData>;
 
 }
 
 export abstract class RedirectHost {
 
+    private readonly url_ : string;
+    private readonly scripts: RedirectScript[];
+    private readonly runnable_ : RedirectScript | null;
+
+    constructor(url : string) {
+        this.url_ = url;
+        this.scripts = this.getScripts().map(ctor => new ctor(this.hostname, this.url_));
+        this.runnable_ = this.scripts.find(script => script.canExec) || null;
+    }
+
+    get url() {
+        return this.url_;
+    }
+
     get hostname() {
         return this.constructor.name;
     }
 
-    get isEnabled() {
+    getJSON() {
+        return {
+            scripts: this.scripts.map((script) =>{
+                return { url: script.urlPattern }
+            })
+        };
+    }
+
+    isEnabled() {
         return Storage.isScriptEnabled(this.hostname);
     }
 
     abstract getScripts() : RedirectScriptCtor[];
 
+    get runAsContentScript() {
+        return !!this.runnable_ && this.runnable_.runAsContentScript;
+    }
+
     get canExec() {
-        return this.getScripts().map((ctor)=>{
-            return new ctor(this.hostname);
-        }).some((el)=>{
-            return el.canExec;
-        })
+        return !!this.runnable_;
+    }
+
+    get hidePage() {
+        return !!this.runnable_ && this.runnable_.hidePage;
+    }
+
+    get runAsPlayerScript() {
+        return !!this.runnable_ && !this.runnable_.runAsContentScript;
     }
 
     private getFavicon() {
-        let link = document.documentElement.innerHTML.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
+        /*let link = html.match(/(<link[^>]+rel=["|']shortcut icon["|'][^>]*)/);
         if(link) {
             let favicon = link[1].match(/href[ ]*=[ ]*["|']([^"|^']*)["|']/);
             if(favicon) {
                 return favicon[1];
             }
-        }
-        return "https://s2.googleusercontent.com/s2/favicons?domain_url="+location.host;
+        }*/
+        return "https://s2.googleusercontent.com/s2/favicons?domain_url="+Tools.parseURL(this.url_);
     }
 
     private async getVideoData(rawVideoData : VideoTypes.RawVideoData) {
         let parent = null as VideoTypes.PageRefData | null;
-        console.log(Page.isFrame())
         if(Page.isFrame()) {
             parent = await VideoHistory.getPageRefData();
         }
         let videoData = Tools.merge(rawVideoData, {
             origin: {
                 name: this.hostname,
-                url: location.href,
+                url: this.url_,
                 icon: this.getFavicon()
             },
             parent: parent
@@ -119,88 +142,39 @@ export abstract class RedirectHost {
         return VideoTypes.makeURLsSave(videoData);
     }
 
-    async run(scope : RunScopes, onScriptExecute: () => Promise<void>, onScriptExecuted: (videoData : VideoTypes.VideoData) => Promise<void>) {
-
-        let scripts = this.getScripts().map((ctor)=>{
-            return new ctor(this.hostname);
-        });
-        let script = scripts.find((script)=>{
-            return script.canExec;
-        });
-        if(script) {
-            try {
-                let promise = script[scope]();
-                if(promise) {
-                    document.documentElement.hidden = script.hidePage;
-                    await onScriptExecute();
-                    let rawVideoData = await promise;
-                    let videoData = await this.getVideoData(rawVideoData);
-                    await onScriptExecuted(videoData);
-                    location.replace(Environment.getVidPlaySiteUrl(videoData));
-                    return true;
-                }
-            }
-            catch(error) {
-                document.documentElement.hidden = false;
-                console.error(error);
-                Analytics.fireEvent(this.hostname, "Error", JSON.stringify(Environment.getErrorMsg({ msg: error.message, url: location.href, stack: error.stack })))
-            }
+    async extractVideoData() {
+        if(!this.canExec) {
+            throw new Error(`Script '${this.hostname}' can't execute on url '${this.url_}'`);
         }
-        return false;
+        let videoData = await this.runnable_!.getVideoData();
+        return this.getVideoData(videoData);
     }
 
 }
 type HostJSON = {
     name: string;
-    scripts: [
-        { urlPattern: RegExp }
-    ]
+    scripts: {
+        url: RegExp
+    }[]
 }
+type RedirectHostCtor = new (url : string) => RedirectHost;
 class RedirectHostsManager {
 
-    private hosts_ = [] as RedirectHost[];
+    private readonly hosts_ = [] as RedirectHostCtor[];
 
-    addRedirectHost(host : RedirectHost) {
-        let hostExists = this.hosts_.some((el)=>{
-            return el.hostname == host.hostname;
-        });
-        if(hostExists) {
-            throw new Error("A host with name '"+host.hostname+"'  is already registred!");
-        }
-        else {
-            this.hosts_.push(host);
-        }
+    addRedirectHost(host : RedirectHostCtor) {
+        this.hosts_.push(host);
     }
 
-    async run(scope : RunScopes, onScriptExecute: () => Promise<void>, onScriptExecuted: (videoData : VideoTypes.VideoData) => Promise<void>) {
-
-        let host = this.hosts_.find((host)=>{
-            return host.canExec;
-        })
-
-        if(host) {
-            let enabled = await host.isEnabled;
-            if(enabled) {
-                let hasExec = await host.run(scope, onScriptExecute, onScriptExecuted);
-                if(hasExec) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    getHosts(url : string) {
+        return this.hosts_.map(ctor => new ctor(url));
     }
 
-    private getJSON() {
-        return this.hosts_.map((el)=>{
-            return {
-                name: el.hostname,
-                scripts: el.getScripts().map((ctor)=>{
-                    return {
-                        urlPattern: (new ctor(el.hostname)).urlPattern
-                    };
-                })
-            }
-        })
+    private getJSON() : HostJSON [] {
+        return this.getHosts("").map(host => ({
+            name: host.hostname,
+            scripts: host.getJSON().scripts
+        }));
     }
 
     private async getRedirectHosts() {
@@ -213,12 +187,62 @@ class RedirectHostsManager {
         }
     }
 
+    async getVideoData(url : string) {
+        let runnable = this.getHosts(url).find(host => host.canExec);
+        if(!runnable) {
+            throw new Error(`No matching script for url '${url}'`);
+        }
+        else {
+            return runnable.extractVideoData();
+        }
+    }
+
+    async executeContentScript() {
+        let runnable = this.getHosts(location.href).find(host => host.canExec);
+        if(runnable) {
+            let enabled = await runnable.isEnabled();
+            if(enabled) {
+                try {
+                    document.documentElement.hidden = runnable.hidePage;
+                    let videoData = await runnable.extractVideoData();
+                    location.replace(Environment.getVidPlaySiteUrl(videoData))
+                    return true;
+                }
+                catch(error) {
+                    document.documentElement.hidden = false;
+                    console.error(error);
+                    Analytics.hosterError(runnable.hostname, error);
+                }
+            }
+        }
+        return false;
+    }
+
+    async getHostsEnabled() {
+        return (await Promise.all(this.getJSON().map(async (el)=>{
+            return { name: el.name, enabled: await Storage.isScriptEnabled(el.name) };
+        }))).reduce((acc, el)=>{
+            acc[el.name] = el.enabled;
+            return acc;
+        }, {} as { [key:string]: boolean });
+    }
+
     async setupBG() {
         Messages.setupBackground({
             redirect_script_base_getRedirectHosts: async () => {
                 return this.getJSON();
             }
         });
+        let enabled = await this.getHostsEnabled();
+        chrome.webRequest.onBeforeRequest.addListener((details)=>{
+            let query = Tools.parseURL(details.url).query;
+            if(!query["isOV"] && !query["OVReferer"]) {
+                let host = this.getHosts(details.url).find(el => el.runAsPlayerScript);
+                if(host && enabled[host.hostname]) {
+                    return { redirectUrl: Environment.getVidPlaySiteUrl({ url: details.url }) }
+                }
+            }
+        }, { urls: ["<all_urls>"] }, ["blocking"])
     }
 
     get hosts() {

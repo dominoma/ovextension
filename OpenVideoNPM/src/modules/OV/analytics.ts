@@ -33,17 +33,28 @@ async function send(data: StringMap) {
 export async function setupBG() {
     Messages.setupBackground({
         analytics_send: async function(msg, bgdata : StringMap, sender) {
-            if (bgdata["el"] && bgdata["el"].indexOf("<PAGE_URL>") != -1) {
-                if(!sender.tab || !sender.tab.url) {
-                    throw new Error("Can't replace Page URL. Tab url is unknown!");
-                }
-                bgdata["el"] = bgdata["el"].replace("<PAGE_URL>", sender.tab.url);
-            }
-            console.log(bgdata)
             send(bgdata);
         }
     });
 }
-export async function fireEvent(category: string, action: string, label: string) {
+async function fireEvent(category: string, action: string, label: string) {
     await send({ t: "event", ec: category, ea: action, el: label });
+}
+export async function hosterUsed(hoster : string) {
+    return fireEvent(hoster, "HosterUsed", "");
+}
+export async function hosterError(hoster : string, error : any) {
+    return fireEvent(hoster, "Error", JSON.stringify(Environment.getErrorMsg(error)))
+}
+export async function tracksFound(hoster : string, url : string) {
+    return fireEvent(hoster, "TracksFound", url);
+}
+export async function playerEvent(event : string) {
+    return fireEvent(event, "PlayerEvent", "");
+}
+export async function videoFromHost(url : string) {
+    return fireEvent("VideoFromHost", Tools.parseURL(url).host, "");
+}
+export async function fullscreenError(url : string, parentUrl : string) {
+    return fireEvent("FullscreenError", "FullscreenError", `IFrame: '${url}'\nPage: '${parentUrl}'\nVersion: ${Environment.getManifest().version}`)
 }

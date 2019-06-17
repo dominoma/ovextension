@@ -47,20 +47,20 @@ export function install() {
         );
         Tools.exportVar("imgLoaded", true);
     }
-    ScriptManager.addRedirectHost(new FlashX());
-    ScriptManager.addRedirectHost(new FruitStreams());
-    ScriptManager.addRedirectHost(new MP4Upload());
-    ScriptManager.addRedirectHost(new MyCloud());
-    ScriptManager.addRedirectHost(new OpenLoad());
-    ScriptManager.addRedirectHost(new RapidVideo());
-    ScriptManager.addRedirectHost(new SpeedVid());
-    ScriptManager.addRedirectHost(new StreamCloud());
-    ScriptManager.addRedirectHost(new VeryStream());
-    ScriptManager.addRedirectHost(new VevIO());
-    ScriptManager.addRedirectHost(new VidCloud());
-    ScriptManager.addRedirectHost(new VidLox());
-    ScriptManager.addRedirectHost(new Vidoza());
-    ScriptManager.addRedirectHost(new VidTo());
-    ScriptManager.addRedirectHost(new Vidzi());
-    ScriptManager.addRedirectHost(new Vivo());
+    ScriptManager.addRedirectHost(FlashX);
+    ScriptManager.addRedirectHost(FruitStreams);
+    ScriptManager.addRedirectHost(MP4Upload);
+    ScriptManager.addRedirectHost(MyCloud);
+    ScriptManager.addRedirectHost(OpenLoad);
+    ScriptManager.addRedirectHost(RapidVideo);
+    ScriptManager.addRedirectHost(SpeedVid);
+    ScriptManager.addRedirectHost(StreamCloud);
+    ScriptManager.addRedirectHost(VeryStream);
+    ScriptManager.addRedirectHost(VevIO);
+    ScriptManager.addRedirectHost(VidCloud);
+    ScriptManager.addRedirectHost(VidLox);
+    ScriptManager.addRedirectHost(Vidoza);
+    ScriptManager.addRedirectHost(VidTo);
+    ScriptManager.addRedirectHost(Vidzi);
+    ScriptManager.addRedirectHost(Vivo);
 }

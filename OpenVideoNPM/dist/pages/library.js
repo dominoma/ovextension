@@ -1157,6 +1157,27 @@ function importVar(name) {
     return window[name];
 }
 exports.importVar = importVar;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+exports.convertToError = convertToError;
 function accessWindow(initValues) {
     return new Proxy({}, {
         get: function (target, key) {
@@ -1495,26 +1516,6 @@ function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
 exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
 function getErrorData(e) {
     if (e) {
         return { message: e.message, stack: e.stack, name: e.name };
@@ -1535,7 +1536,7 @@ function setErrorData(data) {
     }
 }
 function toErrorData(e) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 function sendMsgByEvent(data, toBG) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -1982,9 +1983,8 @@ function setupIframe() {
     Background.toTopWindow({
         data: {
             width: window.innerWidth,
-            height: window.innerHeight,
+            height: window.innerHeight
             /*frameID: window.name*/
-            url: location.href
         },
         func: "theatremode_setupIframe"
     });
@@ -2628,11 +2628,11 @@ function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 exports.getSupportUrl = getSupportUrl;
-function getErrorMsg(data) {
+function getErrorMsg(error) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 exports.getErrorMsg = getErrorMsg;
@@ -3452,13 +3452,18 @@ __webpack_require__(48);
 const React = __webpack_require__(6);
 const Storage = __webpack_require__(22);
 function secondsToTime(seconds) {
-    let date = new Date(0);
-    date.setSeconds(seconds);
-    let string = date.toISOString().substr(11, 8);
-    while (string.length > 4 && (string[0] == "0" || string[0] == ":")) {
-        string = string.substring(1, string.length);
+    try {
+        let date = new Date(0);
+        date.setSeconds(seconds);
+        let string = date.toISOString().substr(11, 8);
+        while (string.length > 4 && (string[0] == "0" || string[0] == ":")) {
+            string = string.substring(1, string.length);
+        }
+        return string;
     }
-    return string;
+    catch (e) {
+        return "--:--";
+    }
 }
 class VideoLink extends React.Component {
     constructor(props) {

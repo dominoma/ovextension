@@ -9,6 +9,26 @@ export function exportVar(name : string, value: any) {
 export function importVar(name : string) {
     return (window as any)[name];
 }
+export function convertToError(e : any) : Error {
+    if(e instanceof Error) {
+        return e;
+    }
+    else if(typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if(result) {
+            return new Error(result);
+        }
+        else if(typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
 export function accessWindow<T>(initValues: T) {
     return new Proxy<any>({},{
         get: function(target, key){

@@ -4,10 +4,10 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class SpeedVidScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?speedvid\.[^\/,^\.]{2,}\/[^\/]+/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?speedvid\.[^\/,^\.]{2,}\/[^\/]+/i)
     }
-    async document_start() {
+    async getVideoData() {
         if (this.details.url.indexOf("sn-") != -1) {
             this.details.url = "https://www.speedvid.net/" + this.details.url.match(/sn\-([^\-]*)\-/i)![1];
         }

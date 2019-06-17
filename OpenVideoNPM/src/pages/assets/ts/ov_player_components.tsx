@@ -63,6 +63,7 @@ class TheatreButton extends React.Component<TheatreButtonProps, TheatreButtonSta
     }
 
     buttonClicked() {
+        Analytics.playerEvent("TheatreMode");
         TheatreMode.setTheatreMode(!this.state.enabled);
         this.state = { enabled: !this.state.enabled };
     }
@@ -73,7 +74,7 @@ class PatreonButton extends React.Component<{}, {}> {
         return <div className="vjs-patreon-button" onClick={this.buttonClicked.bind(this)}></div>
     }
     buttonClicked() {
-        Analytics.fireEvent("PatreonButton", "PlayerEvent", "");
+        Analytics.playerEvent("PatreonButton");
         Background.openTab(Environment.getPatreonUrl());
     }
 }
@@ -218,6 +219,7 @@ export function setup() {
             else {
                 (this.player() as Player).execute("removeFromPlaylist", this.playlist);
             }
+            Analytics.playerEvent("PlaylistButton");
         }
     }
     type PlaylistButtonOptions = {

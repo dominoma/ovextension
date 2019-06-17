@@ -6,10 +6,4 @@ import * as Proxy from "OV/proxy";
 import * as Page from "OV/page";
 Messages.setupMiddleware();
 RedirectScripts.install();
-ScriptManager.run(RunScopes.document_start, async function() {
-    if(Page.isFrame()) {
-        TheatreMode.setupIframe();
-    }
-}, async function(videoData){
-    await Proxy.addHostsfromVideos(videoData);
-});
+ScriptManager.executeContentScript();

@@ -56,7 +56,7 @@
 /******/ 	// undefined = chunk not loaded, null = chunk preloaded/prefetched
 /******/ 	// Promise = chunk loading, 0 = chunk loaded
 /******/ 	var installedChunks = {
-/******/ 		1: 0
+/******/ 		2: 0
 /******/ 	};
 /******/
 /******/ 	var deferredModules = [];
@@ -147,511 +147,14 @@
 /******/
 /******/
 /******/ 	// add entry module to deferred list
-/******/ 	deferredModules.push([146,6]);
+/******/ 	deferredModules.push([163,6]);
 /******/ 	// run deferred modules when ready
 /******/ 	return checkDeferredModules();
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 136:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(137);
-__webpack_require__(139);
-const React = __webpack_require__(6);
-const Tools = __webpack_require__(19);
-const Analytics = __webpack_require__(58);
-const Environment = __webpack_require__(24);
-const Page = __webpack_require__(18);
-const Messages = __webpack_require__(20);
-const Storage = __webpack_require__(22);
-const Languages = __webpack_require__(55);
-const Background = __webpack_require__(23);
-window["Worker"] = undefined;
-Messages.setupMiddleware();
-Page.wrapType(XMLHttpRequest, {
-    open: {
-        get: function (target) {
-            if (OVPlayer.getInstance()) {
-                return OVPlayer.getInstance().httpReqOpenOverride(target);
-            }
-            else {
-                return target.open;
-            }
-        }
-    }
-});
-const video_js_1 = __webpack_require__(68);
-const OVPlayerComponents = __webpack_require__(144);
-__webpack_require__(145);
-OVPlayerComponents.setup();
-class OVPlayer extends React.Component {
-    constructor(props) {
-        super(props);
-        this.player = null;
-        this.videoNode = null;
-        this.srtSelector = document.createElement("input");
-        OVPlayer.instance = this;
-    }
-    static getInstance() {
-        return OVPlayer.instance;
-    }
-    httpReqOpenOverride(target) {
-        return (method, url) => {
-            if (this.player && this.player.currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
-                url = Tools.addRefererToURL(url, this.props.videoData.origin.url);
-            }
-            target.open(method, url);
-        };
-    }
-    componentDidMount() {
-        // instantiate Video.js
-        this.setupSrtSelector();
-        this.player = video_js_1.default(this.videoNode, Tools.merge(this.props.options, {
-            plugins: {},
-            playbackRates: [0.5, 1, 2],
-            language: Languages.getMsg("video_player_locale")
-        }), () => {
-            this.playerReady();
-        });
-    }
-    // destroy player on unmount
-    componentWillUnmount() {
-        if (this.player) {
-            this.player.dispose();
-            this.player = null;
-        }
-    }
-    componentDidUpdate(oldProps) {
-        this.setVideoData(this.props.videoData);
-    }
-    execute(cmd, data) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (cmd == "downloadSource") {
-                this.downloadSource(data);
-            }
-            else if (cmd == "downloadActiveSource") {
-                this.downloadSource(this.getActiveVideoSource());
-            }
-            else if (cmd == "downloadTrack") {
-                this.downloadTrack(data);
-            }
-            else if (cmd == "loadSubtitlesFromFile") {
-                this.srtSelector.click();
-            }
-            else if (cmd == "loadSubtitlesFromURL") {
-                let response = yield Background.prompt({ msg: "Please enter the url of the subtitle file you want to use", fieldText: "" });
-                if (!response.aborted) {
-                    let fn = yield Tools.getUrlFileName(response.text);
-                    this.appendTextTrack({ kind: "captions", label: fn, language: "AddedFromUser", src: response.text });
-                }
-            }
-            else if (cmd == "addToPlaylist") {
-                let id = data.id;
-                yield Storage.addToPlaylist(yield this.getVideoRefData(), id);
-            }
-            else if (cmd == "removeFromPlaylist") {
-                let id = data.id;
-                Storage.removeFromPlaylist(this.props.videoData.origin.url, id);
-            }
-        });
-    }
-    downloadSource(src) {
-        var file = Tools.merge(src.dlsrc || { src: src.src, type: src.type, filename: null }, { label: src.label });
-        if (file.type.indexOf("application/") == -1) {
-            var dlData = { url: file.src, fileName: "" };
-            var label = file.label;
-            dlData.fileName = file.filename || (this.props.videoData.title + "." + file.type.substr(file.type.indexOf("/") + 1)).replace(/[/\\?%*:|"<>]/g, ' ').trim();
-            if (label) {
-                dlData.fileName = "[" + label + "]" + dlData.fileName;
-            }
-            console.log(dlData);
-            Background.downloadFile(dlData);
-        }
-        else {
-            Background.alert("HLS videos can't be downloaded :/\nTry downloading that video from a different hoster.");
-        }
-    }
-    downloadTrack(label) {
-        let trackSrc = this.props.videoData.tracks.find(function (src) {
-            return label == src.label;
-        });
-        if (trackSrc) {
-            let filename = "[" + trackSrc.label + "]" + this.props.videoData.title + ".vtt".replace(/[/\\?%*:|"<>]/g, ' ').trim();
-            Background.downloadFile({ url: trackSrc.src, fileName: filename });
-        }
-    }
-    setupSrtSelector() {
-        this.srtSelector.type = "file";
-        this.srtSelector.accept = ".vtt, .srt, .txt";
-        this.srtSelector.style.display = "none";
-        this.srtSelector.addEventListener("change", () => {
-            var collection = new FileReader;
-            collection.onload = () => {
-                let result = collection.result;
-                if (result.indexOf("-->") !== -1) {
-                    this.player.addTextTrack("captions", this.srtSelector.files[0].name, "AddedFromUser");
-                    var track = this.player.textTracks()[this.player.textTracks().length - 1];
-                    parseSrt(result, function (cue) {
-                        track.addCue(cue);
-                    });
-                }
-                else {
-                    Background.alert("Invaid subtitle file");
-                }
-            };
-            collection.readAsText(this.srtSelector.files[0], "ISO-8859-1");
-        });
-    }
-    playerReady() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.player.execute = this.execute.bind(this);
-            this.player.hotkeys({
-                volumeStep: 0.1,
-                seekStep: 5,
-                enableModifiersForNumbers: false
-            });
-            this.player.el().style.width = "100%";
-            this.player.el().style.height = "100%";
-            let ControlBar = this.player.getChild('controlBar');
-            if (!ControlBar) {
-                throw new Error("Control bar is missing!");
-            }
-            var DownloadButton = ControlBar.addChild('vjsDownloadButton', {});
-            var PatreonButton = ControlBar.addChild('vjsPatreonButton', {});
-            var FullscreenToggle = ControlBar.getChild('fullscreenToggle');
-            var CaptionsButton = ControlBar.getChild('SubsCapsButton');
-            CaptionsButton.show();
-            let playlists = yield Storage.getPlaylists();
-            playlists.splice(0, 1);
-            let activeIds = yield Storage.getPlaylistsWithVideo(this.props.videoData.origin.url);
-            let active = playlists.filter((el) => {
-                return activeIds.some((id) => {
-                    return id == el.id;
-                });
-            });
-            var PlaylistButton = ControlBar.addChild("vjsPlaylistButton", { playlists: playlists, active: active });
-            console.log("player is ready");
-            this.player.on("ratechange", () => {
-                Analytics.fireEvent("PlaybackRate", "PlayerEvent", this.props.videoData.origin.url);
-            });
-            FullscreenToggle.on("click", () => {
-                window.setTimeout(() => {
-                    if (Environment.browser() == "chrome" /* Chrome */ && !document.fullscreen && this.player.isFullscreen()) {
-                        console.log("FULLSCREEN ERROR");
-                        Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + this.props.videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version);
-                    }
-                }, 1000);
-            });
-            ControlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
-            ControlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
-            ControlBar.el().insertBefore(PlaylistButton.el(), FullscreenToggle.el());
-            if (!this.props.isPopup && Page.isFrame()) {
-                var TheaterButton = ControlBar.addChild('vjsTheatreButton', {});
-                ControlBar.el().insertBefore(TheaterButton.el(), FullscreenToggle.el());
-                this.player.on("fullscreenchange", () => {
-                    if (this.player.isFullscreen()) {
-                        TheaterButton.el().style.display = "none";
-                    }
-                    else {
-                        TheaterButton.el().style.removeProperty("display");
-                    }
-                });
-            }
-            let volume = yield Storage.getPlayerVolume();
-            this.player.volume(volume);
-            this.player.on('volumechange', () => {
-                Storage.setPlayerVolume(this.player.volume());
-            });
-            this.player.one('loadedmetadata', () => {
-                Analytics.fireEvent("VideoFromHost", Tools.parseURL(this.props.videoData.origin.url).host, "");
-                this.loadFromHistory();
-            });
-            this.player.el().addEventListener("mouseleave", () => {
-                if (this.player.currentTime() != 0) {
-                    this.saveToHistory();
-                }
-            });
-            if (this.props.onError) {
-                this.player.on('error', () => {
-                    if (this.props.onError) {
-                        this.props.onError(this.player);
-                    }
-                });
-            }
-            if (!this.props.isPopup) {
-                this.player.on('error', () => {
-                    if (this.player.readyState() == 0) {
-                        //if(Response.status == 404 || Response.status == 400 || Response.status == 403) {
-                        Analytics.fireEvent(this.props.videoData.origin.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: this.player.error().message, url: this.props.videoData.origin.url })));
-                        //}
-                        //document.location.replace(Hash.vidSiteUrl + (Hash.vidSiteUrl.indexOf("?") == -1 ? "?" : "&") + "ignoreRequestCheck=true");
-                    }
-                    else {
-                        /*OVPlayer.player!.bigPlayButton.on("click", () => {
-                            location.replace(this.props.videoData.origin.url);
-                        });
-                        OVPlayer.player!.bigPlayButton.addClass("reloadButton");*/
-                    }
-                });
-            }
-            this.setVideoData(this.props.videoData);
-            this.player.controls(true);
-        });
-    }
-    // wrap the player in a div with a `data-vjs-player` attribute
-    // so videojs won't create additional wrapper in the DOM
-    // see https://github.com/videojs/video.js/pull/3856
-    render() {
-        return (React.createElement("div", { "data-vjs-player": true },
-            React.createElement("video", { ref: node => this.videoNode = node, className: "video-js vjs-big-play-centered", preload: "auto" })));
-    }
-    appendTextTrack(rawTrack) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let convertToTrack = (srcContent) => {
-                if (srcContent.indexOf("-->") !== -1) {
-                    this.player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
-                    let track = this.player.textTracks()[this.player.textTracks().length - 1];
-                    if (rawTrack.default) {
-                        track.mode = "showing";
-                    }
-                    parseSrt(srcContent, function (cue) {
-                        track.addCue(cue);
-                    });
-                }
-                else {
-                    throw Error("Invaid subtitle file");
-                }
-            };
-            try {
-                let xhr = yield Tools.createRequest({ url: rawTrack.src });
-                convertToTrack(xhr.responseText);
-            }
-            catch (e) {
-                let xhr = yield Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
-                convertToTrack(xhr.responseText);
-            }
-        });
-    }
-    getActiveVideoSource() {
-        for (let src of this.props.videoData.src) {
-            if (this.player.src().indexOf(src.src) == 0) {
-                return src;
-            }
-        }
-        throw new Error("No video source active!");
-    }
-    setVideoData(videoData) {
-        this.player.poster(videoData.poster);
-        var srces = videoData.src;
-        if (srces.length == 1) {
-            this.player.src(srces[0]);
-        }
-        else {
-            let quality = this.player.controlBar.addChild("vjsQualityButton", { sources: srces });
-            let button = this.player.controlBar.getChild("vjsTheatreButton")
-                || this.player.controlBar.getChild("fullscreenToggle");
-            this.player.controlBar.el().insertBefore(quality.el(), button.el());
-        }
-        for (let track of videoData.tracks) {
-            this.appendTextTrack(track);
-            //player.addRemoteTextTrack(<any>track, true);
-        }
-    }
-    getVideoRefData() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let entry = yield Storage.getPlaylistEntry(this.props.videoData.origin.url);
-            return {
-                poster: this.props.videoData.poster,
-                title: this.props.videoData.title,
-                origin: this.props.videoData.origin,
-                parent: this.props.videoData.parent || (entry ? entry.data.parent : null),
-                watched: this.player.currentTime() == this.player.duration() ? 0 : this.player.currentTime(),
-                duration: this.player.duration()
-            };
-        });
-    }
-    saveToHistory() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let isEnabled = yield Storage.isHistoryEnabled();
-            if (isEnabled) {
-                var videoData = yield this.getVideoRefData();
-                Storage.addToPlaylist(videoData, Storage.fixed_playlists.history.id);
-            }
-        });
-    }
-    loadFromHistory() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let entry = yield Storage.getPlaylistEntry(this.props.videoData.origin.url);
-            if (entry) {
-                this.player.currentTime(entry.data.watched);
-            }
-        });
-    }
-}
-OVPlayer.instance = null;
-exports.OVPlayer = OVPlayer;
-function parseSrt(dataAndEvents, oncue) {
-    function trim(dataAndEvents) {
-        return (dataAndEvents + "").replace(/^\s+|\s+$/g, "");
-    }
-    function parseCueTime(dataAndEvents) {
-        var parts = dataAndEvents.split(":");
-        /** @type {number} */
-        var sum = 0;
-        var minutes;
-        var part;
-        var url;
-        var x;
-        var i;
-        if (parts.length == 3) {
-            minutes = parts[0];
-            part = parts[1];
-            url = parts[2];
-        }
-        else {
-            minutes = "0";
-            part = parts[0];
-            url = parts[1];
-        }
-        url = url.split(/\s+/);
-        x = url.splice(0, 1)[0];
-        x = x.split(/\.|,/);
-        i = parseFloat(x[1]);
-        x = x[0];
-        sum += parseFloat(minutes) * 3600;
-        sum += parseFloat(part) * 60;
-        sum += parseFloat(x);
-        if (i) {
-            sum += i / 1E3;
-        }
-        return sum;
-    }
-    if (dataAndEvents == "") {
-        alert("Invalid srt file!");
-    }
-    var tempData;
-    var splitted;
-    var collection;
-    var nodes = dataAndEvents.split("\n");
-    var resp = "";
-    var user_id;
-    var cuelength = 0;
-    var n = nodes.length;
-    for (var i = 1; i < n; ++i) {
-        resp = trim(nodes[i]);
-        if (resp) {
-            if (resp.indexOf("-->") == -1) {
-                user_id = resp;
-                resp = trim(nodes[++i]);
-            }
-            else {
-                user_id = cuelength;
-            }
-            tempData = {
-                id: user_id,
-                index: cuelength,
-                startTime: 0,
-                endTime: 0,
-                text: ""
-            };
-            splitted = resp.split(/[\t ]+/);
-            tempData.startTime = parseCueTime(splitted[0]);
-            tempData.endTime = parseCueTime(splitted[2]);
-            /** @type {Array} */
-            collection = [];
-            for (; nodes[++i] && (resp = trim(nodes[i]));) {
-                collection.push(resp);
-            }
-            tempData.text = collection.join("\n");
-            oncue({ id: "", startTime: tempData.startTime, endTime: tempData.endTime, text: tempData.text, pauseOnExit: false });
-            cuelength += 1;
-        }
-    }
-}
-
-
-/***/ }),
-
-/***/ 139:
-/***/ (function(module, exports, __webpack_require__) {
-
-
-var content = __webpack_require__(140);
-
-if(typeof content === 'string') content = [[module.i, content, '']];
-
-var transform;
-var insertInto;
-
-
-
-var options = {"hmr":true}
-
-options.transform = transform
-options.insertInto = undefined;
-
-var update = __webpack_require__(4)(content, options);
-
-if(content.locals) module.exports = content.locals;
-
-if(false) {}
-
-/***/ }),
-
-/***/ 140:
-/***/ (function(module, exports, __webpack_require__) {
-
-exports = module.exports = __webpack_require__(3)(false);
-// Imports
-var urlEscape = __webpack_require__(29);
-var ___CSS_LOADER_URL___0___ = urlEscape(__webpack_require__(30));
-var ___CSS_LOADER_URL___1___ = urlEscape(__webpack_require__(141));
-var ___CSS_LOADER_URL___2___ = urlEscape(__webpack_require__(142));
-var ___CSS_LOADER_URL___3___ = urlEscape(__webpack_require__(143));
-var ___CSS_LOADER_URL___4___ = urlEscape(__webpack_require__(46));
-
-// Module
-exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\nvideo {\n  outline: none; }\n\n.video-js {\n  display: flex; }\n  .video-js .vjs-big-play-button {\n    background: url(" + ___CSS_LOADER_URL___0___ + ") no-repeat;\n    background-size: contain;\n    background-position: center;\n    position: unset;\n    top: unset;\n    left: unset;\n    margin: auto;\n    width: 4em;\n    height: 4em;\n    z-index: 999;\n    border: none; }\n    .video-js .vjs-big-play-button .vjs-icon-placeholder:before {\n      content: none; }\n  .video-js:hover .vjs-big-play-button {\n    background-color: transparent; }\n\n.vjs-has-started .vjs-control-bar {\n  display: inline-flex;\n  background-color: transparent;\n  bottom: 0em;\n  left: 0em;\n  right: 0em;\n  width: unset;\n  height: 3.25em;\n  font-size: 1.2em; }\n  .vjs-has-started .vjs-control-bar:before {\n    content: '';\n    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8));\n    pointer-events: none;\n    position: absolute;\n    left: 0em;\n    right: 0em;\n    bottom: 0em;\n    height: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-play-control {\n    padding-left: 1em;\n    width: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-fullscreen-control {\n    padding-right: 1em;\n    width: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    opacity: 0.9;\n    outline: none; }\n    .vjs-has-started .vjs-control-bar .vjs-button:hover {\n      opacity: 1; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    cursor: pointer;\n    padding-bottom: 0.25em; }\n    .vjs-has-started .vjs-control-bar .vjs-button .vjs-icon-placeholder:before {\n      position: unset; }\n  .vjs-has-started .vjs-control-bar .vjs-menu-content {\n    font-size: 0.9em; }\n    .vjs-has-started .vjs-control-bar .vjs-menu-content li {\n      padding: 0.2em; }\n  .vjs-has-started .vjs-control-bar .vjs-progress-control {\n    height: unset;\n    position: absolute;\n    width: 100%;\n    bottom: 100%;\n    padding: 0 1em; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-progress-holder {\n      margin: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-play-progress {\n      background-color: #8dc73f; }\n  .vjs-has-started .vjs-control-bar .vjs-duration {\n    display: block;\n    padding-left: 0.3em; }\n  .vjs-has-started .vjs-control-bar .vjs-current-time {\n    display: block;\n    padding-right: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-current-time:after {\n      content: \" / \"; }\n  .vjs-has-started .vjs-control-bar .vjs-remaining-time {\n    display: none; }\n  .vjs-has-started .vjs-control-bar .vjs-playback-rate {\n    margin-left: auto; }\n  .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu {\n    width: 15em;\n    left: -5.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul {\n      overflow-x: hidden; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li {\n        position: relative;\n        text-transform: capitalize; }\n        .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li button {\n          -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n          width: 13px;\n          position: absolute;\n          right: 5px;\n          top: 2px;\n          bottom: 2px;\n          -webkit-mask-position: center;\n          background-color: #fff; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li.vjs-selected button {\n        background-color: #2B333F;\n        color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-download-button {\n    width: 100%;\n    height: 100%;\n    background-color: white;\n    -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat center/1.5em; }\n  .vjs-has-started .vjs-control-bar .vjs-patreon-button {\n    width: 100%;\n    height: 100%;\n    background: url(" + ___CSS_LOADER_URL___1___ + ") no-repeat center/1.8em; }\n  .vjs-has-started .vjs-control-bar .vjs-theatre-button {\n    width: 100%;\n    height: 100%;\n    -webkit-mask: url(" + ___CSS_LOADER_URL___2___ + ") no-repeat center/1.5em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___3___ + ") no-repeat center/1.5em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu {\n    width: 7em;\n    left: -1.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li {\n      position: relative; }\n      .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li button {\n        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n        width: 13px;\n        position: absolute;\n        right: 5px;\n        top: 2px;\n        bottom: 2px;\n        -webkit-mask-position: center;\n        background-color: #fff; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li.vjs-selected button {\n      background-color: #2B333F;\n      color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___4___ + ") no-repeat center;\n    -webkit-mask-size: 1.9em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu ul li {\n    text-transform: capitalize; }\n", ""]);
-
-
-
-/***/ }),
-
-/***/ 141:
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__.p + "/pages/assets/png/edb0e8352c1a6ef8999f94d6569f38e8.svg";
-
-/***/ }),
-
-/***/ 142:
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__.p + "/pages/assets/png/42d5d72c2ac6db8ee5d7eda660a78fa7.svg";
-
-/***/ }),
-
-/***/ 143:
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__.p + "/pages/assets/png/7c9f5af4ec73ac7bb2ebda5f6eb63f6b.svg";
-
-/***/ }),
-
-/***/ 144:
+/***/ 161:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -663,7 +166,7 @@ const Background = __webpack_require__(23);
 const Environment = __webpack_require__(24);
 const React = __webpack_require__(6);
 const ReactDOM = __webpack_require__(11);
-const video_js_1 = __webpack_require__(68);
+const video_js_1 = __webpack_require__(94);
 function registerComponent(parentType, name, getNode) {
     let wrapperType = class extends parentType {
         constructor(player, options) {
@@ -694,6 +197,7 @@ class TheatreButton extends React.Component {
         return (React.createElement("div", { className: "vjs-theatre-button", onClick: this.buttonClicked.bind(this) }));
     }
     buttonClicked() {
+        Analytics.playerEvent("TheatreMode");
         TheatreMode.setTheatreMode(!this.state.enabled);
         this.state = { enabled: !this.state.enabled };
     }
@@ -703,7 +207,7 @@ class PatreonButton extends React.Component {
         return React.createElement("div", { className: "vjs-patreon-button", onClick: this.buttonClicked.bind(this) });
     }
     buttonClicked() {
-        Analytics.fireEvent("PatreonButton", "PlayerEvent", "");
+        Analytics.playerEvent("PatreonButton");
         Background.openTab(Environment.getPatreonUrl());
     }
 }
@@ -825,6 +329,7 @@ function setup() {
             else {
                 this.player().execute("removeFromPlaylist", this.playlist);
             }
+            Analytics.playerEvent("PlaylistButton");
         }
     }
     class PlaylistMenuButton extends MenuButton {
@@ -920,16 +425,16 @@ exports.setup = setup;
 
 /***/ }),
 
-/***/ 146:
+/***/ 163:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(147);
+__webpack_require__(164);
 const Page = __webpack_require__(18);
-const VideoPopup = __webpack_require__(149);
-const ov_player_1 = __webpack_require__(136);
+const VideoPopup = __webpack_require__(166);
+const ov_player_1 = __webpack_require__(86);
 const Background = __webpack_require__(23);
 const React = __webpack_require__(6);
 const ReactDOM = __webpack_require__(11);
@@ -988,11 +493,11 @@ ReactDOM.render(React.createElement(PopupContent, { data: Page.getUrlObj() }), d
 
 /***/ }),
 
-/***/ 147:
+/***/ 164:
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(148);
+var content = __webpack_require__(165);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -1014,7 +519,7 @@ if(false) {}
 
 /***/ }),
 
-/***/ 148:
+/***/ 165:
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(3)(false);
@@ -1025,7 +530,7 @@ exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  fo
 
 /***/ }),
 
-/***/ 149:
+/***/ 166:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1472,6 +977,27 @@ function importVar(name) {
     return window[name];
 }
 exports.importVar = importVar;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+exports.convertToError = convertToError;
 function accessWindow(initValues) {
     return new Proxy({}, {
         get: function (target, key) {
@@ -1811,26 +1337,6 @@ function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
 exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
 function getErrorData(e) {
     if (e) {
         return { message: e.message, stack: e.stack, name: e.name };
@@ -1851,7 +1357,7 @@ function setErrorData(data) {
     }
 }
 function toErrorData(e) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 function sendMsgByEvent(data, toBG) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -2299,9 +1805,8 @@ function setupIframe() {
     Background.toTopWindow({
         data: {
             width: window.innerWidth,
-            height: window.innerHeight,
+            height: window.innerHeight
             /*frameID: window.name*/
-            url: location.href
         },
         func: "theatremode_setupIframe"
     });
@@ -2948,11 +2453,11 @@ function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 exports.getSupportUrl = getSupportUrl;
-function getErrorMsg(data) {
+function getErrorMsg(error) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 exports.getErrorMsg = getErrorMsg;
@@ -3853,12 +3358,546 @@ function fireEvent(category, action, label) {
         yield send({ t: "event", ec: category, ea: action, el: label });
     });
 }
-exports.fireEvent = fireEvent;
+function hosterUsed(hoster) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "HosterUsed", "");
+    });
+}
+exports.hosterUsed = hosterUsed;
+function hosterError(hoster, error) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "Error", JSON.stringify(Environment.getErrorMsg(error)));
+    });
+}
+exports.hosterError = hosterError;
+function tracksFound(hoster, url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(hoster, "TracksFound", url);
+    });
+}
+exports.tracksFound = tracksFound;
+function playerEvent(event) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent(event, "PlayerEvent", "");
+    });
+}
+exports.playerEvent = playerEvent;
+function videoFromHost(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent("VideoFromHost", Tools.parseURL(url).host, "");
+    });
+}
+exports.videoFromHost = videoFromHost;
+function fullscreenError(url, parentUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fireEvent("FullscreenError", "FullscreenError", `IFrame: '${url}'\nPage: '${parentUrl}'\nVersion: ${Environment.getManifest().version}`);
+    });
+}
+exports.fullscreenError = fullscreenError;
 
 
 /***/ }),
 
-/***/ 71:
+/***/ 86:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__webpack_require__(87);
+__webpack_require__(89);
+const React = __webpack_require__(6);
+const Tools = __webpack_require__(19);
+const Analytics = __webpack_require__(58);
+const Environment = __webpack_require__(24);
+const Page = __webpack_require__(18);
+const Messages = __webpack_require__(20);
+const Storage = __webpack_require__(22);
+const Languages = __webpack_require__(55);
+const Background = __webpack_require__(23);
+window["Worker"] = undefined;
+Messages.setupMiddleware();
+Page.wrapType(XMLHttpRequest, {
+    open: {
+        get: function (target) {
+            if (OVPlayer.getInstance()) {
+                return OVPlayer.getInstance().httpReqOpenOverride(target);
+            }
+            else {
+                return target.open;
+            }
+        }
+    }
+});
+const video_js_1 = __webpack_require__(94);
+const OVPlayerComponents = __webpack_require__(161);
+__webpack_require__(162);
+OVPlayerComponents.setup();
+class OVPlayer extends React.Component {
+    constructor(props) {
+        super(props);
+        this.player = null;
+        this.videoNode = null;
+        this.srtSelector = document.createElement("input");
+        OVPlayer.instance = this;
+    }
+    static getInstance() {
+        return OVPlayer.instance;
+    }
+    httpReqOpenOverride(target) {
+        return (method, url) => {
+            if (this.player && this.player.currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
+                url = Tools.addRefererToURL(url, this.props.videoData.origin.url);
+            }
+            target.open(method, url);
+        };
+    }
+    componentDidMount() {
+        // instantiate Video.js
+        this.setupSrtSelector();
+        this.player = video_js_1.default(this.videoNode, Tools.merge(this.props.options, {
+            plugins: {},
+            playbackRates: [0.5, 1, 2],
+            language: Languages.getMsg("video_player_locale")
+        }), () => {
+            this.playerReady();
+        });
+    }
+    // destroy player on unmount
+    componentWillUnmount() {
+        if (this.player) {
+            this.player.dispose();
+            this.player = null;
+        }
+    }
+    componentDidUpdate(oldProps) {
+        this.setVideoData(this.props.videoData);
+    }
+    execute(cmd, data) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (cmd == "downloadSource") {
+                this.downloadSource(data);
+            }
+            else if (cmd == "downloadActiveSource") {
+                this.downloadSource(this.getActiveVideoSource());
+            }
+            else if (cmd == "downloadTrack") {
+                this.downloadTrack(data);
+            }
+            else if (cmd == "loadSubtitlesFromFile") {
+                this.srtSelector.click();
+            }
+            else if (cmd == "loadSubtitlesFromURL") {
+                let response = yield Background.prompt({ msg: "Please enter the url of the subtitle file you want to use", fieldText: "" });
+                if (!response.aborted) {
+                    let fn = yield Tools.getUrlFileName(response.text);
+                    this.appendTextTrack({ kind: "captions", label: fn, language: "AddedFromUser", src: response.text });
+                }
+            }
+            else if (cmd == "addToPlaylist") {
+                let id = data.id;
+                yield Storage.addToPlaylist(yield this.getVideoRefData(), id);
+            }
+            else if (cmd == "removeFromPlaylist") {
+                let id = data.id;
+                Storage.removeFromPlaylist(this.props.videoData.origin.url, id);
+            }
+        });
+    }
+    downloadSource(src) {
+        var file = Tools.merge(src.dlsrc || { src: src.src, type: src.type, filename: null }, { label: src.label });
+        if (file.type.indexOf("application/") == -1) {
+            var dlData = { url: file.src, fileName: "" };
+            var label = file.label;
+            dlData.fileName = file.filename || (this.props.videoData.title + "." + file.type.substr(file.type.indexOf("/") + 1)).replace(/[/\\?%*:|"<>]/g, ' ').trim();
+            if (label) {
+                dlData.fileName = "[" + label + "]" + dlData.fileName;
+            }
+            console.log(dlData);
+            Background.downloadFile(dlData);
+        }
+        else {
+            Background.alert("HLS videos can't be downloaded :/\nTry downloading that video from a different hoster.");
+        }
+    }
+    downloadTrack(label) {
+        let trackSrc = this.props.videoData.tracks.find(function (src) {
+            return label == src.label;
+        });
+        if (trackSrc) {
+            let filename = "[" + trackSrc.label + "]" + this.props.videoData.title + ".vtt".replace(/[/\\?%*:|"<>]/g, ' ').trim();
+            Background.downloadFile({ url: trackSrc.src, fileName: filename });
+        }
+    }
+    setupSrtSelector() {
+        this.srtSelector.type = "file";
+        this.srtSelector.accept = ".vtt, .srt, .txt";
+        this.srtSelector.style.display = "none";
+        this.srtSelector.addEventListener("change", () => {
+            var collection = new FileReader;
+            collection.onload = () => {
+                let result = collection.result;
+                if (result.indexOf("-->") !== -1) {
+                    this.player.addTextTrack("captions", this.srtSelector.files[0].name, "AddedFromUser");
+                    var track = this.player.textTracks()[this.player.textTracks().length - 1];
+                    parseSrt(result, function (cue) {
+                        track.addCue(cue);
+                    });
+                }
+                else {
+                    Background.alert("Invaid subtitle file");
+                }
+            };
+            collection.readAsText(this.srtSelector.files[0], "ISO-8859-1");
+        });
+    }
+    playerReady() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.player.execute = this.execute.bind(this);
+            this.player.hotkeys({
+                volumeStep: 0.1,
+                seekStep: 5,
+                enableModifiersForNumbers: false
+            });
+            this.player.el().style.width = "100%";
+            this.player.el().style.height = "100%";
+            let ControlBar = this.player.getChild('controlBar');
+            if (!ControlBar) {
+                throw new Error("Control bar is missing!");
+            }
+            var DownloadButton = ControlBar.addChild('vjsDownloadButton', {});
+            var PatreonButton = ControlBar.addChild('vjsPatreonButton', {});
+            var FullscreenToggle = ControlBar.getChild('fullscreenToggle');
+            var CaptionsButton = ControlBar.getChild('SubsCapsButton');
+            CaptionsButton.show();
+            let playlists = yield Storage.getPlaylists();
+            playlists.splice(0, 1);
+            let activeIds = yield Storage.getPlaylistsWithVideo(this.props.videoData.origin.url);
+            let active = playlists.filter((el) => {
+                return activeIds.some((id) => {
+                    return id == el.id;
+                });
+            });
+            var PlaylistButton = ControlBar.addChild("vjsPlaylistButton", { playlists: playlists, active: active });
+            console.log("player is ready");
+            this.player.on("ratechange", () => {
+                Analytics.playerEvent("PlaybackRate");
+            });
+            FullscreenToggle.on("click", () => {
+                window.setTimeout(() => {
+                    if (Environment.browser() == "chrome" /* Chrome */ && !document.fullscreen && this.player.isFullscreen()) {
+                        console.log("FULLSCREEN ERROR");
+                        Analytics.fullscreenError(this.props.videoData.origin.url, (this.props.videoData.parent || {}).url);
+                    }
+                }, 1000);
+            });
+            ControlBar.el().insertBefore(DownloadButton.el(), FullscreenToggle.el());
+            ControlBar.el().insertBefore(PatreonButton.el(), FullscreenToggle.el());
+            ControlBar.el().insertBefore(PlaylistButton.el(), FullscreenToggle.el());
+            if (!this.props.isPopup && Page.isFrame()) {
+                var TheaterButton = ControlBar.addChild('vjsTheatreButton', {});
+                ControlBar.el().insertBefore(TheaterButton.el(), FullscreenToggle.el());
+                this.player.on("fullscreenchange", () => {
+                    if (this.player.isFullscreen()) {
+                        TheaterButton.el().style.display = "none";
+                    }
+                    else {
+                        TheaterButton.el().style.removeProperty("display");
+                    }
+                });
+            }
+            let volume = yield Storage.getPlayerVolume();
+            this.player.volume(volume);
+            this.player.on('volumechange', () => {
+                Storage.setPlayerVolume(this.player.volume());
+            });
+            this.player.one('loadedmetadata', () => {
+                if (this.props.isPopup) {
+                    Analytics.videoFromHost(this.props.videoData.origin.url);
+                }
+                this.loadFromHistory();
+            });
+            this.player.el().addEventListener("mouseleave", () => {
+                if (this.player.currentTime() != 0) {
+                    this.saveToHistory();
+                }
+            });
+            if (this.props.onError) {
+                this.player.on('error', () => {
+                    if (this.props.onError) {
+                        this.props.onError(this.player);
+                    }
+                });
+            }
+            if (!this.props.isPopup) {
+                this.player.on('error', () => {
+                    if (this.player.readyState() == 0) {
+                        //if(Response.status == 404 || Response.status == 400 || Response.status == 403) {
+                        Analytics.hosterError(this.props.videoData.origin.name, { msg: this.player.error().message, url: this.props.videoData.origin.url });
+                        //}
+                        //document.location.replace(Hash.vidSiteUrl + (Hash.vidSiteUrl.indexOf("?") == -1 ? "?" : "&") + "ignoreRequestCheck=true");
+                    }
+                    else {
+                        /*OVPlayer.player!.bigPlayButton.on("click", () => {
+                            location.replace(this.props.videoData.origin.url);
+                        });
+                        OVPlayer.player!.bigPlayButton.addClass("reloadButton");*/
+                    }
+                });
+            }
+            this.setVideoData(this.props.videoData);
+            this.player.controls(true);
+        });
+    }
+    // wrap the player in a div with a `data-vjs-player` attribute
+    // so videojs won't create additional wrapper in the DOM
+    // see https://github.com/videojs/video.js/pull/3856
+    render() {
+        return (React.createElement("div", { "data-vjs-player": true },
+            React.createElement("video", { ref: node => this.videoNode = node, className: "video-js vjs-big-play-centered", preload: "auto" })));
+    }
+    appendTextTrack(rawTrack) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let convertToTrack = (srcContent) => {
+                if (srcContent.indexOf("-->") !== -1) {
+                    this.player.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
+                    let track = this.player.textTracks()[this.player.textTracks().length - 1];
+                    if (rawTrack.default) {
+                        track.mode = "showing";
+                    }
+                    parseSrt(srcContent, function (cue) {
+                        track.addCue(cue);
+                    });
+                }
+                else {
+                    throw Error("Invaid subtitle file");
+                }
+            };
+            try {
+                let xhr = yield Tools.createRequest({ url: rawTrack.src });
+                convertToTrack(xhr.responseText);
+            }
+            catch (e) {
+                let xhr = yield Tools.createRequest({ url: Tools.removeRefererFromURL(rawTrack.src) });
+                convertToTrack(xhr.responseText);
+            }
+        });
+    }
+    getActiveVideoSource() {
+        for (let src of this.props.videoData.src) {
+            if (this.player.src().indexOf(src.src) == 0) {
+                return src;
+            }
+        }
+        throw new Error("No video source active!");
+    }
+    setVideoData(videoData) {
+        this.player.poster(videoData.poster);
+        var srces = videoData.src;
+        if (srces.length == 1) {
+            this.player.src(srces[0]);
+        }
+        else {
+            let quality = this.player.controlBar.addChild("vjsQualityButton", { sources: srces });
+            let button = this.player.controlBar.getChild("vjsTheatreButton")
+                || this.player.controlBar.getChild("fullscreenToggle");
+            this.player.controlBar.el().insertBefore(quality.el(), button.el());
+        }
+        for (let track of videoData.tracks) {
+            this.appendTextTrack(track);
+            //player.addRemoteTextTrack(<any>track, true);
+        }
+    }
+    getVideoRefData() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let entry = yield Storage.getPlaylistEntry(this.props.videoData.origin.url);
+            return {
+                poster: this.props.videoData.poster,
+                title: this.props.videoData.title,
+                origin: this.props.videoData.origin,
+                parent: this.props.videoData.parent || (entry ? entry.data.parent : null),
+                watched: this.player.currentTime() == this.player.duration() ? 0 : this.player.currentTime(),
+                duration: this.player.duration()
+            };
+        });
+    }
+    saveToHistory() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let isEnabled = yield Storage.isHistoryEnabled();
+            if (isEnabled) {
+                var videoData = yield this.getVideoRefData();
+                Storage.addToPlaylist(videoData, Storage.fixed_playlists.history.id);
+            }
+        });
+    }
+    loadFromHistory() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let entry = yield Storage.getPlaylistEntry(this.props.videoData.origin.url);
+            if (entry) {
+                this.player.currentTime(entry.data.watched);
+            }
+        });
+    }
+}
+OVPlayer.instance = null;
+exports.OVPlayer = OVPlayer;
+function parseSrt(dataAndEvents, oncue) {
+    function trim(dataAndEvents) {
+        return (dataAndEvents + "").replace(/^\s+|\s+$/g, "");
+    }
+    function parseCueTime(dataAndEvents) {
+        var parts = dataAndEvents.split(":");
+        /** @type {number} */
+        var sum = 0;
+        var minutes;
+        var part;
+        var url;
+        var x;
+        var i;
+        if (parts.length == 3) {
+            minutes = parts[0];
+            part = parts[1];
+            url = parts[2];
+        }
+        else {
+            minutes = "0";
+            part = parts[0];
+            url = parts[1];
+        }
+        url = url.split(/\s+/);
+        x = url.splice(0, 1)[0];
+        x = x.split(/\.|,/);
+        i = parseFloat(x[1]);
+        x = x[0];
+        sum += parseFloat(minutes) * 3600;
+        sum += parseFloat(part) * 60;
+        sum += parseFloat(x);
+        if (i) {
+            sum += i / 1E3;
+        }
+        return sum;
+    }
+    if (dataAndEvents == "") {
+        alert("Invalid srt file!");
+    }
+    var tempData;
+    var splitted;
+    var collection;
+    var nodes = dataAndEvents.split("\n");
+    var resp = "";
+    var user_id;
+    var cuelength = 0;
+    var n = nodes.length;
+    for (var i = 1; i < n; ++i) {
+        resp = trim(nodes[i]);
+        if (resp) {
+            if (resp.indexOf("-->") == -1) {
+                user_id = resp;
+                resp = trim(nodes[++i]);
+            }
+            else {
+                user_id = cuelength;
+            }
+            tempData = {
+                id: user_id,
+                index: cuelength,
+                startTime: 0,
+                endTime: 0,
+                text: ""
+            };
+            splitted = resp.split(/[\t ]+/);
+            tempData.startTime = parseCueTime(splitted[0]);
+            tempData.endTime = parseCueTime(splitted[2]);
+            /** @type {Array} */
+            collection = [];
+            for (; nodes[++i] && (resp = trim(nodes[i]));) {
+                collection.push(resp);
+            }
+            tempData.text = collection.join("\n");
+            oncue({ id: "", startTime: tempData.startTime, endTime: tempData.endTime, text: tempData.text, pauseOnExit: false });
+            cuelength += 1;
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ 89:
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(90);
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(4)(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ 90:
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(3)(false);
+// Imports
+var urlEscape = __webpack_require__(29);
+var ___CSS_LOADER_URL___0___ = urlEscape(__webpack_require__(30));
+var ___CSS_LOADER_URL___1___ = urlEscape(__webpack_require__(91));
+var ___CSS_LOADER_URL___2___ = urlEscape(__webpack_require__(92));
+var ___CSS_LOADER_URL___3___ = urlEscape(__webpack_require__(93));
+var ___CSS_LOADER_URL___4___ = urlEscape(__webpack_require__(46));
+
+// Module
+exports.push([module.i, "body {\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 11px; }\n\nvideo {\n  outline: none; }\n\n.video-js {\n  display: flex; }\n  .video-js .vjs-big-play-button {\n    background: url(" + ___CSS_LOADER_URL___0___ + ") no-repeat;\n    background-size: contain;\n    background-position: center;\n    position: unset;\n    top: unset;\n    left: unset;\n    margin: auto;\n    width: 4em;\n    height: 4em;\n    z-index: 999;\n    border: none; }\n    .video-js .vjs-big-play-button .vjs-icon-placeholder:before {\n      content: none; }\n  .video-js:hover .vjs-big-play-button {\n    background-color: transparent; }\n\n.vjs-has-started .vjs-control-bar {\n  display: inline-flex;\n  background-color: transparent;\n  bottom: 0em;\n  left: 0em;\n  right: 0em;\n  width: unset;\n  height: 3.25em;\n  font-size: 1.2em; }\n  .vjs-has-started .vjs-control-bar:before {\n    content: '';\n    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8));\n    pointer-events: none;\n    position: absolute;\n    left: 0em;\n    right: 0em;\n    bottom: 0em;\n    height: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-play-control {\n    padding-left: 1em;\n    width: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-fullscreen-control {\n    padding-right: 1em;\n    width: 5em; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    opacity: 0.9;\n    outline: none; }\n    .vjs-has-started .vjs-control-bar .vjs-button:hover {\n      opacity: 1; }\n  .vjs-has-started .vjs-control-bar .vjs-button {\n    cursor: pointer;\n    padding-bottom: 0.25em; }\n    .vjs-has-started .vjs-control-bar .vjs-button .vjs-icon-placeholder:before {\n      position: unset; }\n  .vjs-has-started .vjs-control-bar .vjs-menu-content {\n    font-size: 0.9em; }\n    .vjs-has-started .vjs-control-bar .vjs-menu-content li {\n      padding: 0.2em; }\n  .vjs-has-started .vjs-control-bar .vjs-progress-control {\n    height: unset;\n    position: absolute;\n    width: 100%;\n    bottom: 100%;\n    padding: 0 1em; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-progress-holder {\n      margin: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-progress-control .vjs-play-progress {\n      background-color: #8dc73f; }\n  .vjs-has-started .vjs-control-bar .vjs-duration {\n    display: block;\n    padding-left: 0.3em; }\n  .vjs-has-started .vjs-control-bar .vjs-current-time {\n    display: block;\n    padding-right: 0; }\n    .vjs-has-started .vjs-control-bar .vjs-current-time:after {\n      content: \" / \"; }\n  .vjs-has-started .vjs-control-bar .vjs-remaining-time {\n    display: none; }\n  .vjs-has-started .vjs-control-bar .vjs-playback-rate {\n    margin-left: auto; }\n  .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu {\n    width: 15em;\n    left: -5.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul {\n      overflow-x: hidden; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li {\n        position: relative;\n        text-transform: capitalize; }\n        .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li button {\n          -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n          width: 13px;\n          position: absolute;\n          right: 5px;\n          top: 2px;\n          bottom: 2px;\n          -webkit-mask-position: center;\n          background-color: #fff; }\n      .vjs-has-started .vjs-control-bar .vjs-subs-caps-button .vjs-menu ul li.vjs-selected button {\n        background-color: #2B333F;\n        color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-download-button {\n    width: 100%;\n    height: 100%;\n    background-color: white;\n    -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat center/1.5em; }\n  .vjs-has-started .vjs-control-bar .vjs-patreon-button {\n    width: 100%;\n    height: 100%;\n    background: url(" + ___CSS_LOADER_URL___1___ + ") no-repeat center/1.8em; }\n  .vjs-has-started .vjs-control-bar .vjs-theatre-button {\n    width: 100%;\n    height: 100%;\n    -webkit-mask: url(" + ___CSS_LOADER_URL___2___ + ") no-repeat center/1.5em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___3___ + ") no-repeat center/1.5em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu {\n    width: 7em;\n    left: -1.5em; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li {\n      position: relative; }\n      .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li button {\n        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTQgMTMiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE0IDEzOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj4uc3Qwe2ZpbGw6I2ZmZmZmZjt9PC9zdHlsZT48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEyLDkgMTIsMTEgMiwxMSAyLDkgMCw5IDAsMTMgMTQsMTMgMTQsOSAiLz48cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjEwLDMuNiA4LDUuNiA4LDAgNiwwIDYsNS42IDQsMy42IDIuNiw1IDcsOS40IDExLjQsNSAiLz48L3N2Zz4=) no-repeat 0 50%;\n        width: 13px;\n        position: absolute;\n        right: 5px;\n        top: 2px;\n        bottom: 2px;\n        -webkit-mask-position: center;\n        background-color: #fff; }\n    .vjs-has-started .vjs-control-bar .vjs-quality-button .vjs-menu ul li.vjs-selected button {\n      background-color: #2B333F;\n      color: #2B333F !important; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu-button {\n    -webkit-mask: url(" + ___CSS_LOADER_URL___4___ + ") no-repeat center;\n    -webkit-mask-size: 1.9em;\n    background-color: white; }\n  .vjs-has-started .vjs-control-bar .vjs-playlist-button .vjs-menu ul li {\n    text-transform: capitalize; }\n", ""]);
+
+
+
+/***/ }),
+
+/***/ 91:
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "/pages/assets/png/edb0e8352c1a6ef8999f94d6569f38e8.svg";
+
+/***/ }),
+
+/***/ 92:
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "/pages/assets/png/42d5d72c2ac6db8ee5d7eda660a78fa7.svg";
+
+/***/ }),
+
+/***/ 93:
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "/pages/assets/png/7c9f5af4ec73ac7bb2ebda5f6eb63f6b.svg";
+
+/***/ }),
+
+/***/ 97:
 /***/ (function(module, exports) {
 
 /* (ignored) */

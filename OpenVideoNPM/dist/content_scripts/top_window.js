@@ -86,91 +86,7 @@
 /************************************************************************/
 /******/ ({
 
-/***/ 135:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Messages = __webpack_require__(20);
-const Environment = __webpack_require__(24);
-const Page = __webpack_require__(18);
-const Tools = __webpack_require__(19);
-const Background = __webpack_require__(23);
-function toDataURL(url) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let xhr = yield Tools.createRequest({
-            url: url, beforeSend: function (xhr) {
-                xhr.responseType = 'blob';
-            }
-        });
-        return new Promise(function (resolve, reject) {
-            var reader = new FileReader();
-            reader.onloadend = function () {
-                resolve("url(" + reader.result + ")");
-            };
-            reader.onerror = function () {
-                reject(reader.error);
-            };
-            reader.readAsDataURL(xhr.response);
-        });
-    });
-}
-function requestPlayerCSS() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let response = yield Background.toTopWindow({ func: "metadata_requestPlayerCSS", data: {} });
-        return response.data;
-    });
-}
-exports.requestPlayerCSS = requestPlayerCSS;
-function setup() {
-    return __awaiter(this, void 0, void 0, function* () {
-        yield Page.isReady();
-        let ovtags = document.getElementsByTagName("openvideo");
-        let metadata = null;
-        Messages.addListener({
-            metadata_requestPlayerCSS: function (request) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (ovtags.length > 0) {
-                        if (metadata) {
-                            return metadata;
-                        }
-                        else {
-                            let ovtag = ovtags[0];
-                            if (!ovtag.hasAttribute("playimage") || !ovtag.hasAttribute("playhoverimage")) {
-                                throw Error("The openvideo tag has a wrong format!");
-                            }
-                            let dataURLs = yield Promise.all([toDataURL(ovtag.getAttribute("playimage")), toDataURL(ovtag.getAttribute("playhoverimage"))]);
-                            return { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
-                        }
-                    }
-                    else {
-                        return null;
-                    }
-                });
-            }
-        });
-        if (ovtags.length > 0) {
-            let ovtag = ovtags[0];
-            ovtag.innerText = Environment.getManifest().version;
-            ovtag.dispatchEvent(new Event("ov-metadata-received"));
-        }
-    });
-}
-exports.setup = setup;
-
-
-/***/ }),
-
-/***/ 149:
+/***/ 166:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -342,8 +258,8 @@ exports.setIconOpensPopup = setIconOpensPopup;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const TheatreMode = __webpack_require__(21);
-const Metadata = __webpack_require__(135);
-const VideoPopup = __webpack_require__(149);
+const Metadata = __webpack_require__(68);
+const VideoPopup = __webpack_require__(166);
 const Messages = __webpack_require__(20);
 const VideoHistory = __webpack_require__(25);
 Messages.setupMiddleware();
@@ -637,6 +553,27 @@ function importVar(name) {
     return window[name];
 }
 exports.importVar = importVar;
+function convertToError(e) {
+    if (e instanceof Error) {
+        return e;
+    }
+    else if (typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if (result) {
+            return new Error(result);
+        }
+        else if (typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
+exports.convertToError = convertToError;
 function accessWindow(initValues) {
     return new Proxy({}, {
         get: function (target, key) {
@@ -976,26 +913,6 @@ function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
 exports.canRuntime = canRuntime;
-function convertToError(e) {
-    if (e instanceof Error) {
-        return e;
-    }
-    else if (typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if (result) {
-            return new Error(result);
-        }
-        else if (typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
 function getErrorData(e) {
     if (e) {
         return { message: e.message, stack: e.stack, name: e.name };
@@ -1016,7 +933,7 @@ function setErrorData(data) {
     }
 }
 function toErrorData(e) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 function sendMsgByEvent(data, toBG) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -1464,9 +1381,8 @@ function setupIframe() {
     Background.toTopWindow({
         data: {
             width: window.innerWidth,
-            height: window.innerHeight,
+            height: window.innerHeight
             /*frameID: window.name*/
-            url: location.href
         },
         func: "theatremode_setupIframe"
     });
@@ -2113,11 +2029,11 @@ function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
 exports.getSupportUrl = getSupportUrl;
-function getErrorMsg(data) {
+function getErrorMsg(error) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 exports.getErrorMsg = getErrorMsg;
@@ -2291,6 +2207,90 @@ function makeURLsSave(videoData) {
     return videoData;
 }
 exports.makeURLsSave = makeURLsSave;
+
+
+/***/ }),
+
+/***/ 68:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Messages = __webpack_require__(20);
+const Environment = __webpack_require__(24);
+const Page = __webpack_require__(18);
+const Tools = __webpack_require__(19);
+const Background = __webpack_require__(23);
+function toDataURL(url) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let xhr = yield Tools.createRequest({
+            url: url, beforeSend: function (xhr) {
+                xhr.responseType = 'blob';
+            }
+        });
+        return new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve("url(" + reader.result + ")");
+            };
+            reader.onerror = function () {
+                reject(reader.error);
+            };
+            reader.readAsDataURL(xhr.response);
+        });
+    });
+}
+function requestPlayerCSS() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let response = yield Background.toTopWindow({ func: "metadata_requestPlayerCSS", data: {} });
+        return response.data;
+    });
+}
+exports.requestPlayerCSS = requestPlayerCSS;
+function setup() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield Page.isReady();
+        let ovtags = document.getElementsByTagName("openvideo");
+        let metadata = null;
+        Messages.addListener({
+            metadata_requestPlayerCSS: function (request) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (ovtags.length > 0) {
+                        if (metadata) {
+                            return metadata;
+                        }
+                        else {
+                            let ovtag = ovtags[0];
+                            if (!ovtag.hasAttribute("playimage") || !ovtag.hasAttribute("playhoverimage")) {
+                                throw Error("The openvideo tag has a wrong format!");
+                            }
+                            let dataURLs = yield Promise.all([toDataURL(ovtag.getAttribute("playimage")), toDataURL(ovtag.getAttribute("playhoverimage"))]);
+                            return { doChange: true, color: ovtag.getAttribute("color"), playimage: dataURLs[0], playhoverimage: dataURLs[1] };
+                        }
+                    }
+                    else {
+                        return null;
+                    }
+                });
+            }
+        });
+        if (ovtags.length > 0) {
+            let ovtag = ovtags[0];
+            ovtag.innerText = Environment.getManifest().version;
+            ovtag.dispatchEvent(new Event("ov-metadata-received"));
+        }
+    });
+}
+exports.setup = setup;
 
 
 /***/ })

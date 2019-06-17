@@ -4,10 +4,10 @@ import * as Tools from "OV/tools";
 import * as Analytics from "OV/analytics";
 
 class FruitStreamsScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?(streamango|fruitstreams|streamcherry|fruitadblock|fruithosts)\.[^\/,^\.]{2,}\/(f|embed)\/.+/i)
     }
-    async document_start() {
+    async getVideoData() {
         function resolveVideo(hashCode: string, intVal: number) {
             let chars = "=/+9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
             let retVal = '';

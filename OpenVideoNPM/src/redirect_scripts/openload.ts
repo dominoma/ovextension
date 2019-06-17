@@ -4,16 +4,15 @@ import * as Tools from "OV/tools";
 import * as Analytics from "OV/analytics";
 
 class OpenLoadScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
     }
-    async document_start() {
+    async getVideoData() {
         if (this.details.url.indexOf("openload.co") == -1) {
             this.details.url = this.details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "oload.services");
         }
 
         if (this.details.url.indexOf("/f/") != -1) {
-            Analytics.fireEvent("OpenLoad over File", "Utils", this.details.url)
             this.details.url = this.details.url.replace("/f/", "/embed/");
         }
 

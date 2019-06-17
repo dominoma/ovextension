@@ -4,13 +4,17 @@ import * as Tools from "OV/tools";
 import * as Page from "OV/page";
 
 class StreamCloudScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?streamcloud\.[^\/,^\.]{2,}\/([^\.]+)(\.html)?/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?streamcloud\.[^\/,^\.]{2,}\/([^\.]+)(\.html)?/i)
     }
     get hidePage() {
         return false;
     }
-    async document_idle() {
+    get runAsContentScript() {
+        return true;
+    }
+    async getVideoData() {
+        await Page.isReady();
         let button = document.getElementsByName('imhuman')[0];
         if (button == undefined) {
             throw new Error("No Video!");
@@ -23,7 +27,8 @@ class StreamCloudScript extends RedirectScript {
             formData: {
                 op: "download1",
                 id: this.details.match[2].match(/([^\/]*)(\/.*)?/)![1]
-            }
+            },
+            hideRef: true
         });
 
 

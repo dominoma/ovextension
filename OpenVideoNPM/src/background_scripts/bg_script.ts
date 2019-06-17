@@ -15,7 +15,7 @@ async function LoadBGScripts() {
     let scripts = await ScriptManager.hosts;
     Proxy.addHostsToList(scripts.map((el) => {
         return el.scripts.map((el) => {
-            return el.urlPattern;
+            return el.url;
         })
     }).reduce((acc, el) => {
         return acc.concat(el);
@@ -25,9 +25,9 @@ Environment.declareBGPage();
 Background.setup();
 Proxy.setupBG();
 Storage.setupBG();
+RedirectScripts.install();
 ScriptManager.setupBG();
 Analytics.setupBG();
-RedirectScripts.install();
 
 Proxy.loadFromStorage();
 

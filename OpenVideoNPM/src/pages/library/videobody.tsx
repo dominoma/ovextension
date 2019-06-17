@@ -6,13 +6,18 @@ import * as React from "react";
 import * as Storage from "OV/storage";
 
 function secondsToTime(seconds : number) {
-    let date = new Date(0);
-    date.setSeconds(seconds);
-    let string = date.toISOString().substr(11, 8);
-    while(string.length > 4 && (string[0] == "0" || string[0] == ":")) {
-        string = string.substring(1, string.length);
+    try {
+        let date = new Date(0);
+        date.setSeconds(seconds);
+        let string = date.toISOString().substr(11, 8);
+        while(string.length > 4 && (string[0] == "0" || string[0] == ":")) {
+            string = string.substring(1, string.length);
+        }
+        return string;
     }
-    return string;
+    catch(e) {
+        return "--:--";
+    }
 }
 type VideoLinkProps = {
     videoData: VideoTypes.VideoRefData;

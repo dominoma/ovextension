@@ -4,10 +4,10 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class VidLoxScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?vidlox\.[^\/,^\.]{2,}\/embed\-.+/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?vidlox\.[^\/,^\.]{2,}\/embed\-.+/i)
     }
-    async document_start() {
+    async getVideoData() {
         let xhr = await Tools.createRequest({ url: this.details.url, hideRef: true });
         let HTML = xhr.response;
         this.checkForSubtitles(HTML);

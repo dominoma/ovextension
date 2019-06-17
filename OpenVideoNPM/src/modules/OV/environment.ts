@@ -5,7 +5,7 @@ let _isBGPage = false;
 export function declareBGPage(): void {
     _isBGPage = true;
 }
-export function getVidPlaySiteUrl(vidHash: VideoTypes.VideoData): string {
+export function getVidPlaySiteUrl(vidHash: VideoTypes.VideoData | { url: string }): string {
     return chrome.extension.getURL("/pages/videoplay.html") + Tools.objToHash(vidHash);
 }
 export function getVidPopupSiteUrl(vidHash: Object): string {
@@ -34,11 +34,11 @@ export function getRatingUrl() {
 export function getSupportUrl() {
     return "https://chrome.google.com/webstore/detail/openvideo-faststream/dadggmdmhmfkpglkfpkjdmlendbkehoh/support";
 }
-export function getErrorMsg(data: any) {
+export function getErrorMsg(error: any) {
     return {
         version: getManifest().version,
         browser: browser(),
-        data: data
+        error: Tools.convertToError(error)
     };
 }
 export function isExtensionPage(url: string): boolean {

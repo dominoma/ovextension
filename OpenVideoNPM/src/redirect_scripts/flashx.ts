@@ -4,18 +4,18 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class FlashXScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?flashx\.[^\/,^\.]{2,}\/(embed.php\?c=(.*)|(.*)\.jsp|playvideo\-(.*)\.html\?playvid)/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?flashx\.[^\/,^\.]{2,}\/(embed.php\?c=(.*)|(.*)\.jsp|playvideo\-(.*)\.html\?playvid)/i)
     }
-    async document_start() {
+    async getVideoData() {
         let getVideoCode = async () => {
             if (this.details.match[5]) {
                 return this.details.match[5];
             }
             else {
                 await Promise.all([
-                    Tools.createRequest({ url: "https://flashx.co/counter.cgi" }),
-                    Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6" })
+                    Tools.createRequest({ url: "https://flashx.co/counter.cgi", hideRef: true }),
+                    Tools.createRequest({ url: "https://flashx.co/flashx.php?f=fail&fxfx=6", hideRef: true })
                 ]);
                 return this.details.match[3] || this.details.match[4];
             }

@@ -45,26 +45,7 @@ let windowVars = Tools.accessWindow<WindowVars>({
 export function canRuntime() {
     return chrome && chrome.runtime && chrome.runtime.id != undefined;
 }
-function convertToError(e : any) : Error {
-    if(e instanceof Error) {
-        return e;
-    }
-    else if(typeof e == "string") {
-        return new Error(e);
-    }
-    else {
-        let result = JSON.stringify(e);
-        if(result) {
-            return new Error(result);
-        }
-        else if(typeof e.toString == "function") {
-            return new Error(e.toString());
-        }
-        else {
-            return new Error("Unknown Error!");
-        }
-    }
-}
+
 function getErrorData(e : Error | null) : ErrorData | null {
     if(e) {
         return { message: e.message, stack: e.stack!, name: e.name };
@@ -85,7 +66,7 @@ function setErrorData(data : ErrorData | null) {
     }
 }
 function toErrorData(e : any) {
-    return getErrorData(convertToError(e));
+    return getErrorData(Tools.convertToError(e));
 }
 async function sendMsgByEvent(data: Request, toBG?: boolean) {
     return new Promise<Response>(function(resolve, reject){

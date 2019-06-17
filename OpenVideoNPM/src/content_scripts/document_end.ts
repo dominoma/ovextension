@@ -5,14 +5,6 @@ import * as TheatreMode from "Messages/theatremode";
 import * as Proxy from "OV/proxy";
 import * as Page from "OV/page";
 import * as VideoPopup from "Messages/videopopup";
-RedirectScripts.install();
-ScriptManager.run(RunScopes.document_end, async function() {
-    if(Page.isFrame()) {
-        TheatreMode.setupIframe();
-    }
-}, async function(videoData){
-    await Proxy.addHostsfromVideos(videoData);
-});
 Storage.isVideoSearchEnabled().then(async function(value) {
     if (value) {
         VideoPopup.setupCS();

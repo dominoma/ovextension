@@ -5,14 +5,17 @@ import * as VideoTypes from "video_types";
 import * as Page from "OV/page";
 
 class VevIOScript extends RedirectScript {
-    constructor(hostname : string) {
-        super(hostname, /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i)
+    constructor(hostname : string, url : string) {
+        super(hostname, url, /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i)
     }
-    async document_start() {
+    get runAsContentScript() {
+        return true;
+    }
+    async getVideoData() {
         let getVideoCode = async () => {
             if (this.details.url.indexOf("embed") == -1) {
 
-                let xhr = await Tools.createRequest({ url: this.details.url })
+                let xhr = await Tools.createRequest({ url: this.details.url, hideRef: true })
                 if (xhr.response.indexOf('class="video-main"') != -1) {
                     return this.details.url.substr(this.details.url.lastIndexOf("/"));
                 }
@@ -39,7 +42,7 @@ class VevIOScript extends RedirectScript {
                     return open.apply(this, arguments);
                 }
             }),
-            Tools.createRequest({ url: "https://vev.io/api/serve/video/" + videoCode })
+            Tools.createRequest({ url: "https://vev.io/api/serve/video/" + videoCode, hideRef: true })
         ]);
 
         let videoJSON = xhrs[0];
