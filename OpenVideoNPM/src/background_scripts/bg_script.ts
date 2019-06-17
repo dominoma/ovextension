@@ -100,18 +100,19 @@ chrome.webRequest.onHeadersReceived.addListener(function(details) {
 );
 function beforeSendHeaders(details : chrome.webRequest.WebRequestHeadersDetails) {
 
-    var referer = Tools.getRefererFromURL(details.url);
-    if (referer) {
-
+    let refererHeader = getHeader(details.requestHeaders!, "OVReferer");
+    if (refererHeader) {
+        let referer = refererHeader.value!;
+        removeHeader(details.requestHeaders!, "OVReferer");
         setHeader(details.requestHeaders!, "Referer", referer);
         setHeader(details.requestHeaders!, "Origin", "https://"+Tools.parseURL(referer).host);
         return { requestHeaders: details.requestHeaders }
 
     }
-    else if (details.url.match(/[\?&]isOV=true/i)) {
-        console.log(details.requestHeaders, details.url)
+    else if (getHeader(details.requestHeaders!, "isOV")) {
         removeHeader(details.requestHeaders!, "Origin");
         removeHeader(details.requestHeaders!, "Referer");
+        removeHeader(details.requestHeaders!, "isOV");
         return { requestHeaders: details.requestHeaders }
 
     }
@@ -122,9 +123,9 @@ function beforeSendHeaders(details : chrome.webRequest.WebRequestHeadersDetails)
 try {
     chrome.webRequest.onBeforeSendHeaders.addListener(beforeSendHeaders,
         {
-            urls: ["*://*/*OVReferer=*", "*://*/*isOV*", "*://*/*ovreferer=*", "*://*/*isov*"]
+            urls: ["<all_urls>"]
         },
-        (Environment.browser() == Environment.Browsers.Chrome) ? ['blocking', 'requestHeaders', 'extraHeaders'] : ['blocking', 'requestHeaders']
+        ['blocking', 'requestHeaders', 'extraHeaders']
     );
 }
 catch(e) {

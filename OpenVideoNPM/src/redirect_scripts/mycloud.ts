@@ -6,19 +6,22 @@ import * as Page  from "OV/page";
 import * as VideoTypes from "video_types";
 
 class MyCloudScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i)
-    }
-
-    get runAsContentScript() {
-        return true;
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?mcloud\.[^\/,^\.]{2,}\/embed\/.+/i)
     }
 
     async getVideoData() {
 
-        await Page.isReady();
+        //await Page.isReady();
 
-        let HTML = document.documentElement.innerHTML;
+        let request = await Tools.createRequest({ url: this.details.url,
+            headers: {
+                "upgrade-insecure-requests": "1"
+            },
+            referer: this.details.parentUrl || ""
+        });
+
+        let HTML = request.response;
         let title = Tools.matchNull(HTML, /<title>([^<]*)<\/title>/);
         let rawsrces = JSON.parse(HTML.match(/sources: (\[\{.*\}\])/)![1]);
         let srces: VideoTypes.VideoSource[] = [];

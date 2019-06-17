@@ -4,8 +4,8 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class VivoScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?vivo\.[^\/,^\.]{2,}\/.+/i)
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?vivo\.[^\/,^\.]{2,}\/.+/i)
     }
     async getVideoData() {
         let xhr = await Tools.createRequest({ url: this.details.url, hideRef: true });

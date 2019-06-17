@@ -5,8 +5,8 @@ import * as Analytics from "OV/analytics";
 import * as VideoTypes from "video_types";
 
 class RapidVideoScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?rapidvideo\.[^\/,^\.]{2,}\/(\?v=[^&\?]*|e\/.+|v\/.+)/i)
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?rapidvideo\.[^\/,^\.]{2,}\/(\?v=[^&\?]*|e\/.+|v\/.+)/i)
     }
     async getVideoData() {
         this.details.url = this.details.url.replace(/(\/?\?v=|\/v\/)/i, "/e/").replace(/[&\?]q=?[^&\?]*/i, "").replace(/[&\?]autostart=?[^&\?]*/i, "");

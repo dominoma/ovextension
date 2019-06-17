@@ -16,7 +16,7 @@ import * as Background from "Messages/background";
 
 (window as any)["Worker"] = undefined;
 Messages.setupMiddleware();
-Page.wrapType(XMLHttpRequest, {
+/*Page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {
             if(OVPlayer.getInstance()) {
@@ -27,7 +27,7 @@ Page.wrapType(XMLHttpRequest, {
             }
         }
     }
-});
+});*/
 import videojs from "video.js";
 import * as OVPlayerComponents from "./ov_player_components";
 import "videojs-hotkeys/videojs.hotkeys.js";
@@ -65,6 +65,7 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
 
     httpReqOpenOverride(target : XMLHttpRequest) {
         return (method: string, url: string) => {
+            console.log("HALLO");
             if (this.player && this.player.currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
                 url = Tools.addRefererToURL(url, this.props.videoData.origin.url);
             }

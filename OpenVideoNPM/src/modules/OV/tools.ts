@@ -277,6 +277,7 @@ export interface Request {
     cache?: boolean;
     referer?: string;
     hideRef?: boolean;
+    ignore?: boolean;
     headers?: StringMap;
     xmlHttpObj?: XMLHttpRequest;
     formData?: StringMap;
@@ -288,14 +289,16 @@ export async function createRequest(args: Request): Promise<XMLHttpRequest> {
         let xmlHttpObj: XMLHttpRequest = args.xmlHttpObj  || new XMLHttpRequest();
         var type = args.type || HTTPMethods.GET;
         var protocol = args.protocol || "https://";
+        args.headers = args.headers || {};
+        args.data = args.data || {};
         if (args.referer) {
-            args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+            args.headers = merge(args.headers, { OVReferer: args.referer });
         }
         else if (args.hideRef) {
-            args.data = merge(args.data, { isOV: "true" });
+            args.headers = merge(args.headers, { isOV: "true" });
         }
-        var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
-
+        var url = addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
+        console.log(xmlHttpObj.open,type, url);
         xmlHttpObj.open(type, url, true);
         xmlHttpObj.onload = function() {
             if (xmlHttpObj.status == 200) {
@@ -310,11 +313,8 @@ export async function createRequest(args: Request): Promise<XMLHttpRequest> {
 
             reject(Error("Network Error (url: '" + url + "')"));
         };
-
-        if (args.headers) {
-            for (var key in args.headers) {
-                xmlHttpObj.setRequestHeader(key, args.headers[key]);
-            }
+        for (var key in args.headers) {
+            xmlHttpObj.setRequestHeader(key, args.headers[key]);
         }
         let formData: FormData|null = null;
         if (args.formData) {

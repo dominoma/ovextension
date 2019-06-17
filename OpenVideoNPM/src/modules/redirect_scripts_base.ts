@@ -10,6 +10,7 @@ import * as Page from "OV/page";
 
 export interface ScriptDetails {
     url: string;
+    parentUrl: string | null;
     match: RegExpMatchArray;
     hostname: string;
 }
@@ -19,16 +20,17 @@ export const enum RunScopes {
     document_idle = "document_idle",
     document_end = "document_end"
 }
-type RedirectScriptCtor = new (hostname : string, url : string) => RedirectScript;
+type RedirectScriptCtor = new (hostname : string, url : string, parentUrl : string | null) => RedirectScript;
 export abstract class RedirectScript {
 
     private readonly urlPattern_ : RegExp;
     private readonly details_ : ScriptDetails;
 
-    constructor(hostname : string, url: string, urlPattern : RegExp) {
+    constructor(hostname : string, url: string, parentUrl: string | null, urlPattern : RegExp) {
         this.urlPattern_ = urlPattern;
         this.details_ = {
             url,
+            parentUrl,
             match: url.match(this.urlPattern_)!,
             hostname
         }
@@ -68,12 +70,14 @@ export abstract class RedirectScript {
 export abstract class RedirectHost {
 
     private readonly url_ : string;
+    private readonly parent_ : VideoTypes.PageRefData | null;
     private readonly scripts: RedirectScript[];
     private readonly runnable_ : RedirectScript | null;
 
-    constructor(url : string) {
+    constructor(url : string, parent : VideoTypes.PageRefData | null) {
         this.url_ = url;
-        this.scripts = this.getScripts().map(ctor => new ctor(this.hostname, this.url_));
+        this.parent_ = parent;
+        this.scripts = this.getScripts().map(ctor => new ctor(this.hostname, this.url_, (this.parent_ || {} as any).url));
         this.runnable_ = this.scripts.find(script => script.canExec) || null;
     }
 
@@ -127,17 +131,13 @@ export abstract class RedirectHost {
     }
 
     private async getVideoData(rawVideoData : VideoTypes.RawVideoData) {
-        let parent = null as VideoTypes.PageRefData | null;
-        if(Page.isFrame()) {
-            parent = await VideoHistory.getPageRefData();
-        }
         let videoData = Tools.merge(rawVideoData, {
             origin: {
                 name: this.hostname,
                 url: this.url_,
                 icon: this.getFavicon()
             },
-            parent: parent
+            parent: this.parent_
         });
         return VideoTypes.makeURLsSave(videoData);
     }
@@ -157,7 +157,7 @@ type HostJSON = {
         url: RegExp
     }[]
 }
-type RedirectHostCtor = new (url : string) => RedirectHost;
+type RedirectHostCtor = new (url : string, parent : VideoTypes.PageRefData | null) => RedirectHost;
 class RedirectHostsManager {
 
     private readonly hosts_ = [] as RedirectHostCtor[];
@@ -166,12 +166,12 @@ class RedirectHostsManager {
         this.hosts_.push(host);
     }
 
-    getHosts(url : string) {
-        return this.hosts_.map(ctor => new ctor(url));
+    getHosts(url : string, parent : VideoTypes.PageRefData | null) {
+        return this.hosts_.map(ctor => new ctor(url, parent));
     }
 
     private getJSON() : HostJSON [] {
-        return this.getHosts("").map(host => ({
+        return this.getHosts("", null).map(host => ({
             name: host.hostname,
             scripts: host.getJSON().scripts
         }));
@@ -186,9 +186,18 @@ class RedirectHostsManager {
             return response.data as Array<HostJSON>;
         }
     }
-
+    private async getParent() {
+        if(Page.isFrame()) {
+            Messages.setupMiddleware();
+            return VideoHistory.getPageRefData();
+        }
+        else {
+            return null;
+        }
+    }
     async getVideoData(url : string) {
-        let runnable = this.getHosts(url).find(host => host.canExec);
+        let parent = await this.getParent();
+        let runnable = this.getHosts(url, parent).find(host => host.canExec);
         if(!runnable) {
             throw new Error(`No matching script for url '${url}'`);
         }
@@ -198,7 +207,8 @@ class RedirectHostsManager {
     }
 
     async executeContentScript() {
-        let runnable = this.getHosts(location.href).find(host => host.canExec);
+        let parent = await this.getParent();
+        let runnable = this.getHosts(location.href, parent).find(host => host.canExec);
         if(runnable) {
             let enabled = await runnable.isEnabled();
             if(enabled) {
@@ -235,9 +245,8 @@ class RedirectHostsManager {
         });
         let enabled = await this.getHostsEnabled();
         chrome.webRequest.onBeforeRequest.addListener((details)=>{
-            let query = Tools.parseURL(details.url).query;
-            if(!query["isOV"] && !query["OVReferer"]) {
-                let host = this.getHosts(details.url).find(el => el.runAsPlayerScript);
+            if(!details.initiator || !Environment.isExtensionPage(details.initiator)) {
+                let host = this.getHosts(details.url, null).find(el => el.runAsPlayerScript);
                 if(host && enabled[host.hostname]) {
                     return { redirectUrl: Environment.getVidPlaySiteUrl({ url: details.url }) }
                 }

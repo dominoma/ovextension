@@ -3,8 +3,8 @@ import { RedirectHost, RedirectScript } from "redirect_scripts_base";
 import * as Tools from "OV/tools";
 
 class MP4UploadScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?mp4upload\.[^\/,^\.]{2,}\/embed\-.+/i)
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?mp4upload\.[^\/,^\.]{2,}\/embed\-.+/i)
     }
     async getVideoData() {
         let xhr = await Tools.createRequest({ url: this.details.url, hideRef: true });

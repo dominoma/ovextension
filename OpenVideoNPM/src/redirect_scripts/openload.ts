@@ -4,8 +4,8 @@ import * as Tools from "OV/tools";
 import * as Analytics from "OV/analytics";
 
 class OpenLoadScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
     }
     async getVideoData() {
         if (this.details.url.indexOf("openload.co") == -1) {

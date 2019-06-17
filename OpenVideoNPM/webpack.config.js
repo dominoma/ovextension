@@ -71,15 +71,7 @@ module.exports = {
     },
     plugins: [
         new CleanWebpackPlugin([
-            'OpenVideo.zip',
-            'dist/**/*.map',
-            'dist/*.js',
-            'dist/pages/**/*.js',
-            'dist/background_scripts/**/*.js',
-            'dist/content_scripts/**/*.js',
-            'dist/inject_scripts/**/*.js',
-
-            'dist/proxy_scripts/**/*.js'
+            'OpenVideo.zip'
         ]),
         new CircularDependencyPlugin({
             // exclude detection of files based on a RegExp

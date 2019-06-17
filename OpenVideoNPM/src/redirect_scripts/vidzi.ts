@@ -4,8 +4,8 @@ import * as Tools from "OV/tools";
 import * as VideoTypes from "video_types";
 
 class VidziScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?vidzi\.[^\/,^\.]{2,}\/.+/i)
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?vidzi\.[^\/,^\.]{2,}\/.+/i)
     }
     async getVideoData() {
         if (this.details.url.indexOf("embed-") != -1) {

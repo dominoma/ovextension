@@ -5,8 +5,8 @@ import * as VideoTypes from "video_types";
 import * as Page from "OV/page";
 
 class VevIOScript extends RedirectScript {
-    constructor(hostname : string, url : string) {
-        super(hostname, url, /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i)
+    constructor(hostname : string, url : string, parentUrl : string | null) {
+        super(hostname, url, parentUrl,  /https?:\/\/(www\.)?vev\.[^\/,^\.]{2,}\/.+/i)
     }
     get runAsContentScript() {
         return true;
