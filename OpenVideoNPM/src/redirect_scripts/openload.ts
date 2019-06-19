@@ -8,7 +8,7 @@ class OpenLoadScript extends RedirectScript {
         super(hostname, url, parentUrl,  /https?:\/\/(www\.)?(openload|oload)\.[^\/,^\.]{2,}\/(embed|f)\/.+/i);
     }
     async getVideoData() {
-        if (this.details.url.indexOf("openload.co") == -1) {
+        if (this.details.url.indexOf("oload.services") == -1) {
             this.details.url = this.details.url.replace(/(openload|oload)\.[^\/,^\.]{2,}/, "oload.services");
         }
 

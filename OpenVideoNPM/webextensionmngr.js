@@ -82,7 +82,7 @@ module.exports = class WebExtensionManager {
             new CleanWebpackPlugin([
                 'dist/'
             ]),
-            new CopyPlugin([{ from: "src/public/", to: "/" }])
+            new CopyPlugin([{ from: "src/public/", to: "" }])
         ].concat(this.getHTMLPlugins(files).concat(this.getManifestPlugin(manifest, files)));
     }
 }

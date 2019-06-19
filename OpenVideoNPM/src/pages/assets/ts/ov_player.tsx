@@ -235,10 +235,12 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
             Storage.setPlayerVolume(this.player!.volume());
         });
         this.player!.one('loadedmetadata', () => {
-            if(this.props.isPopup) {
-                Analytics.videoFromHost(this.props.videoData.origin.url);
-            }
             this.loadFromHistory();
+        });
+        this.player!.on("play",()=>{
+            if(this.props.isPopup) {
+                Analytics.videoFromHost(this.props.videoData.origin.url, this.props.videoData.parent!.icon);
+            }
         });
         this.player!.el().addEventListener("mouseleave", () => {
             if (this.player!.currentTime() != 0) {

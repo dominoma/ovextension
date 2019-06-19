@@ -3,6 +3,12 @@ video {
     outline: none;
 }
 .video-js {
+    * {
+        outline: none;
+    }
+    .vjs-menu {
+        z-index: 100;
+    }
     display: flex;
     .vjs-big-play-button {
         background: url('../png/logo256.png') no-repeat;
@@ -77,7 +83,8 @@ video {
         }
     }
     .vjs-progress-control {
-        height: unset;
+        height: 1.8em;
+        align-items: flex-end;
         position: absolute;
         width: 100%;
         bottom: 100%;

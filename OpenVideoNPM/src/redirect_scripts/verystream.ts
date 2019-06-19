@@ -17,7 +17,7 @@ class VeryStreamScript extends RedirectScript {
         let videoLink = html.match(/<p.*id="videolink".*>([^<]*)<\/p>/)[1];
 
         let src = {
-            src: "/gettoken/"+videoLink+"?mime=true",
+            src: "https://verystream.com/gettoken/"+videoLink+"?mime=true",
             type: "video/mp4",
             label: "SD"
         }

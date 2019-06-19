@@ -52,8 +52,8 @@ export async function tracksFound(hoster : string, url : string) {
 export async function playerEvent(event : string) {
     return fireEvent(event, "PlayerEvent", "");
 }
-export async function videoFromHost(url : string) {
-    return fireEvent("VideoFromHost", Tools.parseURL(url).host, "");
+export async function videoFromHost(url : string, isFrame : string) {
+    return fireEvent("VideoFromHost", Tools.parseURL(url).host, isFrame);
 }
 export async function fullscreenError(url : string, parentUrl : string) {
     return fireEvent("FullscreenError", "FullscreenError", `IFrame: '${url}'\nPage: '${parentUrl}'\nVersion: ${Environment.getManifest().version}`)
