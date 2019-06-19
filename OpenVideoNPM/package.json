@@ -17,6 +17,7 @@
     "awesome-typescript-loader": "^5.2.1",
     "circular-dependency-plugin": "^5.0.2",
     "clean-webpack-plugin": "^1.0.0",
+    "copy-webpack-plugin": "^5.0.3",
     "css-loader": "^2.1.0",
     "file-loader": "^3.0.1",
     "filemanager-webpack-plugin": "^2.0.5",

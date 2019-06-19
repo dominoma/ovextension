@@ -4,7 +4,7 @@
     "name": "OpenVideo FastStream",
     "short_name": "OpenVideo",
     "description": "__MSG_extDescr__",
-    "version": "1.12.3",
+    "version": "1.12.8",
     "content_security_policy": "script-src 'self'; object-src 'self';",
     "browser_action": {
         "default_icon": "assets/icons/logo256.png",
@@ -47,8 +47,7 @@
     "web_accessible_resources": [
         "${search_videos}$",
         "${videopopup}$",
-        "${videoplay}$",
-        "${vendorPath}$"
+        "${videoplay}$"
     ],
     "content_scripts": [
         {

@@ -1,5 +1,7 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
 const SingleEntryPlugin = require("webpack/lib/SingleEntryPlugin");
 const MultiEntryPlugin = require("webpack/lib/MultiEntryPlugin");
 
@@ -76,6 +78,11 @@ module.exports = class WebExtensionManager {
         });
     }
     getPlugins(files, manifest) {
-        return this.getHTMLPlugins(files).concat(this.getManifestPlugin(manifest, files));
+        return [
+            new CleanWebpackPlugin([
+                'dist/'
+            ]),
+            new CopyPlugin([{ from: "src/public/", to: "" }])
+        ].concat(this.getHTMLPlugins(files).concat(this.getManifestPlugin(manifest, files)));
     }
 }

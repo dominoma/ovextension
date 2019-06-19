@@ -110,8 +110,6 @@ class Library extends React.Component<LibraryProps, LibraryState> {
         }))
     }
 }
-(window as any)["setPlaylists"] = Storage.setPlaylists;
-(window as any)["setPlaylistByID"] = Storage.setPlaylistByID;
 let hash = Page.getUrlObj() as LibraryProps || { nav: null, search: null };
 ReactDOM.render(<Library nav={hash.nav} search={hash.search}/>, document.body);
 Messages.setupMiddleware();

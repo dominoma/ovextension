@@ -92,17 +92,115 @@ export async function getPlaylists() {
 export async function setPlaylists(playlists : { id: string, name: string }[]) {
     return sync.set("library_playlists", playlists);
 }
-export async function getPlaylistByID(id : string) {
-    if(id == fixed_playlists.history.id) {
-        return await local.get("library_playlist_"+id) as VideoTypes.VideoRefData[] || [];
+export module playlist_old {
+
+    export async function getPlaylistByID(id : string) {
+        if(id == fixed_playlists.history.id) {
+            return await local.get("library_playlist_"+id) as VideoTypes.VideoRefData[] || [];
+        }
+        return await sync.get("library_playlist_"+id) as VideoTypes.VideoRefData[] || [];
     }
-    return await sync.get("library_playlist_"+id) as VideoTypes.VideoRefData[] || [];
+    export async function setPlaylistByID(id : string, playlist : VideoTypes.VideoRefData[]) {
+        if(id == fixed_playlists.history.id) {
+            return local.set("library_playlist_"+id, playlist);
+        }
+        return sync.set("library_playlist_"+id, playlist);
+    }
+    export async function convertToNew() {
+        let playlists = await getPlaylists();
+        let content = await Promise.all(playlists.map(async (playlist)=>{
+            let videos = await getPlaylistByID(playlist.id);
+            return videos.map((video)=>{
+                return { data: video, playlists: [playlist.id] };
+            });
+        }));
+        let videos = content.reduce((acc, videos)=>{
+            videos.forEach((video)=>{
+                let index = acc.findIndex((accel)=>{
+                    return accel.data.origin.url == video.data.origin.url;
+                });
+                if(index == -1) {
+                    acc.push(video);
+                }
+                else {
+                    let accel = acc[index];
+                    accel.playlists = accel.playlists.concat(video.playlists);
+                    acc[index] = accel;
+                }
+            })
+            return acc;
+        }, []);
+
+        await local.set("library_playlist_videos", videos);
+    }
 }
-export async function setPlaylistByID(id : string, playlist : VideoTypes.VideoRefData[]) {
-    if(id == fixed_playlists.history.id) {
-        return local.set("library_playlist_"+id, playlist);
+export type PlayistVideo = {
+    data: VideoTypes.VideoRefData,
+    playlists: string[]
+}
+export async function getPlaylistEntry(video_origin : string) {
+    let videos = await local.get("library_playlist_videos") as PlayistVideo[];
+    return videos.find((el)=>{
+        return el.data.origin.url == video_origin;
+    })
+}
+export async function addToPlaylist(video : VideoTypes.VideoRefData, playlist_id : string) {
+    let videos = await local.get("library_playlist_videos") as PlayistVideo[];
+    let index = videos.findIndex((el)=>{
+        return el.data.origin.url == video.origin.url;
+    });
+    if(index == -1) {
+        videos.push({ data: video, playlists: [playlist_id] });
     }
-    return sync.set("library_playlist_"+id, playlist);
+    else {
+        let entry = videos[index];
+        entry.data = video;
+        if(!entry.playlists.some((el)=>{
+            return el == playlist_id;
+        })) {
+            entry.playlists.push(playlist_id);
+        }
+        videos[index] = entry;
+    }
+    await local.set("library_playlist_videos", videos);
+}
+export async function removeFromPlaylist(video_origin : string, playlist_id : string) {
+    let videos = await local.get("library_playlist_videos") as PlayistVideo[];
+    let index = videos.findIndex((el)=>{
+        return el.data.origin.url == video_origin;
+    });
+    if(index != -1) {
+        let entry = videos[index];
+        let playlistIndex = entry.playlists.findIndex((el)=>{
+            return el == playlist_id;
+        });
+        if(playlistIndex != -1) {
+            entry.playlists.splice(playlistIndex, 1);
+            if(entry.playlists.length == 0) {
+                videos.splice(index, 1);
+            }
+            await local.set("library_playlist_videos", videos);
+        }
+    }
+}
+export async function getPlaylistsWithVideo(video_origin : string) {
+    let entry = await getPlaylistEntry(video_origin);
+    if(entry) {
+        return entry.playlists;
+    }
+    else {
+        return [];
+    }
+}
+export async function getPlaylistVideos(playlist_id : string) {
+    let videos = await local.get("library_playlist_videos") as PlayistVideo[];
+    return videos.filter((entry)=>{
+        return entry.playlists.some((el)=>{
+            return el == playlist_id;
+        })
+    }).map((el)=>{
+        return el.data;
+    })
 }
 export async function getSearchSites() {
     return await sync.get("library_search_sites") as VideoTypes.PageRefData[] || [];

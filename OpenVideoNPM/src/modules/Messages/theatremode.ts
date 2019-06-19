@@ -237,7 +237,6 @@ export interface SetupIFrame {
     //frameID: string;
     width: number;
     height: number;
-    url: string;
 }
 export interface SetTheatreMode extends SetupIFrame {
     enabled: boolean;
@@ -257,9 +256,8 @@ export function setupIframe() {
     Background.toTopWindow({
         data: {
             width: window.innerWidth,
-            height: window.innerHeight,
+            height: window.innerHeight
             /*frameID: window.name*/
-            url: location.href
         } as SetupIFrame,
         func: "theatremode_setupIframe"
     });

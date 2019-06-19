@@ -59,6 +59,16 @@ export function addAttributeListener(elem: HTMLElement, attribute: string, callb
     observer.observe(elem, { attributes: true });
     return observer;
 }
+export async function awaitAttributeValue(elem: HTMLElement, attribute: string, wantedValue: string) {
+    return new Promise<void>((resolve)=>{
+        let obs = addAttributeListener(elem, attribute, (attr, value)=>{
+            if(value == wantedValue) {
+                obs.disconnect();
+                resolve();
+            }
+        })
+    })
+}
 export async function injectScript(file: string): Promise<HTMLScriptElement> {
     await isReady();
     return new Promise<HTMLScriptElement>(function(resolve, reject) {
@@ -75,7 +85,7 @@ export async function injectScript(file: string): Promise<HTMLScriptElement> {
 export async function injectRawScript(func: string, head ?: boolean): Promise<HTMLScriptElement> {
     await isReady();
     return new Promise<HTMLScriptElement>(function(resolve, reject) {
-        var script = document.createElement('script');
+        let script = document.createElement('script');
         script.innerHTML = "("+func+")();";
         script.async = !head;
         script.onload = function() {
@@ -90,6 +100,32 @@ export async function injectRawScript(func: string, head ?: boolean): Promise<HT
         }
     });
 };
+export async function injectFunction(script : (sendMsg: (data : any) => void) => any) {
+    return new Promise<any>((resolve)=>{
+        let hash = Tools.generateHash();
+        function createSend(hash : string) {
+            return function sendMsg(data : any) {
+                let ev = new CustomEvent("ovmessage", {
+                    detail: {
+                        hash: hash,
+                        data: data
+                    }
+                });
+                document.dispatchEvent(ev);
+            }
+        }
+        document.addEventListener("ovmessage", function one(ev){
+            let detail = (ev as CustomEvent).detail;
+            if(detail.hash == hash) {
+                document.removeEventListener("ovmessage", one);
+                resolve(detail.data);
+            }
+        });
+        let scriptTag = document.createElement('script');
+        scriptTag.innerHTML = "("+script+")(("+createSend+")("+hash+"));";
+        (document.body || document.head || document.documentElement).appendChild(scriptTag);
+    })
+}
 export async function injectScripts(files: string[]) {
     return Promise.all(files.map(injectScript));
 }

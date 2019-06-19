@@ -4,7 +4,7 @@ import * as Tools from "OV/tools";
 import * as Environment from "OV/environment";
 import * as Background from "Messages/background";
 import * as Messages from "OV/messages";
-import * as ScriptBase from "redirect_scripts_base";
+import ScriptManager from "redirect_scripts_base";
 import * as RedirectScripts from "../RedirectScripts";
 import * as Analytics from "OV/analytics";
 import * as VideoHistory from "Messages/videohistory";
@@ -12,10 +12,10 @@ import * as VideoHistory from "Messages/videohistory";
 async function LoadBGScripts() {
     //OV.proxy.addHostsFromScripts(ScriptBase.getRedirectHosts());
     Proxy.addHostsToList(["oloadcdn.", "198.16.68.146", "playercdn.", "fruithosted.", "fx.fastcontentdelivery."]);
-    let scripts = await ScriptBase.getRedirectHosts();
+    let scripts = await ScriptManager.hosts;
     Proxy.addHostsToList(scripts.map((el) => {
         return el.scripts.map((el) => {
-            return el.urlPattern;
+            return el.url;
         })
     }).reduce((acc, el) => {
         return acc.concat(el);
@@ -25,13 +25,14 @@ Environment.declareBGPage();
 Background.setup();
 Proxy.setupBG();
 Storage.setupBG();
-ScriptBase.setupBG();
-Analytics.setupBG();
 RedirectScripts.install();
+ScriptManager.setupBG();
+Analytics.setupBG();
 
 Proxy.loadFromStorage();
 
 VideoHistory.convertOldPlaylists();
+Storage.playlist_old.convertToNew();
 
 LoadBGScripts();
 chrome.runtime.setUninstallURL("https://goo.gl/forms/conIBydrACtZQR0A2");
@@ -44,7 +45,7 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 });
 chrome.runtime.onInstalled.addListener(async function(details) {
     if (details.reason == "install" || details.reason == "update") {
-        let redirectHosts = await ScriptBase.getRedirectHosts();
+        let redirectHosts = await ScriptManager.hosts;
         for(let script of redirectHosts) {
             Storage.setScriptEnabled(script.name, true);
         }
@@ -99,18 +100,19 @@ chrome.webRequest.onHeadersReceived.addListener(function(details) {
 );
 function beforeSendHeaders(details : chrome.webRequest.WebRequestHeadersDetails) {
 
-    var referer = Tools.getRefererFromURL(details.url);
-    if (referer) {
-
+    let refererHeader = getHeader(details.requestHeaders!, "OVReferer");
+    if (refererHeader) {
+        let referer = refererHeader.value!;
+        removeHeader(details.requestHeaders!, "OVReferer");
         setHeader(details.requestHeaders!, "Referer", referer);
         setHeader(details.requestHeaders!, "Origin", "https://"+Tools.parseURL(referer).host);
         return { requestHeaders: details.requestHeaders }
 
     }
-    else if (details.url.match(/[\?&]isOV=true/i)) {
-        console.log(details.requestHeaders, details.url)
+    else if (getHeader(details.requestHeaders!, "isOV")) {
         removeHeader(details.requestHeaders!, "Origin");
         removeHeader(details.requestHeaders!, "Referer");
+        removeHeader(details.requestHeaders!, "isOV");
         return { requestHeaders: details.requestHeaders }
 
     }
@@ -121,9 +123,9 @@ function beforeSendHeaders(details : chrome.webRequest.WebRequestHeadersDetails)
 try {
     chrome.webRequest.onBeforeSendHeaders.addListener(beforeSendHeaders,
         {
-            urls: ["*://*/*OVReferer=*", "*://*/*isOV*", "*://*/*ovreferer=*", "*://*/*isov*"]
+            urls: ["<all_urls>"]
         },
-        (Environment.browser() == Environment.Browsers.Chrome) ? ['blocking', 'requestHeaders', 'extraHeaders'] : ['blocking', 'requestHeaders']
+        ['blocking', 'requestHeaders', 'extraHeaders']
     );
 }
 catch(e) {

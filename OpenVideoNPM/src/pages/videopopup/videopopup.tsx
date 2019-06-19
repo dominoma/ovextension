@@ -3,6 +3,7 @@ import "./videopopup.scss";
 import * as Page from "OV/page";
 
 import * as VideoPopup from "Messages/videopopup";
+import * as Analytics from "OV/analytics";
 
 import * as VideoTypes from "video_types";
 import {OVPlayer} from "../assets/ts/ov_player";

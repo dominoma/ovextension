@@ -9,6 +9,26 @@ export function exportVar(name : string, value: any) {
 export function importVar(name : string) {
     return (window as any)[name];
 }
+export function convertToError(e : any) : Error {
+    if(e instanceof Error) {
+        return e;
+    }
+    else if(typeof e == "string") {
+        return new Error(e);
+    }
+    else {
+        let result = JSON.stringify(e);
+        if(result) {
+            return new Error(result);
+        }
+        else if(typeof e.toString == "function") {
+            return new Error(e.toString());
+        }
+        else {
+            return new Error("Unknown Error!");
+        }
+    }
+}
 export function accessWindow<T>(initValues: T) {
     return new Proxy<any>({},{
         get: function(target, key){
@@ -25,6 +45,18 @@ export function accessWindow<T>(initValues: T) {
             return true;
         }
     }) as T;
+}
+export function getTracksFromHTML(html : string) {
+    let subtitleTags = html.match(/<track(.*)\/>/g) || [];
+    let subtitles = [];
+    for (let subtitleTag of subtitleTags) {
+        let label = matchNull(subtitleTag, /label="([^"]*)"/);
+        let src = matchNull(subtitleTag, /src="([^"]*)"/);
+        if (src) {
+            subtitles.push({ kind: "captions", label: label, src: src, default: subtitleTag.indexOf("default") != -1 });
+        }
+    }
+    return subtitles;
 }
 export function generateHash(): string {
     var ts = Math.round(+new Date() / 1000.0);
@@ -215,7 +247,16 @@ export function addRefererToURL(url: string, referer: string) {
 export function getRefererFromURL(url: string) {
     var param = getParamFromURL(url, "OVReferer");
     if (param) {
-        return atob(decodeURIComponent(param));
+        let ref = param;
+        while(true) {
+            ref = decodeURIComponent(ref);
+            try {
+                return atob(ref);
+            }
+            catch(e) {
+
+            }
+        }
     }
     else {
         return null;
@@ -236,6 +277,7 @@ export interface Request {
     cache?: boolean;
     referer?: string;
     hideRef?: boolean;
+    ignore?: boolean;
     headers?: StringMap;
     xmlHttpObj?: XMLHttpRequest;
     formData?: StringMap;
@@ -247,14 +289,16 @@ export async function createRequest(args: Request): Promise<XMLHttpRequest> {
         let xmlHttpObj: XMLHttpRequest = args.xmlHttpObj  || new XMLHttpRequest();
         var type = args.type || HTTPMethods.GET;
         var protocol = args.protocol || "https://";
+        args.headers = args.headers || {};
+        args.data = args.data || {};
         if (args.referer) {
-            args.data = merge(args.data, { OVReferer: encodeURIComponent(btoa(args.referer)) });
+            args.headers = merge(args.headers, { OVReferer: args.referer });
         }
         else if (args.hideRef) {
-            args.data = merge(args.data, { isOV: "true" });
+            args.headers = merge(args.headers, { isOV: "true" });
         }
-        var url = addParamsToURL(args.url, args.data || {}).replace(/[^:]+:\/\//, protocol);
-
+        var url = addParamsToURL(args.url, args.data).replace(/[^:]+:\/\//, protocol);
+        console.log(xmlHttpObj.open,type, url);
         xmlHttpObj.open(type, url, true);
         xmlHttpObj.onload = function() {
             if (xmlHttpObj.status == 200) {
@@ -269,11 +313,8 @@ export async function createRequest(args: Request): Promise<XMLHttpRequest> {
 
             reject(Error("Network Error (url: '" + url + "')"));
         };
-
-        if (args.headers) {
-            for (var key in args.headers) {
-                xmlHttpObj.setRequestHeader(key, args.headers[key]);
-            }
+        for (var key in args.headers) {
+            xmlHttpObj.setRequestHeader(key, args.headers[key]);
         }
         let formData: FormData|null = null;
         if (args.formData) {

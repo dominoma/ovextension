@@ -16,18 +16,18 @@ import * as Background from "Messages/background";
 
 (window as any)["Worker"] = undefined;
 Messages.setupMiddleware();
-Page.wrapType(XMLHttpRequest, {
+/*Page.wrapType(XMLHttpRequest, {
     open: {
         get: function(target) {
-            return function(method: string, url: string) {
-                if (OVPlayer.player && OVPlayer.player.currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
-                    arguments[1] = Tools.addRefererToURL(url, Page.getUrlObj().origin);
-                }
-                target.open.apply(target, arguments as any);
+            if(OVPlayer.getInstance()) {
+                return OVPlayer.getInstance()!.httpReqOpenOverride(target);
+            }
+            else {
+                return target.open;
             }
         }
     }
-});
+});*/
 import videojs from "video.js";
 import * as OVPlayerComponents from "./ov_player_components";
 import "videojs-hotkeys/videojs.hotkeys.js";
@@ -48,14 +48,35 @@ export interface Player extends videojs.Player {
 }
 export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
 
-    static player : Player | null = null;
+    private player : Player | null = null;
     private videoNode : HTMLVideoElement | null = null;
     private srtSelector = document.createElement("input") as HTMLInputElement;
+
+    private static instance : OVPlayer | null = null;
+
+    static getInstance() {
+        return OVPlayer.instance;
+    }
+
+    constructor(props : OVPlayerProps) {
+        super(props);
+        OVPlayer.instance = this;
+    }
+
+    httpReqOpenOverride(target : XMLHttpRequest) {
+        return (method: string, url: string) => {
+            console.log("HALLO");
+            if (this.player && this.player.currentType().match(/application\//i) && /\.(ts|m3u8)$/.test(url)) {
+                url = Tools.addRefererToURL(url, this.props.videoData.origin.url);
+            }
+            target.open(method, url);
+        }
+    }
 
     componentDidMount() {
         // instantiate Video.js
         this.setupSrtSelector();
-        OVPlayer.player = videojs(this.videoNode, Tools.merge(this.props.options, {
+        this.player = videojs(this.videoNode, Tools.merge(this.props.options, {
             plugins: {
 
             },
@@ -68,9 +89,9 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
 
     // destroy player on unmount
     componentWillUnmount() {
-        if (OVPlayer.player) {
-            OVPlayer.player.dispose()
-            OVPlayer.player = null;
+        if (this.player) {
+            this.player.dispose()
+            this.player = null;
         }
     }
     componentDidUpdate(oldProps : OVPlayerProps) {
@@ -98,20 +119,11 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
         }
         else if(cmd == "addToPlaylist") {
             let id = (data as Storage.Playlist).id;
-            let videos = await Storage.getPlaylistByID(id);
-            videos.push(await this.getVideoRefData());
-            Storage.setPlaylistByID(id, videos);
+            await Storage.addToPlaylist(await this.getVideoRefData(), id);
         }
         else if(cmd == "removeFromPlaylist") {
             let id = (data as Storage.Playlist).id;
-            let videos = await Storage.getPlaylistByID(id);
-            var itemIndex = videos.findIndex((arrElem) => {
-                return arrElem.origin.url == this.props.videoData.origin.url;
-            });
-            if(itemIndex != -1) {
-                videos.splice(itemIndex, 1);
-                Storage.setPlaylistByID(id, videos);
-            }
+            Storage.removeFromPlaylist(this.props.videoData.origin.url, id);
         }
     }
     downloadSource(src : VideoTypes.VideoSource) {
@@ -148,8 +160,8 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
             collection.onload = () => {
                 let result = collection.result as string;
                 if (result.indexOf("-->") !== -1) {
-                    OVPlayer.player!.addTextTrack("captions", this.srtSelector.files![0].name, "AddedFromUser");
-                    var track = OVPlayer.player!.textTracks()[OVPlayer.player!.textTracks().length - 1];
+                    this.player!.addTextTrack("captions", this.srtSelector.files![0].name, "AddedFromUser");
+                    var track = this.player!.textTracks()[this.player!.textTracks().length - 1];
                     parseSrt(result, function(cue) {
                         track.addCue(cue);
                     });
@@ -161,16 +173,16 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
         });
     }
     async playerReady() {
-        OVPlayer.player!.execute = this.execute.bind(this);
+        this.player!.execute = this.execute.bind(this);
 
-        OVPlayer.player!.hotkeys({
+        this.player!.hotkeys({
             volumeStep: 0.1,
             seekStep: 5,
             enableModifiersForNumbers: false
         });
-        (OVPlayer.player!.el() as HTMLElement).style.width = "100%";
-        (OVPlayer.player!.el() as HTMLElement).style.height = "100%";
-        let ControlBar = OVPlayer.player!.getChild('controlBar');
+        (this.player!.el() as HTMLElement).style.width = "100%";
+        (this.player!.el() as HTMLElement).style.height = "100%";
+        let ControlBar = this.player!.getChild('controlBar');
         if(!ControlBar) {
             throw new Error("Control bar is missing!");
         }
@@ -181,29 +193,24 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
         CaptionsButton.show();
         let playlists = await Storage.getPlaylists();
         playlists.splice(0,1);
-        let playlistscontent = await Promise.all(playlists.map(async (el)=>{
-            let videos = await Storage.getPlaylistByID(el.id);
-            return { playlist: el, videos: videos };
-        }));
-        let active = playlistscontent.filter((el)=>{
-            return el.videos.some((video)=>{
-                return video.origin.url == this.props.videoData.origin.url;
+        let activeIds = await Storage.getPlaylistsWithVideo(this.props.videoData.origin.url);
+        let active = playlists.filter((el)=>{
+            return activeIds.some((id)=>{
+                return id == el.id;
             })
-        }).map((el)=>{
-            return el.playlist;
         });
         var PlaylistButton = ControlBar.addChild("vjsPlaylistButton",{ playlists: playlists, active: active });
 
 
         console.log("player is ready");
-        OVPlayer.player!.on("ratechange", () => {
-            Analytics.fireEvent("PlaybackRate", "PlayerEvent", this.props.videoData.origin.url);
+        this.player!.on("ratechange", () => {
+            Analytics.playerEvent("PlaybackRate");
         });
         FullscreenToggle.on("click", () => {
             window.setTimeout(() => {
-                if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && OVPlayer.player!.isFullscreen()) {
+                if (Environment.browser() == Environment.Browsers.Chrome && !(document as any).fullscreen && this.player!.isFullscreen()) {
                     console.log("FULLSCREEN ERROR");
-                    Analytics.fireEvent("FullscreenError", "FullscreenError", "IFrame: '" + this.props.videoData.origin + "' Page: '<PAGE_URL>', Version: " + Environment.getManifest().version)
+                    Analytics.fullscreenError(this.props.videoData.origin.url, (this.props.videoData.parent || {} as any).url)
                 }
             }, 1000);
         });
@@ -213,8 +220,8 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
         if(!this.props.isPopup && Page.isFrame()) {
             var TheaterButton = ControlBar.addChild('vjsTheatreButton', {});
             ControlBar.el().insertBefore(TheaterButton.el(), FullscreenToggle.el());
-            OVPlayer.player!.on("fullscreenchange", () => {
-                if(OVPlayer.player!.isFullscreen()) {
+            this.player!.on("fullscreenchange", () => {
+                if(this.player!.isFullscreen()) {
                     (TheaterButton.el() as HTMLElement).style.display = "none";
                 }
                 else {
@@ -223,31 +230,36 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
             });
         }
         let volume = await Storage.getPlayerVolume();
-        OVPlayer.player!.volume(volume);
-        OVPlayer.player!.on('volumechange', () => {
-            Storage.setPlayerVolume(OVPlayer.player!.volume());
+        this.player!.volume(volume);
+        this.player!.on('volumechange', () => {
+            Storage.setPlayerVolume(this.player!.volume());
         });
-        OVPlayer.player!.one('loadedmetadata', () => {
+        this.player!.one('loadedmetadata', () => {
             this.loadFromHistory();
         });
-        OVPlayer.player!.el().addEventListener("mouseleave", () => {
-            if (OVPlayer.player!.currentTime() != 0) {
+        this.player!.on("play",()=>{
+            if(this.props.isPopup) {
+                Analytics.videoFromHost(this.props.videoData.origin.url, this.props.videoData.parent!.icon);
+            }
+        });
+        this.player!.el().addEventListener("mouseleave", () => {
+            if (this.player!.currentTime() != 0) {
                 this.saveToHistory();
             }
         });
         if(this.props.onError) {
-            OVPlayer.player!.on('error', () => {
+            this.player!.on('error', () => {
                 if(this.props.onError) {
-                    this.props.onError(OVPlayer.player!);
+                    this.props.onError(this.player!);
                 }
             });
         }
         if(!this.props.isPopup) {
-            OVPlayer.player!.on('error', () => {
-                if ((OVPlayer.player! as any).readyState() == 0) {
+            this.player!.on('error', () => {
+                if ((this.player! as any).readyState() == 0) {
                     //if(Response.status == 404 || Response.status == 400 || Response.status == 403) {
 
-                    Analytics.fireEvent(this.props.videoData.origin.name, "Error", JSON.stringify(Environment.getErrorMsg({ msg: OVPlayer.player!.error()!.message, url: this.props.videoData.origin.url })));
+                    Analytics.hosterError(this.props.videoData.origin.name,{ msg: this.player!.error()!.message, url: this.props.videoData.origin.url });
                     //}
                     //document.location.replace(Hash.vidSiteUrl + (Hash.vidSiteUrl.indexOf("?") == -1 ? "?" : "&") + "ignoreRequestCheck=true");
                 }
@@ -261,7 +273,7 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
             });
         }
         this.setVideoData(this.props.videoData);
-        OVPlayer.player!.controls(true);
+        this.player!.controls(true);
     }
     // wrap the player in a div with a `data-vjs-player` attribute
     // so videojs won't create additional wrapper in the DOM
@@ -282,8 +294,8 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
         let convertToTrack = (srcContent : string) => {
             if (srcContent.indexOf("-->") !== -1) {
 
-                OVPlayer.player!.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
-                let track = OVPlayer.player!.textTracks()[OVPlayer.player!.textTracks().length - 1];
+                this.player!.addTextTrack(rawTrack.kind, rawTrack.label, rawTrack.language);
+                let track = this.player!.textTracks()[this.player!.textTracks().length - 1];
                 if (rawTrack.default) {
                     track.mode = "showing";
                 }
@@ -306,7 +318,7 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
     }
     getActiveVideoSource(): VideoTypes.VideoSource {
         for (let src of this.props.videoData.src) {
-            if (OVPlayer.player!.src().indexOf(src.src) == 0) {
+            if (this.player!.src().indexOf(src.src) == 0) {
                 return src;
             }
         }
@@ -315,15 +327,16 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
     setVideoData(videoData: VideoTypes.VideoData) {
 
 
-        OVPlayer.player!.poster(videoData.poster);
+        this.player!.poster(videoData.poster);
         var srces = videoData.src;
         if (srces.length == 1) {
-            OVPlayer.player!.src(srces[0]);
+            this.player!.src(srces[0]);
         }
         else {
-            let quality = OVPlayer.player!.controlBar.addChild("vjsQualityButton", { sources: srces });
-            let fullscreen = OVPlayer.player!.controlBar.getChild("fullscreenToggle");
-            OVPlayer.player!.controlBar.el().insertBefore(quality.el(), fullscreen!.el());
+            let quality = this.player!.controlBar.addChild("vjsQualityButton", { sources: srces });
+            let button = this.player!.controlBar.getChild("vjsTheatreButton")
+                || this.player!.controlBar.getChild("fullscreenToggle");
+            this.player!.controlBar.el().insertBefore(quality.el(), button!.el());
         }
         for (let track of videoData.tracks) {
             this.appendTextTrack(track);
@@ -331,48 +344,28 @@ export class OVPlayer extends React.Component<OVPlayerProps, OVPlayerState> {
         }
 
     }
-    async getVideoRefData(history ?: VideoTypes.VideoRefData[]) {
-        history = history || await Storage.getPlaylistByID(Storage.fixed_playlists.history.id);
-        var itemIndex = history.findIndex((arrElem) => {
-            return arrElem.origin.url == this.props.videoData.origin.url;
-        });
+    async getVideoRefData() {
+        let entry = await Storage.getPlaylistEntry(this.props.videoData.origin.url);
         return {
             poster: this.props.videoData.poster,
             title: this.props.videoData.title,
             origin: this.props.videoData.origin,
-            parent: this.props.videoData.parent || (history[itemIndex] ? history[itemIndex].parent : null),
-            watched: OVPlayer.player!.currentTime() == OVPlayer.player!.duration() ? 0 : OVPlayer.player!.currentTime(),
-            duration: OVPlayer.player!.duration()
+            parent: this.props.videoData.parent || (entry ? entry.data.parent : null),
+            watched: this.player!.currentTime() == this.player!.duration() ? 0 : this.player!.currentTime(),
+            duration: this.player!.duration()
         };
     }
     async saveToHistory() {
         let isEnabled = await Storage.isHistoryEnabled();
         if (isEnabled) {
-            let history = await Storage.getPlaylistByID(Storage.fixed_playlists.history.id);
-            var itemIndex = history.findIndex((arrElem) => {
-                return arrElem.origin.url == this.props.videoData.origin.url;
-            });
-            var histHash = await this.getVideoRefData(history);
-            histHash.parent = histHash.parent
-            if (itemIndex != -1) {
-                history.splice(itemIndex, 1);
-            }
-            history.unshift(histHash);
-            if(history.length > 100) {
-                history = history.slice(0, 99);
-            }
-            Storage.setPlaylistByID(Storage.fixed_playlists.history.id, history);
-            //});
+            var videoData = await this.getVideoRefData();
+            Storage.addToPlaylist(videoData, Storage.fixed_playlists.history.id);
         }
     }
     async loadFromHistory() {
-        let history = await Storage.getPlaylistByID(Storage.fixed_playlists.history.id);
-
-        var item = history.find((arrElem) => {
-            return arrElem.origin.url == this.props.videoData.origin.url;
-        });
-        if (item) {
-            OVPlayer.player!.currentTime(item.watched);
+        let entry = await Storage.getPlaylistEntry(this.props.videoData.origin.url)
+        if (entry) {
+            this.player!.currentTime(entry.data.watched);
         }
 
     }

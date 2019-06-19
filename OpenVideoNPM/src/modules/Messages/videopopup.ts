@@ -27,7 +27,7 @@ function _isPopupVisible(): boolean {
 function isPopupCreated(): boolean {
     return document.getElementById("videoPopup") != undefined;
 }
-async function _addVideoToPopup(videoData: VideoTypes.RawVideoData) {
+async function _addVideoToPopup(videoData: VideoTypes.RawVideoData, isFrame : boolean) {
     let src = videoData.src;
     let origin = await VideoHistory.getPageRefData();
     let videoListEntry = videoArr.find(function(arrElem) {
@@ -40,7 +40,7 @@ async function _addVideoToPopup(videoData: VideoTypes.RawVideoData) {
             parent: {
                 url: "POPUP",
                 name: "POPUP",
-                icon: "POPUP"
+                icon: isFrame+""
             }
         }));
         newVideos++;
@@ -84,7 +84,7 @@ export function closePopup() {
 }
 export function addVideoToPopup(videoData: VideoTypes.RawVideoData) {
     console.log(videoData);
-    Background.toTopWindow({ data: { videoData: VideoTypes.makeURLsSave(videoData) }, func: "videopopup_addVideoToPopup" });
+    Background.toTopWindow({ data: { videoData: VideoTypes.makeURLsSave(videoData), isFrame: Page.isFrame() }, func: "videopopup_addVideoToPopup" });
 }
 export function setup() {
     Messages.addListener({
@@ -110,7 +110,7 @@ export function setup() {
             setIconOpensPopup(true);
         },
         videopopup_addVideoToPopup: async function(request) {
-            _addVideoToPopup(request.data.videoData);
+            _addVideoToPopup(request.data.videoData, request.data.isFrame);
             setIconOpensPopup(true);
         }
     });

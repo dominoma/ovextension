@@ -29,7 +29,12 @@ class VideoJSSearcher extends VideoSearcher {
     }
     private getSrces(player : videojs.Player) {
         let hash : Array<VideoTypes.VideoSource>;
-        if(player.options_.sources && player.options_.sources.length > 0) {
+        if((player as any).getGroupedSrc) {
+            hash = ((Object as any).values((player as any).getGroupedSrc().label) as any[]).reduce((arr, srces)=>{
+                return arr.concat(srces);
+            }, []);
+        }
+        else if(player.options_.sources && player.options_.sources.length > 0) {
             hash = player.options_.sources as Array<VideoTypes.VideoSource>;
         }
         else if(player.getCache().sources) {
@@ -63,11 +68,13 @@ class VideoJSSearcher extends VideoSearcher {
         for(let i = 0;i<player.textTracks().length;i++) {
             let textTrack = player.textTracks()[i] as any;
             var track = { src: "", kind: "", language: "", label: "", default: false, cues: [] as VideoTypes.VTTCue[] };
-            if(textTrack.options_ &&  textTrack.options_.src) {
-                track.src = textTrack.options_.src;
+            let options = (textTrack.options_ || textTrack.options);
+            let cues = textTrack.cues_ || textTrack.cues;
+            if(options && options.src) {
+                track.src = options.src;
             }
-            else if(textTrack.cues_.length != 0) {
-                for(let cue of textTrack.cues_) {
+            else if(cues && cues.length != 0) {
+                for(let cue of cues) {
                     track.cues.push({ startTime: cue.startTime, endTime: cue.endTime, text: cue.text, id: "", pauseOnExit: false });
                 };
             }
